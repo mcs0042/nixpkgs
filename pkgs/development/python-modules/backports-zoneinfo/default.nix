@@ -1,5 +1,5 @@
 { lib, buildPythonPackage, fetchFromGitHub
-, pythonOlder
+, pythonAtLeast
 , python
 , substituteAll
 , importlib-resources
@@ -12,7 +12,7 @@ buildPythonPackage rec {
   pname = "backports-zoneinfo";
   version = "0.2.1";
 
-  disabled = pythonOlder "3.9";
+  disabled = pythonAtLeast "3.9";
 
   src = fetchFromGitHub {
     owner = "pganssle";
