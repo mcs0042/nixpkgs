@@ -1,5 +1,6 @@
 { lib, buildPythonPackage, fetchFromGitHub
 , pythonAtLeast
+, pythonOlder
 , python
 , substituteAll
 , importlib-resources
