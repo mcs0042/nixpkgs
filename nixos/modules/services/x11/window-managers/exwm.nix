@@ -33,7 +33,7 @@ in
         '';
       };
       enableDefaultConfig = mkOption {
-        default = true;
+        default = false;
         type = lib.types.bool;
         description = "Enable an uncustomised exwm configuration.";
       };
