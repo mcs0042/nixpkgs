@@ -406,6 +406,24 @@
       </listitem>
       <listitem>
         <para>
+          <literal>fonts.fonts</literal> no longer includes ancient
+          bitmap fonts when both
+          <literal>config.services.xserver.enable</literal> and
+          <literal>config.nixpkgs.config.allowUnfree</literal> are
+          enabled. If you still want these fonts, use:
+        </para>
+        <programlisting language="bash">
+{
+  fonts.fonts = [
+    pkgs.xorg.fontbhlucidatypewriter100dpi
+    pkgs.xorg.fontbhlucidatypewriter75dpi
+    pkgs.xorg.fontbh100dpi
+  ];
+}
+</programlisting>
+      </listitem>
+      <listitem>
+        <para>
           The DHCP server (<literal>services.dhcpd4</literal>,
           <literal>services.dhcpd6</literal>) has been hardened. The
           service is now using the systemd’s
@@ -1288,6 +1306,15 @@
           can be found in
           <literal>pkgs.theLoungePlugins.plugins</literal> and
           <literal>pkgs.theLoungePlugins.themes</literal>.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          The option
+          <literal>services.xserver.videoDriver = [ &quot;nvidia&quot; ];</literal>
+          will now also install
+          <link xlink:href="https://github.com/elFarto/nvidia-vaapi-driver">nvidia
+          VA-API drivers</link> by default.
         </para>
       </listitem>
       <listitem>
