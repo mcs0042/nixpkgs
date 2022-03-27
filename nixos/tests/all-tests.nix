@@ -472,6 +472,7 @@ in
   seafile = handleTest ./seafile.nix {};
   searx = handleTest ./searx.nix {};
   service-runner = handleTest ./service-runner.nix {};
+  sfxr-qt = handleTest ./sfxr-qt.nix {};
   shadow = handleTest ./shadow.nix {};
   shadowsocks = handleTest ./shadowsocks {};
   shattered-pixel-dungeon = handleTest ./shattered-pixel-dungeon.nix {};
@@ -519,7 +520,7 @@ in
   systemd-networkd-vrf = handleTest ./systemd-networkd-vrf.nix {};
   systemd-nspawn = handleTest ./systemd-nspawn.nix {};
   systemd-timesyncd = handleTest ./systemd-timesyncd.nix {};
-  systemd-unit-path = handleTest ./systemd-unit-path.nix {};
+  systemd-misc = handleTest ./systemd-misc.nix {};
   taskserver = handleTest ./taskserver.nix {};
   teeworlds = handleTest ./teeworlds.nix {};
   telegraf = handleTest ./telegraf.nix {};

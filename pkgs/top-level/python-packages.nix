@@ -198,6 +198,8 @@ in {
     inherit (pkgs.darwin.apple_sdk.frameworks) CoreFoundation Security;
   };
 
+  add-trailing-comma = callPackage ../development/python-modules/add-trailing-comma { };
+
   addict = callPackage ../development/python-modules/addict { };
 
   addic7ed-cli = callPackage ../development/python-modules/addic7ed-cli { };
@@ -522,6 +524,8 @@ in {
 
   ansible-kernel = callPackage ../development/python-modules/ansible-kernel { };
 
+  ansible-later = callPackage ../development/python-modules/ansible-later { };
+
   ansible-lint = callPackage ../development/python-modules/ansible-lint { };
 
   ansible-runner = callPackage ../development/python-modules/ansible-runner { };
@@ -545,6 +549,8 @@ in {
   anyascii = callPackage ../development/python-modules/anyascii { };
 
   anybadge = callPackage ../development/python-modules/anybadge { };
+
+  anyconfig = callPackage ../development/python-modules/anyconfig { };
 
   anyio = callPackage ../development/python-modules/anyio { };
 
@@ -5467,6 +5473,8 @@ in {
 
   nest-asyncio = callPackage ../development/python-modules/nest-asyncio { };
 
+  nested-lookup = callPackage ../development/python-modules/nested-lookup { };
+
   nestedtext = callPackage ../development/python-modules/nestedtext { };
 
   net2grid = callPackage ../development/python-modules/net2grid { };
@@ -5986,6 +5994,8 @@ in {
   patch-ng = callPackage ../development/python-modules/patch-ng { };
 
   path-and-address = callPackage ../development/python-modules/path-and-address { };
+
+  pathable = callPackage ../development/python-modules/pathable { };
 
   pathlib2 = callPackage ../development/python-modules/pathlib2 { };
 
