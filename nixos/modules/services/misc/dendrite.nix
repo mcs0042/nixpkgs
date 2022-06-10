@@ -74,6 +74,18 @@ in
         <literal>dendrite</literal> is running.
       '';
     };
+    loadCredential = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "private_key:/path/to/my_private_key" ];
+      description = ''
+        This can be used to pass secrets to the systemd service without adding them to
+        the nix store.
+        To use the example setting, see the example of
+        <option>services.dendrite.settings.global.private_key</option>.
+        See the LoadCredential section of systemd.exec manual for more information.
+      '';
+    };
     settings = lib.mkOption {
       type = lib.types.submodule {
         freeformType = settingsFormat.type;
@@ -88,8 +100,10 @@ in
             '';
           };
           private_key = lib.mkOption {
-            type = lib.types.path;
-            example = "${workingDir}/matrix_key.pem";
+            type = lib.types.either
+              lib.types.path
+              (lib.types.strMatching "^\\$CREDENTIALS_DIRECTORY/.+");
+            example = "$CREDENTIALS_DIRECTORY/private_key";
             description = ''
               The path to the signing private key file, used to sign
               requests and events.
@@ -222,6 +236,13 @@ in
         for available options with which to populate settings.
       '';
     };
+    openRegistration = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Allow open registration without secondary verification (reCAPTCHA).
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -247,15 +268,14 @@ in
         WorkingDirectory = workingDir;
         RuntimeDirectory = "dendrite";
         RuntimeDirectoryMode = "0700";
+        LimitNOFILE = 65535;
         EnvironmentFile = lib.mkIf (cfg.environmentFile != null) cfg.environmentFile;
-        ExecStartPre =
-          if (cfg.environmentFile != null) then ''
-            ${pkgs.envsubst}/bin/envsubst \
-              -i ${configurationYaml} \
-              -o /run/dendrite/dendrite.yaml
-          '' else ''
-            ${pkgs.coreutils}/bin/cp ${configurationYaml} /run/dendrite/dendrite.yaml
-          '';
+        LoadCredential = cfg.loadCredential;
+        ExecStartPre = ''
+          ${pkgs.envsubst}/bin/envsubst \
+            -i ${configurationYaml} \
+            -o /run/dendrite/dendrite.yaml
+        '';
         ExecStart = lib.strings.concatStringsSep " " ([
           "${pkgs.dendrite}/bin/dendrite-monolith-server"
           "--config /run/dendrite/dendrite.yaml"
@@ -265,6 +285,8 @@ in
           "--https-bind-address :${builtins.toString cfg.httpsPort}"
           "--tls-cert ${cfg.tlsCert}"
           "--tls-key ${cfg.tlsKey}"
+        ] ++ lib.optionals cfg.openRegistration [
+          "--really-enable-open-registration"
         ]);
         ExecReload = "${pkgs.coreutils}/bin/kill -HUP $MAINPID";
         Restart = "on-failure";

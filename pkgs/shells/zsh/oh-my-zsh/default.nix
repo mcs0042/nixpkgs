@@ -2,19 +2,22 @@
 #
 #   https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=oh-my-zsh-git
 { lib, stdenv, fetchFromGitHub, nixosTests, writeScript, common-updater-scripts
-, git, nix, nixfmt, jq, coreutils, gnused, curl, cacert }:
+, git, nix, nixfmt, jq, coreutils, gnused, curl, cacert, bash }:
 
 stdenv.mkDerivation rec {
-  version = "2022-03-22";
+  version = "2022-06-06";
   pname = "oh-my-zsh";
-  rev = "50113a53f379b7d98e6921ba58e8440324beb32c";
+  rev = "d41ca84af1271e8bfbe26f581cebe3b86521d0db";
 
   src = fetchFromGitHub {
     inherit rev;
     owner = "ohmyzsh";
     repo = "ohmyzsh";
-    sha256 = "RBaJ6/NmPS106xWEj47zBsTWSOp19aq3WTyXcdA5T3c=";
+    sha256 = "87jAe5cEPj6e1raovj8sD4LZB1sfrSZkCleW8of2HP8=";
   };
+
+  strictDeps = true;
+  buildInputs = [ bash ];
 
   installPhase = ''
     runHook preInstall

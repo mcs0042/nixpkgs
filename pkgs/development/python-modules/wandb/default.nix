@@ -1,8 +1,9 @@
-{ azure-core
+{ lib
+, stdenv
+, azure-core
 , bokeh
 , buildPythonPackage
 , click
-, configparser
 , docker_pycreds
 , fetchFromGitHub
 , flask
@@ -10,8 +11,8 @@
 , GitPython
 , jsonref
 , jsonschema
-, lib
 , matplotlib
+, nbclient
 , nbformat
 , pandas
 , pathtools
@@ -22,8 +23,8 @@
 , pytest-mock
 , pytest-xdist
 , pytestCheckHook
-, python
 , python-dateutil
+, pythonOlder
 , pyyaml
 , requests
 , scikit-learn
@@ -31,37 +32,35 @@
 , setproctitle
 , setuptools
 , shortuuid
-, stdenv
+, substituteAll
 , tqdm
-, yaspin
 }:
 
 buildPythonPackage rec {
   pname = "wandb";
-  version = "0.12.11";
+  version = "0.12.17";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = pname;
     repo = "client";
     rev = "v${version}";
-    sha256 = "0av4vv4llan40678bw0vlah0gn6hjg5pdqwq0c5cv15lqrdb8g32";
+    hash = "sha256-hY01cql/j3ieL1zJoPOM/QZiF0X/ivekFRfX+TvZhyM=";
   };
 
-  # The wandb requirements.txt does not distinguish python2/3 dependencies. We
-  # need to drop the subprocess32 dependency when building for python3.
-  patchPhase = ''
-    substituteInPlace requirements.txt --replace "subprocess32>=3.5.3" ""
-  '';
+  patches = [
+    (substituteAll {
+      src = ./hardcode-git-path.patch;
+      git = "${lib.getBin git}/bin/git";
+    })
+  ];
 
-  # git is not a setup.py dependency of wandb, but wandb does expect git to be
-  # in PATH. See https://gist.github.com/samuela/57aeee710e41ab2bf361b7ed8fbbeabf
-  # for the error message, and an example usage here: https://github.com/wandb/client/blob/master/wandb/sdk/internal/meta.py#L139-L141.
   # setuptools is necessary since pkg_resources is required at runtime.
   propagatedBuildInputs = [
     click
-    configparser
     docker_pycreds
-    git
     GitPython
     pathtools
     promise
@@ -74,7 +73,28 @@ buildPythonPackage rec {
     setproctitle
     setuptools
     shortuuid
-    yaspin
+  ];
+
+  preCheck = ''
+    export HOME=$(mktemp -d)
+  '';
+
+  checkInputs = [
+    azure-core
+    bokeh
+    flask
+    jsonref
+    jsonschema
+    matplotlib
+    nbclient
+    nbformat
+    pandas
+    pydantic
+    pytest-mock
+    pytest-xdist
+    pytestCheckHook
+    scikit-learn
+    tqdm
   ];
 
   disabledTestPaths = [
@@ -106,6 +126,7 @@ buildPythonPackage rec {
     "tests/wandb_settings_test.py"
     "tests/wandb_sweep_test.py"
     "tests/wandb_verify_test.py"
+    "tests/test_model_workflows.py"
 
     # Fails and borks the pytest runner as well.
     "tests/wandb_test.py"
@@ -114,24 +135,15 @@ buildPythonPackage rec {
     "tests/test_tables.py"
   ];
 
-  checkInputs = [
-    azure-core
-    bokeh
-    flask
-    jsonref
-    jsonschema
-    matplotlib
-    nbformat
-    pandas
-    pydantic
-    pytest-mock
-    pytest-xdist
-    pytestCheckHook
-    scikit-learn
-    tqdm
+  # Disable test that fails on darwin due to issue with python3Packages.psutil:
+  # https://github.com/giampaolo/psutil/issues/1219
+  disabledTests = lib.optional stdenv.isDarwin [
+    "test_tpu_system_stats"
   ];
 
-  pythonImportsCheck = [ "wandb" ];
+  pythonImportsCheck = [
+    "wandb"
+  ];
 
   meta = with lib; {
     description = "A CLI and library for interacting with the Weights and Biases API";

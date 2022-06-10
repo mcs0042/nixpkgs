@@ -77,12 +77,14 @@ let
   testCases = {
     loopback = {
       name = "Loopback";
-      machine.networking.useDHCP = false;
-      machine.networking.useNetworkd = networkd;
+      nodes.client = { pkgs, ... }: with pkgs.lib; {
+        networking.useDHCP = false;
+        networking.useNetworkd = networkd;
+      };
       testScript = ''
         start_all()
-        machine.wait_for_unit("network.target")
-        loopback_addresses = machine.succeed("ip addr show lo")
+        client.wait_for_unit("network.target")
+        loopback_addresses = client.succeed("ip addr show lo")
         assert "inet 127.0.0.1/8" in loopback_addresses
         assert "inet6 ::1/128" in loopback_addresses
       '';
@@ -138,6 +140,45 @@ let
               router.wait_until_succeeds("ping -c 1 192.168.3.1")
               client.wait_until_succeeds("ping -c 1 192.168.3.1")
         '';
+    };
+    routeType = {
+      name = "RouteType";
+      nodes.client = { pkgs, ... }: with pkgs.lib; {
+        networking = {
+          useDHCP = false;
+          useNetworkd = networkd;
+          interfaces.eth1.ipv4.routes = [{
+            address = "192.168.1.127";
+            prefixLength = 32;
+            type = "local";
+          }];
+        };
+      };
+      testScript = ''
+        start_all()
+        client.wait_for_unit("network.target")
+        client.succeed("ip -4 route list table local | grep 'local 192.168.1.127'")
+      '';
+    };
+    dhcpDefault = {
+      name = "useDHCP-by-default";
+      nodes.router = router;
+      nodes.client = { lib, ... }: {
+        # Disable test driver default config
+        networking.interfaces = lib.mkForce {};
+        networking.useNetworkd = networkd;
+        virtualisation.vlans = [ 1 ];
+      };
+      testScript = ''
+        start_all()
+        client.wait_for_unit("multi-user.target")
+        client.wait_until_succeeds("ip addr show dev eth1 | grep '192.168.1'")
+        client.shell_interact()
+        client.succeed("ping -c 1 192.168.1.1")
+        router.succeed("ping -c 1 192.168.1.1")
+        router.succeed("ping -c 1 192.168.1.2")
+        client.succeed("ping -c 1 192.168.1.2")
+      '';
     };
     dhcpSimple = {
       name = "SimpleDHCP";
@@ -514,12 +555,14 @@ let
                   local = "192.168.2.1";
                   remote = "192.168.2.2";
                   dev = "eth2";
+                  ttl = 225;
                   type = "tap";
                 };
                 gre6Tunnel = {
                   local = "fd00:1234:5678:4::1";
                   remote = "fd00:1234:5678:4::2";
                   dev = "eth3";
+                  ttl = 255;
                   type = "tun6";
                 };
               };
@@ -548,12 +591,14 @@ let
                   local = "192.168.2.2";
                   remote = "192.168.2.1";
                   dev = "eth1";
+                  ttl = 225;
                   type = "tap";
                 };
                 gre6Tunnel = {
                   local = "fd00:1234:5678:4::2";
                   remote = "fd00:1234:5678:4::1";
                   dev = "eth3";
+                  ttl = 255;
                   type = "tun6";
                 };
               };
@@ -573,6 +618,7 @@ let
         ];
       testScript = { ... }:
         ''
+          import json
           start_all()
 
           with subtest("Wait for networking to be configured"):
@@ -591,6 +637,13 @@ let
               client1.wait_until_succeeds("ping -c 1 fc00::2")
 
               client2.wait_until_succeeds("ping -c 1 fc00::1")
+
+          with subtest("Test GRE tunnel TTL"):
+              links = json.loads(client1.succeed("ip -details -json link show greTunnel"))
+              assert links[0]['linkinfo']['info_data']['ttl'] == 225, "ttl not set for greTunnel"
+
+              links = json.loads(client2.succeed("ip -details -json link show gre6Tunnel"))
+              assert links[0]['linkinfo']['info_data']['ttl'] == 255, "ttl not set for gre6Tunnel"
         '';
     };
     vlan = let
@@ -628,7 +681,7 @@ let
     };
     virtual = {
       name = "Virtual";
-      machine = {
+      nodes.machine = {
         networking.useNetworkd = networkd;
         networking.useDHCP = false;
         networking.interfaces.tap0 = {
@@ -772,7 +825,7 @@ let
     };
     routes = {
       name = "routes";
-      machine = {
+      nodes.machine = {
         networking.useNetworkd = networkd;
         networking.useDHCP = false;
         networking.interfaces.eth0 = {
@@ -853,7 +906,7 @@ let
     };
     rename = {
       name = "RenameInterface";
-      machine = { pkgs, ... }: {
+      nodes.machine = { pkgs, ... }: {
         virtualisation.vlans = [ 1 ];
         networking = {
           useNetworkd = networkd;
@@ -866,7 +919,7 @@ let
                 linkConfig.Name = "custom_name";
               };
             }
-       else { services.udev.initrdRules = ''
+       else { boot.initrd.services.udev.rules = ''
                SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", ATTR{address}=="52:54:00:12:01:01", KERNEL=="eth*", NAME="custom_name"
               '';
             });
@@ -904,7 +957,7 @@ let
       testMac = "06:00:00:00:02:00";
     in {
       name = "WlanInterface";
-      machine = { pkgs, ... }: {
+      nodes.machine = { pkgs, ... }: {
         boot.kernelModules = [ "mac80211_hwsim" ];
         networking.wlanInterfaces = {
           wlan0 = { device = "wlan0"; };

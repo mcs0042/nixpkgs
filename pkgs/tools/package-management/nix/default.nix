@@ -68,18 +68,47 @@ in lib.makeExtensible (self: {
   nix_2_7 = common {
     version = "2.7.0";
     sha256 = "sha256-m8tqCS6uHveDon5GSro5yZor9H+sHeh+v/veF1IGw24=";
+    patches = [
+      # remove when there's a 2.7.1 release
+      # https://github.com/NixOS/nix/pull/6297
+      # https://github.com/NixOS/nix/issues/6243
+      # https://github.com/NixOS/nixpkgs/issues/163374
+      (fetchpatch {
+        url = "https://github.com/NixOS/nix/commit/c9afca59e87afe7d716101e6a75565b4f4b631f7.patch";
+        sha256 = "sha256-xz7QnWVCI12lX1+K/Zr9UpB93b10t1HS9y/5n5FYf8Q=";
+      })
+    ];
   };
 
-  stable = self.nix_2_7;
+  nix_2_8 = common {
+    version = "2.8.1";
+    sha256 = "sha256-zldZ4SiwkISFXxrbY/UdwooIZ3Z/I6qKxtpc3zD0T/o=";
+  };
 
+  nix_2_9 = common {
+    version = "2.9.0";
+    sha256 = "sha256-W6aTsTpCTb+vXQEXDjnKqetOuJmEfSuK2CXvAMqwo74=";
+    patches = [
+      # can be removed when updated to 2.9.1
+      (fetchpatch {
+        name = "fix-segfault-in-git-fetcher";
+        url = "https://github.com/NixOS/nix/commit/bc4759345538c89e1f045aaabcc0cafe4ecca12a.patch";
+        sha256 = "sha256-UrfH4M7a02yfE9X3tA1Pwhw4RacBW+rShYkl7ybG64I=";
+      })
+    ];
+  };
+
+  stable = self.nix_2_9;
+
+  # remember to backport updates to the stable branch!
   unstable = lib.lowPrio (common rec {
     version = "2.8";
-    suffix = "pre20220322_${lib.substring 0 7 src.rev}";
+    suffix = "pre20220530_${lib.substring 0 7 src.rev}";
     src = fetchFromGitHub {
       owner = "NixOS";
       repo = "nix";
-      rev = "d5d4d980427aca3849b90bfe1694b6d1d14532fb";
-      sha256 = "sha256-fV7nUcRhVmgIvDUraAzHV2TDVHDn1jETfv2zdDMQ59Y=";
+      rev = "af23d38019a47e5bb4cd6585a1678b37c957130c";
+      sha256 = "sha256-RH77Y4IhbTofNYlLQSGKLL0fJAG9iHSwRNvMEZ4M0VQ=";
     };
   });
 })

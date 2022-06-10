@@ -12,7 +12,7 @@
   libffi ? null
 
 , useLLVM ? !(stdenv.targetPlatform.isx86
-              || stdenv.targetPlatform.isPowerPC
+              || stdenv.targetPlatform.isPower
               || stdenv.targetPlatform.isSparc)
 , # LLVM is conceptually a run-time-only depedendency, but for
   # non-x86, we need LLVM to bootstrap later stages, so it becomes a
@@ -212,7 +212,7 @@ stdenv.mkDerivation (rec {
       url = "https://gitlab.haskell.org/ghc/ghc/-/commit/97d0b0a367e4c6a52a17c3299439ac7de129da24.patch";
       sha256 = "0r4zjj0bv1x1m2dgxp3adsf2xkr94fjnyj1igsivd9ilbs5ja0b5";
     })
-  ] ++ lib.optionals (stdenv.isDarwin && stdenv.isAarch64) [
+  ] ++ lib.optionals (stdenv.targetPlatform.isDarwin && stdenv.targetPlatform.isAarch64) [
 
     # Prevent the paths module from emitting symbols that we don't use
     # when building with separate outputs.
@@ -234,7 +234,7 @@ stdenv.mkDerivation (rec {
     # GHC is a bit confused on its cross terminology, as these would normally be
     # the *host* tools.
     export CC="${targetCC}/bin/${targetCC.targetPrefix}cc"
-    export CXX="${targetCC}/bin/${targetCC.targetPrefix}cxx"
+    export CXX="${targetCC}/bin/${targetCC.targetPrefix}c++"
     # Use gold to work around https://sourceware.org/bugzilla/show_bug.cgi?id=16177
     export LD="${targetCC.bintools}/bin/${targetCC.bintools.targetPrefix}ld${lib.optionalString useLdGold ".gold"}"
     export AS="${targetCC.bintools.bintools}/bin/${targetCC.bintools.targetPrefix}as"
@@ -365,6 +365,10 @@ stdenv.mkDerivation (rec {
 
     inherit llvmPackages;
     inherit enableShared;
+
+    # This is used by the haskell builder to query
+    # the presence of the haddock program.
+    hasHaddock = enableHaddockProgram;
 
     # Our Cabal compiler name
     haskellCompilerName = "ghc-${version}";

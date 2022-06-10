@@ -90,6 +90,22 @@ let
         '';
       };
 
+      type = mkOption {
+        type = types.nullOr (types.enum [
+          "unicast" "local" "broadcast" "multicast"
+        ]);
+        default = null;
+        description = ''
+          Type of the route.  See the <literal>Route types</literal> section
+          in the <literal>ip-route(8)</literal> manual page for the details.
+
+          Note that <literal>prohibit</literal>, <literal>blackhole</literal>,
+          <literal>unreachable</literal>, and <literal>throw</literal> cannot
+          be configured per device, so they are not available here. Similarly,
+          <literal>nat</literal> hasn't been supported since kernel 2.6.
+        '';
+      };
+
       via = mkOption {
         type = types.nullOr types.str;
         default = null;
@@ -402,6 +418,15 @@ let
      '') tempaddrValues)}
     </itemizedlist>
   '';
+
+  hostidFile = pkgs.runCommand "gen-hostid" { preferLocalBuild = true; } ''
+      hi="${cfg.hostId}"
+      ${if pkgs.stdenv.isBigEndian then ''
+        echo -ne "\x''${hi:0:2}\x''${hi:2:2}\x''${hi:4:2}\x''${hi:6:2}" > $out
+      '' else ''
+        echo -ne "\x''${hi:6:2}\x''${hi:4:2}\x''${hi:2:2}\x''${hi:0:2}" > $out
+      ''}
+    '';
 
 in
 
@@ -1020,12 +1045,14 @@ in
             local = "10.0.0.22";
             dev = "enp4s0f0";
             type = "tap";
+            ttl = 255;
           };
           gre6Tunnel = {
             remote = "fd7a:5634::1";
             local = "fd7a:5634::2";
             dev = "enp4s0f0";
             type = "tun6";
+            ttl = 255;
           };
         }
       '';
@@ -1060,6 +1087,15 @@ in
             example = "enp4s0f0";
             description = ''
               The underlying network device on which the tunnel resides.
+            '';
+          };
+
+          ttl = mkOption {
+            type = types.nullOr types.int;
+            default = null;
+            example = 255;
+            description = ''
+              The time-to-live/hoplimit of the connection to the remote tunnel endpoint.
             '';
           };
 
@@ -1234,11 +1270,6 @@ in
         Whether to use DHCP to obtain an IP address and other
         configuration for all network interfaces that are not manually
         configured.
-
-        Using this option is highly discouraged and also incompatible with
-        <option>networking.useNetworkd</option>. Please use
-        <option>networking.interfaces.&lt;name&gt;.useDHCP</option> instead
-        and set this to false.
       '';
     };
 
@@ -1372,16 +1403,8 @@ in
         domainname "${cfg.domain}"
       '';
 
-    environment.etc.hostid = mkIf (cfg.hostId != null)
-      { source = pkgs.runCommand "gen-hostid" { preferLocalBuild = true; } ''
-          hi="${cfg.hostId}"
-          ${if pkgs.stdenv.isBigEndian then ''
-            echo -ne "\x''${hi:0:2}\x''${hi:2:2}\x''${hi:4:2}\x''${hi:6:2}" > $out
-          '' else ''
-            echo -ne "\x''${hi:6:2}\x''${hi:4:2}\x''${hi:2:2}\x''${hi:0:2}" > $out
-          ''}
-        '';
-      };
+    environment.etc.hostid = mkIf (cfg.hostId != null) { source = hostidFile; };
+    boot.initrd.systemd.contents."/etc/hostid" = mkIf (cfg.hostId != null) { source = hostidFile; };
 
     # static hostname configuration needed for hostnamectl and the
     # org.freedesktop.hostname1 dbus service (both provided by systemd)
@@ -1440,7 +1463,7 @@ in
           sysctl-value = tempaddrValues.${cfg.tempAddresses}.sysctl;
         in ''
           # enable and prefer IPv6 privacy addresses by default
-          ACTION=="add", SUBSYSTEM=="net", RUN+="${pkgs.bash}/bin/sh -c 'echo ${sysctl-value} > /proc/sys/net/ipv6/conf/%k/use_tempaddr'"
+          ACTION=="add", SUBSYSTEM=="net", RUN+="${pkgs.bash}/bin/sh -c 'echo ${sysctl-value} > /proc/sys/net/ipv6/conf/$name/use_tempaddr'"
         '';
       })
       (pkgs.writeTextFile rec {

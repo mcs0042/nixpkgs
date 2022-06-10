@@ -23,6 +23,8 @@
 , libxcb
 , libxkbcommon
 , libxshmfence
+, libappindicator-gtk3
+, libGL
 , mesa
 , nspr
 , nss
@@ -42,11 +44,11 @@ let
 
 in stdenv.mkDerivation rec {
   pname = "1password";
-  version = "8.6.0";
+  version = "8.7.1";
 
   src = fetchurl {
     url = "https://downloads.1password.com/linux/tar/stable/x86_64/1password-${version}.x64.tar.gz";
-    sha256 = "AgmLbf2YHZr8McSIL5dxp5HxOC7gLrZWIopuA7aL0JI=";
+    sha256 = "sha256-ykD2reAL5spSoCpfGTFOE/yERdooYUsWmo45rpRe/Fw=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
@@ -78,6 +80,8 @@ in stdenv.mkDerivation rec {
       libxcb
       libxkbcommon
       libxshmfence
+      libGL
+      libappindicator-gtk3
       mesa
       nspr
       nss
@@ -101,6 +105,7 @@ in stdenv.mkDerivation rec {
         mkdir -p $out/share/polkit-1/actions
         substitute com.1password.1Password.policy.tpl $out/share/polkit-1/actions/com.1password.1Password.policy --replace "\''${POLICY_OWNERS}" "${policyOwners}"
         '') + ''
+
       # Icons
       cp -a resources/icons $out/share
 
@@ -127,7 +132,7 @@ in stdenv.mkDerivation rec {
     description = "Multi-platform password manager";
     homepage = "https://1password.com/";
     license = licenses.unfree;
-    maintainers = with maintainers; [ timstott savannidgerinel ];
+    maintainers = with maintainers; [ timstott savannidgerinel maxeaubrey sebtm ];
     platforms = [ "x86_64-linux" ];
   };
 }

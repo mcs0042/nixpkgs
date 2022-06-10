@@ -18,6 +18,7 @@
 
   # Apache
   apache = [
+    "https://dlcdn.apache.org/"
     "https://www-eu.apache.org/dist/"
     "https://ftp.wayne.edu/apache/"
     "https://www.apache.org/dist/"
@@ -162,6 +163,11 @@
   # PostgreSQL
   postgresql = [
     "https://ftp.postgresql.org/pub/"
+  ];
+
+  # Qt
+  qt = [
+    "https://download.qt.io/"
   ];
 
   # Roy marples mirrors

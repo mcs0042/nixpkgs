@@ -1,17 +1,17 @@
-{ buildGoModule, fetchFromGitHub, lib, installShellFiles }:
+{ stdenv, buildGoModule, fetchFromGitHub, lib, installShellFiles }:
 
 buildGoModule rec {
   pname = "golangci-lint";
-  version = "1.45.0";
+  version = "1.46.2";
 
   src = fetchFromGitHub {
     owner = "golangci";
     repo = "golangci-lint";
     rev = "v${version}";
-    sha256 = "sha256-nIkDtWUGKSeuGLCgyAYzrIhEk2INX0gZUCOmq+BKbDY=";
+    sha256 = "sha256-7sDAwWz+qoB/ngeH35tsJ5FZUfAQvQsU6kU9rUHIHMk=";
   };
 
-  vendorSha256 = "sha256-ruthLNtMYMi2q3fuxOJSsJw5w3uqZi88yJ3BFgNCAHs=";
+  vendorSha256 = "sha256-w38OKN6HPoz37utG/2QSPMai55IRDXCIIymeMe6ogIU=";
 
   doCheck = false;
 
@@ -31,6 +31,7 @@ buildGoModule rec {
   '';
 
   meta = with lib; {
+    broken = stdenv.isDarwin;
     description = "Fast linters Runner for Go";
     homepage = "https://golangci-lint.run/";
     license = licenses.gpl3Plus;

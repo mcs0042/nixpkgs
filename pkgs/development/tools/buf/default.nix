@@ -3,23 +3,23 @@
 , fetchFromGitHub
 , protobuf
 , git
-, testVersion
+, testers
 , buf
 , installShellFiles
 }:
 
 buildGoModule rec {
   pname = "buf";
-  version = "1.1.1";
+  version = "1.5.0";
 
   src = fetchFromGitHub {
     owner = "bufbuild";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-w/P9pNHxaBRlAly5jE7I0JsjjFeDctFaXOTbzDESaCo=";
+    sha256 = "sha256-Jcj1tpcG64mSVn444isGsK9AcITh171ibECukv3bXDI=";
   };
 
-  vendorSha256 = "sha256-AM/MN4vdcsHEbYdOEuVOvkMCdMDnk2UiW5vUnXcj+wY=";
+  vendorSha256 = "sha256-aHGV8UfPn7xsySPXRSzsEpcaz1Ll49Mj1S9izvaIRWY=";
 
   patches = [
     # Skip a test that requires networking to be available to work.
@@ -48,13 +48,9 @@ buildGoModule rec {
     runHook preInstall
 
     # Binaries
-    mkdir -p "$out/bin"
     # Only install required binaries, don't install testing binaries
-    for FILE in \
-      "buf" \
-      "protoc-gen-buf-breaking" \
-      "protoc-gen-buf-lint"; do
-      cp "$GOPATH/bin/$FILE" "$out/bin/"
+    for FILE in buf protoc-gen-buf-breaking protoc-gen-buf-lint; do
+      install -D -m 555 -t $out/bin $GOPATH/bin/$FILE
     done
 
     # Completions
@@ -70,7 +66,7 @@ buildGoModule rec {
     runHook postInstall
   '';
 
-  passthru.tests.version = testVersion { package = buf; };
+  passthru.tests.version = testers.testVersion { package = buf; };
 
   meta = with lib; {
     homepage = "https://buf.build";
