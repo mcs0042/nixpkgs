@@ -7,6 +7,7 @@
 , libglvnd, libunwind
 , vulkan-loader
 , galliumDrivers ? ["auto"]
+, driDrivers ? ["auto"]
 , vulkanDrivers ? ["auto"]
 , eglPlatforms ? [ "x11" ] ++ lib.optionals stdenv.isLinux [ "wayland" ]
 , OpenGL, Xplugin
@@ -34,7 +35,7 @@ with lib;
 let
   # Release calendar: https://www.mesa3d.org/release-calendar.html
   # Release frequency: https://www.mesa3d.org/releasing.html#schedule
-  version = "22.0.4";
+  version = "21.3.8";
   branch  = versions.major version;
 
 self = stdenv.mkDerivation {
@@ -48,7 +49,7 @@ self = stdenv.mkDerivation {
       "ftp://ftp.freedesktop.org/pub/mesa/${version}/mesa-${version}.tar.xz"
       "ftp://ftp.freedesktop.org/pub/mesa/older-versions/${branch}.x/${version}/mesa-${version}.tar.xz"
     ];
-    sha256 = "1m0y8wgy48hmcidsr7sbk5hcw3v0qr8359fd2x34fvl2z9c1z5y7";
+    sha256 = "19wx5plk6z0hhi0zdzxjx8ynl3lhlc5mbd8vhwqyk92kvhxjf3g7";
   };
 
   # TODO:
@@ -114,6 +115,7 @@ self = stdenv.mkDerivation {
     "-Ddri-search-path=${libglvnd.driverLink}/lib/dri"
 
     "-Dplatforms=${concatStringsSep "," eglPlatforms}"
+    "-Ddri-drivers=${concatStringsSep "," driDrivers}"
     "-Dgallium-drivers=${concatStringsSep "," galliumDrivers}"
     "-Dvulkan-drivers=${concatStringsSep "," vulkanDrivers}"
 

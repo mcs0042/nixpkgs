@@ -11,13 +11,18 @@ let
       (exwm-config-default)
     ''}
   '';
-  packages = epkgs: cfg.extraPackages epkgs ++ [ epkgs.exwm ];
-  exwm-emacs = pkgs.emacsWithPackages packages;
+  exwm-emacs = pkgs.emacsWithPackagesFromUsePackage {
+    package = pkgs.emacsGcc;
+    alwaysTangle = true;
+    extraEmacsPackages = epkgs: [
+      epkgs.exwm
+    ];
+  };
 in
 
 {
-  options = {
-    services.xserver.windowManager.exwm = {
+  joptions = {
+  j  services.xserver.windowManager.exwm = {
       enable = mkEnableOption "exwm";
       loadScript = mkOption {
         default = "(require 'exwm)";
