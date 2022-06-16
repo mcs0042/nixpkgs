@@ -2,10 +2,10 @@
 
 stdenv.mkDerivation rec {
   pname = "apache-activemq";
-  version = "5.16.4";
+  version = "5.17.1";
 
   src = fetchurl {
-    sha256 = "sha256-+OBNioEBQbOGpcnDlgtfAej+c0YfTJmxkeEV1JOEBwE=";
+    sha256 = "sha256-YX7CUQLMYiUubZsGzElnZq8RbJdSUlW8jEs+de6eAMg=";
     url = "mirror://apache/activemq/${version}/${pname}-${version}-bin.tar.gz";
   };
 
@@ -21,6 +21,7 @@ stdenv.mkDerivation rec {
   meta = {
     homepage = "https://activemq.apache.org/";
     description = "Messaging and Integration Patterns server written in Java";
+    sourceProvenance = with lib.sourceTypes; [ binaryBytecode ];
     license = lib.licenses.asl20;
     platforms = lib.platforms.unix;
   };

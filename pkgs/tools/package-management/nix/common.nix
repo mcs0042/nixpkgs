@@ -1,6 +1,7 @@
 { lib, fetchFromGitHub
 , version
 , suffix ? ""
+, curl
 , sha256 ? null
 , src ? fetchFromGitHub { owner = "NixOS"; repo = "nix"; rev = version; inherit sha256; }
 , patches ? [ ]
@@ -23,7 +24,6 @@ in
 , bzip2
 , callPackage
 , coreutils
-, curl
 , editline
 , flex
 , gnutar
@@ -201,7 +201,7 @@ self = stdenv.mkDerivation {
     '';
     homepage = "https://nixos.org/";
     license = licenses.lgpl2Plus;
-    maintainers = with maintainers; [ eelco lovesegfault ];
+    maintainers = with maintainers; [ eelco lovesegfault artturin ];
     platforms = platforms.unix;
     outputsToInstall = [ "out" ] ++ optional enableDocumentation "man";
   };

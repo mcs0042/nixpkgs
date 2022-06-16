@@ -2,9 +2,9 @@
 let
   inherit (pkgs) callPackage fetchurl;
   versions = if stdenv.isLinux then {
-    stable = "0.0.17";
+    stable = "0.0.18";
     ptb = "0.0.29";
-    canary = "0.0.134";
+    canary = "0.0.135";
   } else {
     stable = "0.0.264";
     ptb = "0.0.59";
@@ -21,7 +21,7 @@ let
       stable = fetchurl {
         url =
           "https://dl.discordapp.net/apps/linux/${version}/discord-${version}.tar.gz";
-        sha256 = "058k0cmbm4y572jqw83bayb2zzl2fw2aaz0zj1gvg6sxblp76qil";
+        sha256 = "1hl01rf3l6kblx5v7rwnwms30iz8zw6dwlkjsx2f1iipljgkh5q4";
       };
       ptb = fetchurl {
         url =
@@ -31,7 +31,7 @@ let
       canary = fetchurl {
         url =
           "https://dl-canary.discordapp.net/apps/linux/${version}/discord-canary-${version}.tar.gz";
-        sha256 = "sha256-HyJa6lGcKMPKWffO/pnNcn8fDTJj6O4J8Y5RA23a1kM=";
+        sha256 = "sha256-dmG+3BWS1BMHHQAv4fsXuObVeAJBeD+TqnyQz69AMac=";
       };
     };
     x86_64-darwin = {

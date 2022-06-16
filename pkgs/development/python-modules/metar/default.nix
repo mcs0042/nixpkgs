@@ -26,6 +26,11 @@ buildPythonPackage rec {
 
   checkInputs = [ pytestCheckHook ];
 
+  disabledTests = [
+    # https://github.com/python-metar/python-metar/issues/165
+    "test_033_parseTime_auto_month"
+  ];
+
   pythonImportsCheck = [ "metar" ];
 
   meta = with lib; {

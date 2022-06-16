@@ -1,22 +1,20 @@
-{ lib, fetchFromGitHub, buildGoModule, testVersion, clash }:
+{ lib, fetchFromGitHub, buildGoModule, testers, clash }:
 
 buildGoModule rec {
   pname = "clash";
-  version = "1.10.0";
+  version = "1.10.6";
 
   src = fetchFromGitHub {
     owner = "Dreamacro";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-cAJjW+NzG48HcDRx12LLdj8VYyIroL+GWqrUrpHOOIk=";
+    sha256 = "sha256-v9MUMgHIpHDUEmB5vXOIOkSriX+PCPtiiHHB4H5FeMw=";
   };
 
-  vendorSha256 = "sha256-hE2MgjaVme+4vG7+rmJXfjycd3N2R6cA5iSUUTFcQXE=";
+  vendorSha256 = "sha256-egbXCRmC862tctapMUWTcNej1g6a9wCt2JIC9DSEP6k=";
 
-  postPatch = ''
-    # Do not build testing suit
-    rm -rf ./test
-  '';
+  # Do not build testing suit
+  excludedPackages = [ "./test" ];
 
   CGO_ENABLED = 0;
 
@@ -26,7 +24,7 @@ buildGoModule rec {
     "-X github.com/Dreamacro/clash/constant.Version=${version}"
   ];
 
-  passthru.tests.version = testVersion {
+  passthru.tests.version = testers.testVersion {
     package = clash;
     command = "clash -v";
   };

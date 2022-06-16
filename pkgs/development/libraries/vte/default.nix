@@ -27,13 +27,13 @@
 
 stdenv.mkDerivation rec {
   pname = "vte";
-  version = "0.67.90";
+  version = "0.68.0";
 
   outputs = [ "out" "dev" ];
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "sha256-RkCe1x/DqkfX3DkCSaU+i4E6xsCYvawVFuEL23wg2zg=";
+    sha256 = "sha256-E+fUeJyiFqM3gAMNJGybE92/0ECUxjFu6n/5IoTdF0k=";
   };
 
   patches = [
@@ -98,6 +98,7 @@ stdenv.mkDerivation rec {
   };
 
   meta = with lib; {
+    broken = stdenv.isDarwin;
     homepage = "https://www.gnome.org/";
     description = "A library implementing a terminal emulator widget for GTK";
     longDescription = ''

@@ -10,7 +10,7 @@
 , librsvg
 , libxml2
 , desktop-file-utils
-, guile_3_0
+, guile
 , libcanberra-gtk3
 , ninja
 , appstream-glib
@@ -19,14 +19,14 @@
 
 stdenv.mkDerivation rec {
   pname = "aisleriot";
-  version = "3.22.21";
+  version = "3.22.23";
 
   src = fetchFromGitLab {
     domain = "gitlab.gnome.org";
     owner = "GNOME";
     repo = pname;
     rev = version;
-    sha256 = "sha256-dpzuePxSoJcwUlj314r5G9A8aF1Yz49r+DxNTfA8/Ks=";
+    sha256 = "sha256-s7z1bR2ZG3YxJcqNrhH+O5PfGeFoPWeWSI26VCCe33Y=";
   };
 
   nativeBuildInputs = [
@@ -44,7 +44,7 @@ stdenv.mkDerivation rec {
   buildInputs = [
     gtk3
     librsvg
-    guile_3_0
+    guile
     libcanberra-gtk3
   ];
 

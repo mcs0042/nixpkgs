@@ -4,6 +4,7 @@
 , updateScript ? null
 , binaryName ? "firefox"
 , application ? "browser"
+, applicationName ? "Mozilla Firefox"
 , src
 , unpackPhase ? null
 , extraPatches ? []
@@ -18,13 +19,13 @@
 
 
 { lib
+, pkgs
 , stdenv
-, fetchpatch
 
 # build time
 , autoconf
 , cargo
-, gnused
+, dump_syms
 , makeWrapper
 , nodejs
 , perl
@@ -61,11 +62,13 @@
 , libwebp
 , nasm
 , nspr
-, nss
+, nss_esr
+, nss_latest
 , pango
 , xorg
 , zip
 , zlib
+, pkgsBuildBuild
 
 # optionals
 
@@ -81,10 +84,13 @@
 , alsaSupport ? stdenv.isLinux, alsa-lib
 , ffmpegSupport ? true
 , gssSupport ? true, libkrb5
+, jackSupport ? stdenv.isLinux, libjack2
 , jemallocSupport ? true, jemalloc
 , ltoSupport ? (stdenv.isLinux && stdenv.is64bit), overrideCC, buildPackages
+, pgoSupport ? (stdenv.isLinux && stdenv.hostPlatform == stdenv.buildPlatform), xvfb-run
 , pipewireSupport ? waylandSupport && webrtcSupport
 , pulseaudioSupport ? stdenv.isLinux, libpulseaudio
+, sndioSupport ? stdenv.isLinux, sndio
 , waylandSupport ? true, libxkbcommon, libdrm
 
 ## privacy-related options
@@ -94,15 +100,20 @@
 # WARNING: NEVER set any of the options below to `true` by default.
 # Set to `!privacySupport` or `false`.
 
+, crashreporterSupport ? !privacySupport
 , geolocationSupport ? !privacySupport
 , googleAPISupport ? geolocationSupport
+, mlsAPISupport ? geolocationSupport
 , webrtcSupport ? !privacySupport
 
-## other
+# digital rights managemewnt
 
-, crashreporterSupport ? false
-, drmSupport ? false
-, safeBrowsingSupport ? false
+# This flag controls whether Firefox will show the nagbar, that allows
+# users at runtime the choice to enable Widevine CDM support when a site
+# requests it.
+# Controlling the nagbar and widevine CDM at runtime is possible by setting
+# `browser.eme.ui.enabled` and `media.gmp-widevinecdm.enabled` accordingly
+, drmSupport ? true
 
 # As stated by Sylvestre Ledru (@sylvestre) on Nov 22, 2017 at
 # https://github.com/NixOS/nixpkgs/issues/31843#issuecomment-346372756 we
@@ -126,26 +137,29 @@
 }:
 
 assert stdenv.cc.libc or null != null;
-assert pipewireSupport -> !waylandSupport || !webrtcSupport -> throw "pipewireSupport requires both wayland and webrtc support.";
+assert pipewireSupport -> !waylandSupport || !webrtcSupport -> throw "${pname}: pipewireSupport requires both wayland and webrtc support.";
 
 let
   flag = tf: x: [(if tf then "--enable-${x}" else "--disable-${x}")];
 
   # Target the LLVM version that rustc is built with for LTO.
   llvmPackages0 = rustc.llvmPackages;
+  llvmPackagesBuildBuild0 = pkgsBuildBuild.rustc.llvmPackages;
 
   # Force the use of lld and other llvm tools for LTO
   llvmPackages = llvmPackages0.override {
     bootBintoolsNoLibc = null;
     bootBintools = null;
   };
+  llvmPackagesBuildBuild = llvmPackagesBuildBuild0.override {
+    bootBintoolsNoLibc = null;
+    bootBintools = null;
+  };
 
-  buildStdenv = if ltoSupport
-    # LTO requires LLVM bintools including ld.lld and llvm-ar.
-    then overrideCC llvmPackages.stdenv (llvmPackages.stdenv.cc.override {
-      inherit (llvmPackages) bintools;
-    })
-    else stdenv;
+  # LTO requires LLVM bintools including ld.lld and llvm-ar.
+  buildStdenv = overrideCC llvmPackages.stdenv (llvmPackages.stdenv.cc.override {
+    bintools = if ltoSupport then buildPackages.rustc.llvmPackages.bintools else stdenv.cc.bintools;
+  });
 
   # Compile the wasm32 sysroot to build the RLBox Sandbox
   # https://hacks.mozilla.org/2021/12/webassembly-and-back-again-fine-grained-sandboxing-in-firefox-95/
@@ -156,6 +170,34 @@ let
       ln -s $lib $out/lib/wasm32-wasi
     done
   '';
+
+  distributionIni = pkgs.writeText "distribution.ini" (lib.generators.toINI {} {
+    # Some light branding indicating this build uses our distro preferences
+    Global = {
+      id = "nixos";
+      version = "1.0";
+      about = "${applicationName} for NixOS";
+    };
+    Preferences = {
+      # These values are exposed through telemetry
+      "app.distributor" = "nixos";
+      "app.distributor.channel" = "nixpkgs";
+      "app.partner.nixos" = "nixos";
+    };
+  });
+
+  defaultPrefs = {
+    "geo.provider.network.url" = {
+      value = "https://location.services.mozilla.com/v1/geolocate?key=%MOZILLA_API_KEY%";
+      reason = "Use MLS by default for geolocation, since our Google API Keys are not working";
+    };
+  };
+
+  defaultPrefsFile = pkgs.writeText "nixos-default-prefs.js" (lib.concatStringsSep "\n" (lib.mapAttrsToList (key: value: ''
+    // ${value.reason}
+    pref("${key}", ${builtins.toJSON value.value});
+  '') defaultPrefs));
+
 in
 
 buildStdenv.mkDerivation ({
@@ -163,6 +205,18 @@ buildStdenv.mkDerivation ({
   inherit version;
 
   inherit src unpackPhase meta;
+
+  outputs = [
+    "out"
+  ]
+  ++ lib.optionals crashreporterSupport [ "symbols" ];
+
+  # Add another configure-build-profiling run before the final configure phase if we build with pgo
+  preConfigurePhases = lib.optionals pgoSupport [
+    "configurePhase"
+    "buildPhase"
+    "profilingPhase"
+  ];
 
   patches = [
   ]
@@ -182,11 +236,15 @@ buildStdenv.mkDerivation ({
   # two patches.
   patchFlags = [ "-p1" "-l" ];
 
+  # if not explicitly set, wrong cc from buildStdenv would be used
+  HOST_CC = "${llvmPackagesBuildBuild.stdenv.cc}/bin/cc";
+  HOST_CXX = "${llvmPackagesBuildBuild.stdenv.cc}/bin/c++";
+
   nativeBuildInputs = [
     autoconf
     cargo
-    gnused
-    llvmPackages.llvm # llvm-objdump
+    gnum4
+    llvmPackagesBuildBuild.bintools
     makeWrapper
     nodejs
     perl
@@ -199,6 +257,8 @@ buildStdenv.mkDerivation ({
     which
     wrapGAppsHook
   ]
+  ++ lib.optionals crashreporterSupport [ dump_syms ]
+  ++ lib.optionals pgoSupport [ xvfb-run ]
   ++ extraNativeBuildInputs;
 
   setOutputFlags = false; # `./mach configure` doesn't understand `--*dir=` flags.
@@ -214,31 +274,66 @@ buildStdenv.mkDerivation ({
     export MOZ_OBJDIR=$(pwd)/mozobj
     export MOZBUILD_STATE_PATH=$(pwd)/mozbuild
 
+    # Don't try to send libnotify notifications during build
+    export MOZ_NOSPAM=1
+
     # Set consistent remoting name to ensure wmclass matches with desktop file
     export MOZ_APP_REMOTINGNAME="${binaryName}"
-
-    # Use our own python
-    export MACH_USE_SYSTEM_PYTHON=1
 
     # AS=as in the environment causes build failure
     # https://bugzilla.mozilla.org/show_bug.cgi?id=1497286
     unset AS
 
+  '' + lib.optionalString (lib.versionAtLeast version "100.0") ''
+    # Use our own python
+    export MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE=system
+  '' + lib.optionalString (lib.versionOlder version "100.0") ''
+    # Use our own python
+    export MACH_USE_SYSTEM_PYTHON=1
+
   '' + lib.optionalString (lib.versionAtLeast version "95.0") ''
     # RBox WASM Sandboxing
     export WASM_CC=${pkgsCross.wasi32.stdenv.cc}/bin/${pkgsCross.wasi32.stdenv.cc.targetPrefix}cc
     export WASM_CXX=${pkgsCross.wasi32.stdenv.cc}/bin/${pkgsCross.wasi32.stdenv.cc.targetPrefix}c++
+ '' + lib.optionalString pgoSupport ''
+   if [ -e "$TMPDIR/merged.profdata" ]; then
+     echo "Configuring with profiling data"
+     for i in "''${!configureFlagsArray[@]}"; do
+       if [[ ''${configureFlagsArray[i]} = "--enable-profile-generate=cross" ]]; then
+         unset 'configureFlagsArray[i]'
+       fi
+     done
+     configureFlagsArray+=(
+       "--enable-profile-use=cross"
+       "--with-pgo-profile-path="$TMPDIR/merged.profdata""
+       "--with-pgo-jarlog="$TMPDIR/jarlog""
+     )
+   else
+     echo "Configuring to generate profiling data"
+     configureFlagsArray+=(
+       "--enable-profile-generate=cross"
+     )
+   fi
   '' + lib.optionalString googleAPISupport ''
     # Google API key used by Chromium and Firefox.
     # Note: These are for NixOS/nixpkgs use ONLY. For your own distribution,
-    # please get your own set of keys.
-    echo "AIzaSyDGi15Zwl11UNe6Y-5XW_upsfyw31qwZPI" > $TMPDIR/ga
+    # please get your own set of keys at https://www.chromium.org/developers/how-tos/api-keys/.
+    echo "AIzaSyDGi15Zwl11UNe6Y-5XW_upsfyw31qwZPI" > $TMPDIR/google-api-key
     # 60.5+ & 66+ did split the google API key arguments: https://bugzilla.mozilla.org/show_bug.cgi?id=1531176
-    configureFlagsArray+=("--with-google-location-service-api-keyfile=$TMPDIR/ga")
-    configureFlagsArray+=("--with-google-safebrowsing-api-keyfile=$TMPDIR/ga")
-  '' + lib.optionalString enableOfficialBranding ''
+    configureFlagsArray+=("--with-google-location-service-api-keyfile=$TMPDIR/google-api-key")
+    configureFlagsArray+=("--with-google-safebrowsing-api-keyfile=$TMPDIR/google-api-key")
+  '' + lib.optionalString mlsAPISupport ''
+    # Mozilla Location services API key
+    # Note: These are for NixOS/nixpkgs use ONLY. For your own distribution,
+    # please get your own set of keys at https://location.services.mozilla.com/api.
+    echo "dfd7836c-d458-4917-98bb-421c82d3c8a0" > $TMPDIR/mls-api-key
+    configureFlagsArray+=("--with-mozilla-api-keyfile=$TMPDIR/mls-api-key")
+  '' + lib.optionalString (enableOfficialBranding && !stdenv.is32bit) ''
     export MOZILLA_OFFICIAL=1
   '';
+
+  # firefox has a different definition of configurePlatforms from nixpkgs, see configureFlags
+  configurePlatforms = [ ];
 
   configureFlags = [
     "--disable-tests"
@@ -246,7 +341,8 @@ buildStdenv.mkDerivation ({
     "--enable-application=${application}"
     "--enable-default-toolkit=cairo-gtk3${lib.optionalString waylandSupport "-wayland"}"
     "--enable-system-pixman"
-    "--with-libclang-path=${llvmPackages.libclang.lib}/lib"
+    "--with-distribution-id=org.nixos"
+    "--with-libclang-path=${llvmPackagesBuildBuild.libclang.lib}/lib"
     "--with-system-ffi"
     "--with-system-icu"
     "--with-system-jpeg"
@@ -257,8 +353,10 @@ buildStdenv.mkDerivation ({
     "--with-system-png" # needs APNG support
     "--with-system-webp"
     "--with-system-zlib"
+    # for firefox, host is buildPlatform, target is hostPlatform
+    "--host=${buildStdenv.buildPlatform.config}"
+    "--target=${buildStdenv.hostPlatform.config}"
   ]
-  ++ lib.optional (!ltoSupport) "--with-clang-path=${llvmPackages.clang}/bin/clang"
   # LTO is done using clang and lld on Linux.
   ++ lib.optionals ltoSupport [
      "--enable-lto=cross" # Cross-Language LTO
@@ -270,14 +368,16 @@ buildStdenv.mkDerivation ({
   ++ lib.optional (lib.versionAtLeast version "95") "--with-wasi-sysroot=${wasiSysRoot}"
 
   ++ flag alsaSupport "alsa"
+  ++ flag jackSupport "jack"
   ++ flag pulseaudioSupport "pulseaudio"
+  ++ lib.optional (lib.versionAtLeast version "100") (flag sndioSupport "sndio")
   ++ flag ffmpegSupport "ffmpeg"
   ++ flag jemallocSupport "jemalloc"
   ++ flag geolocationSupport "necko-wifi"
   ++ flag gssSupport "negotiateauth"
   ++ flag webrtcSupport "webrtc"
   ++ flag crashreporterSupport "crashreporter"
-  ++ lib.optional drmSupport "--enable-eme=widevine"
+  ++ lib.optional (!drmSupport) "--disable-eme"
 
   ++ (if debugBuild then [ "--enable-debug" "--enable-profiling" ]
                     else [ "--disable-debug" "--enable-optimize" ])
@@ -298,7 +398,6 @@ buildStdenv.mkDerivation ({
     fontconfig
     freetype
     glib
-    gnum4
     gtk3
     icu
     libffi
@@ -312,7 +411,6 @@ buildStdenv.mkDerivation ({
     libwebp
     nasm
     nspr
-    nss
     pango
     perl
     xorg.libX11
@@ -329,15 +427,43 @@ buildStdenv.mkDerivation ({
     zip
     zlib
   ]
+  ++ [ (if (lib.versionAtLeast version "92") then nss_latest else nss_esr) ]
   ++ lib.optional  alsaSupport alsa-lib
+  ++ lib.optional  jackSupport libjack2
   ++ lib.optional  pulseaudioSupport libpulseaudio # only headers are needed
+  ++ lib.optional  (sndioSupport && lib.versionAtLeast version "100") sndio
   ++ lib.optional  gssSupport libkrb5
   ++ lib.optionals waylandSupport [ libxkbcommon libdrm ]
   ++ lib.optional  jemallocSupport jemalloc
   ++ extraBuildInputs;
 
+  profilingPhase = lib.optionalString pgoSupport ''
+    # Package up Firefox for profiling
+    ./mach package
+
+    # Run profiling
+    (
+      export HOME=$TMPDIR
+      export LLVM_PROFDATA=llvm-profdata
+      export JARLOG_FILE="$TMPDIR/jarlog"
+
+      xvfb-run -w 10 -s "-screen 0 1920x1080x24" \
+        ./mach python ./build/pgo/profileserver.py
+    )
+
+    # Copy profiling data to a place we can easily reference
+    cp ./merged.profdata $TMPDIR/merged.profdata
+
+    # Clean build dir
+    ./mach clobber
+  '';
+
   preBuild = ''
     cd mozobj
+  '';
+
+  postBuild = ''
+    cd ..
   '';
 
   makeFlags = extraMakeFlags;
@@ -347,7 +473,22 @@ buildStdenv.mkDerivation ({
   # tests were disabled in configureFlags
   doCheck = false;
 
-  postInstall = lib.optionalString buildStdenv.isLinux ''
+  # Generate build symbols once after the final build
+  # https://firefox-source-docs.mozilla.org/crash-reporting/uploading_symbol.html
+  preInstall = lib.optionalString crashreporterSupport ''
+    ./mach buildsymbols
+    mkdir -p $symbols/
+    cp mozobj/dist/*.crashreporter-symbols.zip $symbols/
+  '' + ''
+    cd mozobj
+  '';
+
+  postInstall = ''
+    # Install distribution customizations
+    install -Dvm644 ${distributionIni} $out/lib/${binaryName}/distribution/distribution.ini
+    install -Dvm644 ${defaultPrefsFile} $out/lib/${binaryName}/browser/defaults/preferences/nixos-default-prefs.js
+
+  '' + lib.optionalString buildStdenv.isLinux ''
     # Remove SDK cruft. FIXME: move to a separate output?
     rm -rf $out/share/idl $out/include $out/lib/${binaryName}-devel-*
 
@@ -402,7 +543,9 @@ buildStdenv.mkDerivation ({
     inherit version;
     inherit alsaSupport;
     inherit binaryName;
+    inherit jackSupport;
     inherit pipewireSupport;
+    inherit sndioSupport;
     inherit nspr;
     inherit ffmpegSupport;
     inherit gssSupport;

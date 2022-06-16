@@ -2,9 +2,10 @@
 , buildPythonApplication
 , fetchFromGitHub
 , wrapGAppsHook
+, gdk-pixbuf
 , gobject-introspection
 , imagemagick
-, networkmanager
+, librsvg
 , pango
 , webkitgtk
 # Python libs
@@ -16,16 +17,17 @@
 
 buildPythonApplication rec {
   pname = "protonvpn-gui";
-  version = "1.7.0";
+  version = "1.10.0";
 
   src = fetchFromGitHub {
     owner = "ProtonVPN";
     repo = "linux-app";
-    rev = version;
-    sha256 = "sha256-uzooFQBq2mhqTBr/cgea5cVQ889P70sgSk2vjXBQEfw=";
+    rev = "refs/tags/${version}";
+    sha256 = "sha256-6IRkJKtdQQ9Yixb9CkT3tGNY0MYFZyvz1/6buZo5eYU=";
   };
 
   nativeBuildInputs = [
+    gdk-pixbuf
     gobject-introspection
     imagemagick
     wrapGAppsHook
@@ -39,7 +41,7 @@ buildPythonApplication rec {
   buildInputs = [
     # To avoid enabling strictDeps = false (#56943)
     gobject-introspection
-    networkmanager
+    librsvg
     pango
     webkitgtk
   ] ++ lib.optionals withIndicator [ libappindicator-gtk3 ];

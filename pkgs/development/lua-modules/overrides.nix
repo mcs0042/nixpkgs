@@ -15,13 +15,17 @@ with prev;
   });
 
   busted = prev.busted.overrideAttrs(oa: {
+    nativeBuildInputs = [
+      pkgs.installShellFiles
+    ];
     postConfigure = ''
       substituteInPlace ''${rockspecFilename} \
         --replace "'lua_cliargs = 3.0-1'," "'lua_cliargs >= 3.0-1',"
     '';
     postInstall = ''
-      install -D completions/zsh/_busted $out/share/zsh/site-functions/_busted
-      install -D completions/bash/busted.bash $out/share/bash-completion/completions/busted
+      installShellCompletion --cmd busted \
+        --zsh completions/zsh/_busted \
+        --bash completions/bash/busted.bash
     '';
   });
 
@@ -129,6 +133,48 @@ with prev;
     '';
   });
 
+  lmathx = prev.lib.overrideLuarocks prev.lmathx (drv:
+    if luaAtLeast "5.1" && luaOlder "5.2" then {
+      version = "20120430.51-1";
+      knownRockspec = (pkgs.fetchurl {
+        url    = "https://luarocks.org/lmathx-20120430.51-1.rockspec";
+        sha256 = "148vbv2g3z5si2db7rqg5bdily7m4sjyh9w6r3jnx3csvfaxyhp0";
+      }).outPath;
+      src = pkgs.fetchurl {
+        url    = "https://web.tecgraf.puc-rio.br/~lhf/ftp/lua/5.1/lmathx.tar.gz";
+        sha256 = "0sa553d0zlxhvpsmr4r7d841f16yq4wr3fg7i07ibxkz6yzxax51";
+      };
+    } else
+    if luaAtLeast "5.2" && luaOlder "5.3" then {
+      version = "20120430.52-1";
+      knownRockspec = (pkgs.fetchurl {
+        url    = "https://luarocks.org/lmathx-20120430.52-1.rockspec";
+        sha256 = "14rd625sipakm72wg6xqsbbglaxyjba9nsajsfyvhg0sz8qjgdya";
+      }).outPath;
+      src = pkgs.fetchurl {
+        url    = "http://www.tecgraf.puc-rio.br/~lhf/ftp/lua/5.2/lmathx.tar.gz";
+        sha256 = "19dwa4z266l2njgi6fbq9rak4rmx2fsx1s0p9sl166ar3mnrdwz5";
+      };
+    } else
+    {
+      disabled = luaOlder "5.1" || luaAtLeast "5.5";
+      # works fine with 5.4 as well
+      postConfigure = ''
+        substituteInPlace ''${rockspecFilename} \
+          --replace 'lua ~> 5.3' 'lua >= 5.3, < 5.5'
+      '';
+    });
+
+  lmpfrlib = prev.lib.overrideLuarocks prev.lmpfrlib (drv: {
+    externalDeps = [
+      { name = "GMP"; dep = pkgs.gmp; }
+      { name = "MPFR"; dep = pkgs.mpfr; }
+    ];
+    unpackPhase = ''
+      cp $src $(stripHash $src)
+    '';
+  });
+
   lrexlib-gnu = prev.lib.overrideLuarocks prev.lrexlib-gnu (drv: {
     buildInputs = [
       pkgs.gnulib
@@ -157,7 +203,7 @@ with prev;
     # until Alloyed/lua-lsp#28
     postConfigure = ''
       substituteInPlace ''${rockspecFilename} \
-        --replace '"lpeglabel ~> 1.5",' '"lpeglabel >= 1.5",'
+        --replace '"dkjson ~> 2.5",' '"dkjson >= 2.5",'
     '';
   });
 
@@ -206,9 +252,6 @@ with prev;
     externalDeps = [
       { name = "EXPAT"; dep = pkgs.expat; }
     ];
-    patches = [
-      ./luaexpat.patch
-    ];
   });
 
   # TODO Somehow automatically amend buildInputs for things that need luaffi
@@ -243,7 +286,9 @@ with prev;
     ];
   });
 
-  luasystem = prev.lib.overrideLuarocks prev.luasystem (drv: { buildInputs = [ pkgs.glibc.out ]; });
+  luasystem = prev.lib.overrideLuarocks prev.luasystem (drv: pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+    buildInputs = [ pkgs.glibc.out ];
+  });
 
   luazip = prev.lib.overrideLuarocks prev.luazip (drv: {
     buildInputs = [
@@ -254,6 +299,12 @@ with prev;
   lua-yajl = prev.lib.overrideLuarocks prev.lua-yajl (drv: {
     buildInputs = [
       pkgs.yajl
+    ];
+  });
+
+  luaunbound = prev.lib.overrideLuarocks prev.luaunbound(drv: {
+    externalDeps = [
+      { name = "libunbound"; dep = pkgs.unbound; }
     ];
   });
 
@@ -280,34 +331,51 @@ with prev;
     '';
   });
 
+
+  # as advised in https://github.com/luarocks/luarocks/issues/1402#issuecomment-1080616570
+  # we shouldn't use luarocks machinery to build complex cmake components
+  libluv = pkgs.stdenv.mkDerivation {
+
+    pname = "libluv";
+    inherit (prev.luv) version meta src;
+
+      cmakeFlags = [
+        "-DBUILD_SHARED_LIBS=ON"
+        "-DBUILD_MODULE=OFF"
+        "-DWITH_SHARED_LIBUV=ON"
+        "-DLUA_BUILD_TYPE=System"
+        "-DWITH_LUA_ENGINE=${if isLuaJIT then "LuaJit" else "Lua"}"
+      ];
+
+      # to make sure we dont use bundled deps
+      postUnpack = ''
+        rm -rf deps/lua deps/libuv
+      '';
+
+      buildInputs = [ pkgs.libuv final.lua ];
+
+      nativeBuildInputs = [ pkgs.pkg-config pkgs.cmake ]
+        ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [ pkgs.fixDarwinDylibNames ];
+  };
+
   luv = prev.lib.overrideLuarocks prev.luv (drv: {
+
+    buildInputs = [ pkgs.pkg-config pkgs.libuv ];
+
     # Use system libuv instead of building local and statically linking
-    # This is a hacky way to specify -DWITH_SHARED_LIBUV=ON which
-    # is not possible with luarocks and the current luv rockspec
-    # While at it, remove bundled libuv source entirely to be sure.
-    # We may wish to drop bundled lua submodules too...
-    preBuild = ''
-     sed -i 's,\(option(WITH_SHARED_LIBUV.*\)OFF,\1ON,' CMakeLists.txt
-     rm -rf deps/libuv
+    extraVariables = {
+      "WITH_SHARED_LIBUV" = "ON";
+    };
+
+    # we unset the LUA_PATH since the hook erases the interpreter defaults (To fix)
+    # tests is not run since they are not part of the tarball anymore
+    preCheck = ''
+      unset LUA_PATH
+      rm tests/test-{dns,thread}.lua
     '';
 
-    buildInputs = [ pkgs.libuv ];
+    passthru.libluv = final.libluv;
 
-    passthru = {
-      libluv = final.luv.overrideAttrs (oa: {
-        preBuild = final.luv.preBuild + ''
-          sed -i 's,\(option(BUILD_MODULE.*\)ON,\1OFF,' CMakeLists.txt
-          sed -i 's,\(option(BUILD_SHARED_LIBS.*\)OFF,\1ON,' CMakeLists.txt
-          sed -i 's,${"\${.*INSTALL_INC_DIR}"},${placeholder "out"}/include/luv,' CMakeLists.txt
-        '';
-
-        nativeBuildInputs = [ pkgs.fixDarwinDylibNames ];
-
-        # Fixup linking libluv.dylib, for some reason it's not linked against lua correctly.
-        NIX_LDFLAGS = pkgs.lib.optionalString pkgs.stdenv.isDarwin
-          (if isLuaJIT then "-lluajit-${lua.luaversion}" else "-llua");
-      });
-    };
   });
 
   lyaml = prev.lib.overrideLuarocks prev.lyaml (oa: {
@@ -343,7 +411,7 @@ with prev;
   })).overrideAttrs (old: {
     # Without this, source root is wrongly set to ./readline-2.6/doc
     setSourceRoot = ''
-      sourceRoot=./readline-3.0
+      sourceRoot=./readline-${pkgs.lib.versions.majorMinor old.version}
     '';
   });
 

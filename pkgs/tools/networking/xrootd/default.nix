@@ -4,29 +4,30 @@
 , fetchFromGitHub
 , cmake
 , cppunit
+, pkg-config
 , curl
 , fuse
 , libkrb5
 , libuuid
 , libxml2
 , openssl
-, pkg-config
 , readline
 , systemd
+, voms
 , zlib
 , enableTests ? true
 }:
 
 stdenv.mkDerivation rec {
   pname = "xrootd";
-  version = "5.4.1";
+  version = "5.4.2";
 
   src = fetchFromGitHub {
     owner = "xrootd";
     repo = "xrootd";
     rev = "v${version}";
     fetchSubmodules = true;
-    sha256 = "sha256-rr6cZ6tyrpCQyKcPBWwGsRAsLbjTXAoTtxf+u1UmvZo=";
+    sha256 = "sha256-k6uAJbUhpwnRrSeGn4JQiHDBrGJNQDf5vG2a+je5ByU=";
   };
 
   outputs = [ "bin" "out" "dev" "man" ];
@@ -52,6 +53,7 @@ stdenv.mkDerivation rec {
   ++ lib.optionals stdenv.isLinux [
     fuse
     systemd
+    voms
   ]
   ++ lib.optionals enableTests [
     cppunit

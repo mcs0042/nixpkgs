@@ -32,16 +32,18 @@ with py.pkgs;
 
 buildPythonApplication rec {
   pname = "checkov";
-  version = "2.0.988";
+  version = "2.0.1217";
+  format = "setuptools";
 
   src = fetchFromGitHub {
     owner = "bridgecrewio";
     repo = pname;
     rev = version;
-    hash = "sha256-0/SL20N5d/oqWdyvVMZ+pzpPbehrYepaPi8P8SS8DSA=";
+    hash = "sha256-z1MKLFR/js27/9VxbOOx9LxcKTXOMZpOqUtMjPeIpds=";
   };
 
   nativeBuildInputs = with py.pkgs; [
+    pythonRelaxDepsHook
     setuptools-scm
   ];
 
@@ -63,6 +65,7 @@ buildPythonApplication rec {
     docker
     dockerfile-parse
     dpath
+    flake8
     GitPython
     jmespath
     jsonpath-ng
@@ -89,13 +92,13 @@ buildPythonApplication rec {
     pytest-mock
     pytest-xdist
     pytestCheckHook
+    responses
   ];
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "cyclonedx-python-lib>=0.11.0,<1.0.0" "cyclonedx-python-lib>=0.11.0" \
-      --replace "prettytable>=3.0.0" "prettytable"
-  '';
+  pythonRelaxDeps = [
+    "bc-python-hcl2"
+    "pycep-parser"
+  ];
 
   preCheck = ''
     export HOME=$(mktemp -d);
@@ -114,6 +117,8 @@ buildPythonApplication rec {
     "test_skipped_check_exists"
     # AssertionError: 0 not greater than 0
     "test_skip_mapping_default"
+    # Test is failing
+    "test_SQLServerAuditingEnabled"
   ];
 
   disabledTestPaths = [

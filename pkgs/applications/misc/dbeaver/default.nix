@@ -19,46 +19,21 @@
 , javaPackages
 }:
 
-javaPackages.mavenfod rec {
+(javaPackages.mavenfod.override {
+  inherit maven; # use overridden maven version (see dbeaver's entry in all-packages.nix)
+}) rec {
   pname = "dbeaver";
-  version = "22.0.1"; # When updating also update fetchedMavenDeps.sha256
+  version = "22.1.0"; # When updating also update mvnSha256
 
   src = fetchFromGitHub {
     owner = "dbeaver";
     repo = "dbeaver";
     rev = version;
-    sha256 = "sha256-IG5YWwq3WVzQBvAslQ9Z2Ou6ADzf4n9NkQCtH4Jgkac=";
+    sha256 = "sha256-gMs9q0+Yy/2l8TEG9vIuzv0qOh7QwawwlXKr3/Mz8wk=";
   };
 
-
-  mvnSha256 = "7Sm1hAoi5xc4MLONOD8ySLLkpao0qmlMRRva/8zR210=";
+  mvnSha256 = "veclFlzLhTU+nT360qxRNut+yEi2dfTBxdQASyRMqhI=";
   mvnParameters = "-P desktop,all-platforms";
-
-  fetchedMavenDeps = stdenv.mkDerivation {
-    name = "dbeaver-${version}-maven-deps";
-    inherit src;
-
-    buildInputs = [
-      maven
-    ];
-
-    buildPhase = "mvn package -Dmaven.repo.local=$out/.m2 ${mvnParameters}";
-
-    # keep only *.{pom,jar,sha1,nbm} and delete all ephemeral files with lastModified timestamps inside
-    installPhase = ''
-      find $out -type f \
-        -name \*.lastUpdated -or \
-        -name resolver-status.properties -or \
-        -name _remote.repositories \
-        -delete
-    '';
-
-    # don't do any fixup
-    dontFixup = true;
-    outputHashAlgo = "sha256";
-    outputHashMode = "recursive";
-    outputHash = "sha256-WAB15d4UvUOkBXT7K/hvAZWOE3V1Lpl/tr+AFNBM4FI=";
-  };
 
   nativeBuildInputs = [
     copyDesktopItems
@@ -98,6 +73,7 @@ javaPackages.mavenfod rec {
       productTargetPath = "product/community/target/products/org.jkiss.dbeaver.core.product";
 
       platformMap = {
+        aarch64-darwin = "aarch64";
         aarch64-linux = "aarch64";
         x86_64-darwin = "x86_64";
         x86_64-linux  = "x86_64";
@@ -152,7 +128,7 @@ javaPackages.mavenfod rec {
       Teradata, Firebird, Derby, etc.
     '';
     license = licenses.asl20;
-    platforms = [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" ];
+    platforms = [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
     maintainers = with maintainers; [ jojosch mkg20001 ];
   };
 }

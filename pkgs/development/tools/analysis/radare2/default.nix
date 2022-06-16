@@ -44,13 +44,13 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "radare2";
-  version = "5.6.4";
+  version = "5.7.0";
 
   src = fetchFromGitHub {
     owner = "radare";
     repo = "radare2";
     rev = version;
-    sha256 = "sha256-rqGlp9fHTF1z8A+DROYfzHXi5xfLMdUWzssGN5uHQmE=";
+    sha256 = "sha256-tCFi1m3xyQlG+8FijjQh8PMwg6CIfIxvLkd5xCIZHHo=";
   };
 
   preBuild = ''
@@ -110,6 +110,7 @@ stdenv.mkDerivation rec {
   ];
 
   meta = with lib; {
+    broken = stdenv.isDarwin;
     description = "unix-like reverse engineering framework and commandline tools";
     homepage = "https://radare.org/";
     license = licenses.gpl2Plus;

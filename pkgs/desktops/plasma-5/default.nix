@@ -124,7 +124,6 @@ let
       ksystemstats = callPackage ./ksystemstats.nix {};
       kwallet-pam = callPackage ./kwallet-pam.nix {};
       kwayland-integration = callPackage ./kwayland-integration.nix {};
-      kwayland-server = callPackage ./kwayland-server {};
       kwin = callPackage ./kwin {};
       kwrited = callPackage ./kwrited.nix {};
       layer-shell-qt = callPackage ./layer-shell-qt.nix {};
@@ -166,7 +165,7 @@ let
         parachute = callPackage ./3rdparty/kwin/scripts/parachute.nix { };
       };
 
-    } // lib.optionalAttrs (config.allowAliases or true) {
+    } // lib.optionalAttrs config.allowAliases {
       ksysguard = throw "ksysguard has been replaced with plasma-systemmonitor";
       plasma-phone-components = throw "'plasma-phone-components' has been renamed to/replaced by 'plasma-mobile'";
     };

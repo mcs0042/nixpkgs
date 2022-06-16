@@ -1,5 +1,6 @@
 # tests available at pkgs/test/vim
-{ lib, stdenv, vim, vimPlugins, vim_configurable, buildEnv, writeText, writeScriptBin
+{ lib, stdenv, vim, vimPlugins, vim_configurable, buildEnv, writeText
+, runCommand, makeWrapper
 , nix-prefetch-hg, nix-prefetch-git
 , fetchFromGitHub, runtimeShell
 , hasLuaModule
@@ -16,7 +17,7 @@ Install Vim like this eg using nixos option environment.systemPackages which wil
 vim-with-plugins in PATH:
 
   vim_configurable.customize {
-    name = "vim-with-plugins";
+    name = "vim-with-plugins"; # optional
 
     # add custom .vimrc lines like this:
     vimrcConfig.customRC = ''
@@ -50,9 +51,6 @@ vim-with-plugins in PATH:
       # full documentation at github.com/MarcWeber/vim-addon-manager
     ];
 
-    # there is a pathogen implementation as well, but its startup is slower and [VAM] has more feature
-    # vimrcConfig.pathogen.knownPlugins = vimPlugins; # optional
-    # vimrcConfig.pathogen.pluginNames = ["vim-addon-nix"];
   };
 
 WHAT IS A VIM PLUGIN?
@@ -102,7 +100,7 @@ It might happen than a plugin is not known by vim-pi yet. We encourage you to
 contribute to vim-pi so that plugins can be updated automatically.
 
 
-CREATING DERVITATIONS AUTOMATICALLY BY PLUGIN NAME
+CREATING DERIVATIONS AUTOMATICALLY BY PLUGIN NAME
 ==================================================
 Most convenient is to use a ~/.vim-scripts file putting a plugin name into each line
 as documented by [VAM]'s README.md
@@ -276,24 +274,18 @@ let
   }:
 
     let
-      /* pathogen mostly can set &rtp at startup time. Its used very commonly.
+      /* pathogen mostly can set &rtp at startup time. Deprecated.
       */
       pathogenImpl = let
         knownPlugins = pathogen.knownPlugins or vimPlugins;
 
         plugins = findDependenciesRecursively (map (pluginToDrv knownPlugins) pathogen.pluginNames);
 
-        pluginsEnv = buildEnv {
-          name = "pathogen-plugin-env";
-          paths = map (x: "${x}/${rtpPath}") plugins;
+        pathogenPackages.pathogen = lib.warn "'pathogen' attribute is deprecated. Use 'packages' instead in your vim configuration" {
+          start = plugins;
         };
       in
-      ''
-        let &rtp.=(empty(&rtp)?"":',')."${vimPlugins.vim-pathogen.rtp}"
-        execute pathogen#infect('${pluginsEnv}/{}')
-
-        filetype indent plugin on | syn on
-      '';
+        nativeImpl pathogenPackages;
 
       /* vim-plug is an extremely popular vim plugin manager.
       */
@@ -404,63 +396,80 @@ rec {
   inherit vimrcContent;
   inherit packDir;
 
-  # shell script with custom name passing [-u vimrc] [-U gvimrc] to vim
-  vimWithRC = {
-    vimExecutable,
-    gvimExecutable,
-    vimManPages,
-    wrapManual,
-    wrapGui,
-    name ? "vim",
-    vimrcFile ? null,
-    gvimrcFile ? null,
-    vimExecutableName,
-    gvimExecutableName,
-  }:
-    let
-      rcOption = o: file: lib.optionalString (file != null) "-${o} ${file}";
-      vimWrapperScript = writeScriptBin vimExecutableName ''
-        #!${runtimeShell}
-        exec ${vimExecutable} ${rcOption "u" vimrcFile} ${rcOption "U" gvimrcFile} "$@"
-      '';
-      gvimWrapperScript = writeScriptBin gvimExecutableName ''
-        #!${stdenv.shell}
-        exec ${gvimExecutable} ${rcOption "u" vimrcFile} ${rcOption "U" gvimrcFile} "$@"
-      '';
-    in
-      buildEnv {
-        inherit name;
-        paths = [
-          vimWrapperScript
-        ] ++ lib.optional wrapGui gvimWrapperScript
-          ++ lib.optional wrapManual vimManPages
-        ;
-      };
+  makeCustomizable = let
+    mkVimrcFile = vimrcFile; # avoid conflict with argument name
+  in vim: vim // {
+    # Returns a customized vim that uses the specified vimrc configuration.
+    customize =
+      { # The name of the derivation.
+        name ? "vim"
+      , # A shell word used to specify the names of the customized executables.
+        # The shell variable $exe can be used to refer to the wrapped executable's name.
+        # Examples: "my-$exe", "$exe-with-plugins", "\${exe/vim/v1m}"
+        executableName ?
+          if lib.hasInfix "vim" name then
+            lib.replaceStrings [ "vim" ] [ "$exe" ] name
+          else
+            "\${exe/vim/${lib.escapeShellArg name}}"
+      , # A custom vimrc configuration, treated as an argument to vimrcContent (see the documentation in this file).
+        vimrcConfig ? null
+      , # A custom vimrc file.
+        vimrcFile ? null
+      , # A custom gvimrc file.
+        gvimrcFile ? null
+      , # If set to true, return the *vim wrappers only.
+        # If set to false, overlay the wrappers on top of the original vim derivation.
+        # This ensures that things like man pages and .desktop files are available.
+        standalone ? name != "vim" && wrapManual != true
 
-  # add a customize option to a vim derivation
-  makeCustomizable = vim: vim // {
-    customize = {
-      name,
-      vimrcConfig,
-      wrapManual ? true,
-      wrapGui ? false,
-      vimExecutableName ? name,
-      gvimExecutableName ? (lib.concatStrings [ "g" name ]),
-    }: vimWithRC {
-      vimExecutable = "${vim}/bin/vim";
-      gvimExecutable = "${vim}/bin/gvim";
-      inherit name wrapManual wrapGui vimExecutableName gvimExecutableName;
-      vimrcFile = vimrcFile vimrcConfig;
-      vimManPages = buildEnv {
-        name = "vim-doc";
-        paths = [ vim ];
-        pathsToLink = [ "/share/man" ];
-      };
-    };
+      , # deprecated arguments (TODO: remove eventually)
+        wrapManual ? null, wrapGui ? null, vimExecutableName ? null, gvimExecutableName ? null,
+      }:
+      lib.warnIf (wrapManual != null) ''
+        vim.customize: wrapManual is deprecated: the manual is now included by default if `name == "vim"`.
+        ${if wrapManual == true && name != "vim" then "Set `standalone = false` to include the manual."
+        else if wrapManual == false && name == "vim" then "Set `standalone = true` to get the *vim wrappers only."
+        else ""}''
+      lib.warnIf (wrapGui != null)
+        "vim.customize: wrapGui is deprecated: gvim is now automatically included if present"
+      lib.throwIfNot (vimExecutableName == null && gvimExecutableName == null)
+        "vim.customize: (g)vimExecutableName is deprecated: use executableName instead (see source code for examples)"
+      (let
+        vimrc =
+          if vimrcFile != null then vimrcFile
+          else if vimrcConfig != null then mkVimrcFile vimrcConfig
+          else throw "at least one of vimrcConfig and vimrcFile must be specified";
+        bin = runCommand "${name}-bin" { buildInputs = [ makeWrapper ]; } ''
+          vimrc=${lib.escapeShellArg vimrc}
+          gvimrc=${if gvimrcFile != null then lib.escapeShellArg gvimrcFile else ""}
+
+          mkdir -p "$out/bin"
+          for exe in ${
+            if standalone then "{,g,r,rg,e}vim {,g}vimdiff vi"
+            else "{,g,r,rg,e}{vim,view} {,g}vimdiff ex vi"
+          }; do
+            if [[ -e ${vim}/bin/$exe ]]; then
+              dest="$out/bin/${executableName}"
+              if [[ -e $dest ]]; then
+                echo "ambiguous executableName: ''${dest##*/} already exists"
+                continue
+              fi
+              makeWrapper ${vim}/bin/"$exe" "$dest" \
+                --add-flags "-u ''${vimrc@Q} ''${gvimrc:+-U ''${gvimrc@Q}}"
+            fi
+          done
+        '';
+      in if standalone then bin else
+        buildEnv {
+          inherit name;
+          paths = [ (lib.lowPrio vim) bin ];
+        });
 
     override = f: makeCustomizable (vim.override f);
     overrideAttrs = f: makeCustomizable (vim.overrideAttrs f);
   };
+
+  vimWithRC = throw "vimWithRC was removed, please use vim.customize instead";
 
   pluginnames2Nix = {name, namefiles} : vim_configurable.customize {
     inherit name;
@@ -503,8 +512,36 @@ rec {
       };
     } ./vim-gen-doc-hook.sh) {};
 
-  inherit (import ./build-vim-plugin.nix { inherit lib stdenv rtpPath vim vimGenDocHook; })
-    buildVimPlugin buildVimPluginFrom2Nix;
+  vimCommandCheckHook = callPackage ({ neovim-unwrapped }:
+    makeSetupHook {
+      name = "vim-command-check-hook";
+      deps = [ neovim-unwrapped ];
+      substitutions = {
+        vimBinary = "${neovim-unwrapped}/bin/nvim";
+        inherit rtpPath;
+      };
+    } ./vim-command-check-hook.sh) {};
+
+  neovimRequireCheckHook = callPackage ({ neovim-unwrapped }:
+    makeSetupHook {
+      name = "neovim-require-check-hook";
+      deps = [ neovim-unwrapped ];
+      substitutions = {
+        nvimBinary = "${neovim-unwrapped}/bin/nvim";
+        inherit rtpPath;
+      };
+    } ./neovim-require-check-hook.sh) {};
+
+  inherit (import ./build-vim-plugin.nix {
+    inherit lib stdenv rtpPath vim vimGenDocHook vimCommandCheckHook neovimRequireCheckHook;
+  }) buildVimPlugin buildVimPluginFrom2Nix;
+
+
+  # TODO placeholder to ease working on automatic plugin detection
+  # this should be a luarocks "flat" install with appropriate vim hooks
+  buildNeovimPluginFrom2Nix = attrs: let drv = (buildVimPluginFrom2Nix attrs); in drv.overrideAttrs(oa: {
+    nativeBuildInputs = oa.nativeBuildInputs ++ [ neovimRequireCheckHook ];
+  });
 
   # used to figure out which python dependencies etc. neovim needs
   requiredPlugins = {

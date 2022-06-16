@@ -1,12 +1,12 @@
-{ lib, fetchFromGitHub, makeDesktopItem, prusa-slicer }:
+{ lib, fetchFromGitHub, makeDesktopItem, prusa-slicer, wxGTK31-gtk3 }:
 let
   appname = "SuperSlicer";
   pname = "super-slicer";
   description = "PrusaSlicer fork with more features and faster development cycle";
 
   versions = {
-    stable = { version = "2.3.57.10"; sha256 = "sha256-/1oZgmZpRoizVpklKaI12qP4bVIGYyVpybmuCIz3Y0M="; };
-    latest = { version = "2.3.57.10"; sha256 = "sha256-/1oZgmZpRoizVpklKaI12qP4bVIGYyVpybmuCIz3Y0M="; };
+    stable = { version = "2.3.57.12"; sha256 = "sha256-lePhDRHI++9zs54bTt2/Lu6ZQ7egjJCWb752aI0s7Mw=="; };
+    latest = { version = "2.3.57.12"; sha256 = "sha256-lePhDRHI++9zs54bTt2/Lu6ZQ7egjJCWb752aI0s7Mw=="; };
   };
 
   override = { version, sha256 }: super: {
@@ -54,7 +54,7 @@ let
     passthru = allVersions;
 
   };
-
-  allVersions = builtins.mapAttrs (_name: version: (prusa-slicer.overrideAttrs (override version))) versions;
+  prusa-slicer' = prusa-slicer.override { wxGTK31-gtk3-override = wxGTK31-gtk3; };
+  allVersions = builtins.mapAttrs (_name: version: (prusa-slicer'.overrideAttrs (override version))) versions;
 in
 allVersions.stable

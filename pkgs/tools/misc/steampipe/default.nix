@@ -1,21 +1,18 @@
-{ lib, buildGoModule, fetchFromGitHub, installShellFiles }:
+{ stdenv, lib, buildGoModule, fetchFromGitHub, installShellFiles }:
 
 buildGoModule rec {
   pname = "steampipe";
-  version = "0.13.3";
+  version = "0.13.4";
 
   src = fetchFromGitHub {
     owner = "turbot";
     repo = "steampipe";
     rev = "v${version}";
-    sha256 = "sha256-zU/FWrlE4TQhzRNOVED7hFub+lehPFD+fEJ3v0PFGdM=";
+    sha256 = "sha256-Qq8i/uU2TtrEpvTPFmnZdku2vNo5O240dAT2OQKel1U=";
   };
 
-  vendorSha256 = "sha256-0jixQcgSXQJAd899EWOUKde5OXZcSZwQfH7LRdQlm7c=";
+  vendorSha256 = "sha256-pEQG9BHhsVDVSOoKJBocLXMLjmP72RM+GXz4nYD4D7s=";
   proxyVendor = true;
-
-  # tests are failing for no obvious reasons
-  doCheck = false;
 
   nativeBuildInputs = [ installShellFiles ];
 
@@ -33,6 +30,7 @@ buildGoModule rec {
   '';
 
   meta = with lib; {
+    broken = stdenv.isDarwin;
     homepage = "https://steampipe.io/";
     description = "select * from cloud;";
     license = licenses.agpl3;

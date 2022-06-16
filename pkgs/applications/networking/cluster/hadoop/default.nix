@@ -17,6 +17,8 @@
 , openssl
 , glibc
 , nixosTests
+, sparkSupport ? true
+, spark
 }:
 
 with lib;
@@ -52,6 +54,9 @@ let
             --prefix PATH : "${makeBinPath [ bash coreutils which]}"\
             --prefix JAVA_LIBRARY_PATH : "${makeLibraryPath buildInputs}"
         done
+      '' + optionalString sparkSupport ''
+        # Add the spark shuffle service jar to YARN
+        cp ${spark.src}/yarn/spark-${spark.version}-yarn-shuffle.jar $out/lib/${untarDir}/share/hadoop/yarn/
       '' + libPatches;
 
       passthru = { inherit tests; };
@@ -60,6 +65,7 @@ let
         homepage = "https://hadoop.apache.org/";
         description = "Framework for distributed processing of large data sets across clusters of computers";
         license = licenses.asl20;
+        sourceProvenance = with sourceTypes; [ binaryBytecode ];
 
         longDescription = ''
           The Apache Hadoop software library is a framework that allows for

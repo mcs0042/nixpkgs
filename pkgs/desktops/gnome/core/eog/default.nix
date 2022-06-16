@@ -29,14 +29,21 @@
 
 stdenv.mkDerivation rec {
   pname = "eog";
-  version = "42.0";
+  version = "42.2";
 
   outputs = [ "out" "dev" "devdoc" ];
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.major version}/${pname}-${version}.tar.xz";
-    sha256 = "sha256-+zW/tRZ6QhIfWae5t6wNdbvQUXua/W2Rgx6E01c13fg=";
+    sha256 = "sha256-Dk1Kai7hokCui1hEnwK6LGS3+ZSQ0LiRXX9SyQpYBF4=";
   };
+
+  patches = [
+    # Fix path to libeog.so in the gir file.
+    # We patch gobject-introspection to hardcode absolute paths but
+    # our Meson patch will only pass the info when install_dir is absolute as well.
+    ./fix-gir-lib-path.patch
+  ];
 
   nativeBuildInputs = [
     meson

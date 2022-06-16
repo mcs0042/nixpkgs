@@ -3,6 +3,9 @@ let
   pname = "uutf";
 in
 
+lib.throwIfNot (lib.versionAtLeast ocaml.version "4.03")
+  "${pname} is not available with OCaml ${ocaml.version}"
+
 stdenv.mkDerivation rec {
   name = "ocaml${ocaml.version}-${pname}-${version}";
   version = "1.0.3";
@@ -23,8 +26,9 @@ stdenv.mkDerivation rec {
   meta = with lib; {
     description = "Non-blocking streaming Unicode codec for OCaml";
     homepage = "https://erratique.ch/software/uutf";
-    platforms = ocaml.meta.platforms or [];
     license = licenses.bsd3;
     maintainers = [ maintainers.vbgl ];
+    mainProgram = "utftrip";
+    inherit (ocaml.meta) platforms;
   };
 }
