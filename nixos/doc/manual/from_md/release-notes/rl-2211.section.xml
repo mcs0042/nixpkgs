@@ -36,6 +36,18 @@
           PHP now defaults to PHP 8.1, updated from 8.0.
         </para>
       </listitem>
+      <listitem>
+        <para>
+          <literal>hardware.nvidia</literal> has a new option
+          <literal>open</literal> that can be used to opt in the
+          opensource version of NVIDIA kernel driver. Note that the
+          driver’s support for GeForce and Workstation GPUs is still
+          alpha quality, see
+          <link xlink:href="https://developer.nvidia.com/blog/nvidia-releases-open-source-gpu-kernel-modules/">NVIDIA
+          Releases Open-Source GPU Kernel Modules</link> for the
+          official announcement.
+        </para>
+      </listitem>
     </itemizedlist>
   </section>
   <section xml:id="sec-release-22.11-new-services">
@@ -102,6 +114,17 @@
       </listitem>
       <listitem>
         <para>
+          <literal>ngrok</literal> has been upgraded from 2.3.40 to
+          3.0.4. Please see
+          <link xlink:href="https://ngrok.com/docs/guides/upgrade-v2-v3">the
+          upgrade guide</link> and
+          <link xlink:href="https://ngrok.com/docs/ngrok-agent/changelog">changelog</link>.
+          Notably, breaking changes are that the config file format has
+          changed and support for single hypen arguments was dropped.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
           The <literal>isPowerPC</literal> predicate, found on
           <literal>platform</literal> attrsets
           (<literal>hostPlatform</literal>,
@@ -127,6 +150,12 @@
           <literal>configure.pathogen</literal> anymore to reduce
           maintainance burden. Use <literal>configure.packages</literal>
           instead.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          <literal>k3s</literal> no longer supports docker as runtime
+          due to upstream dropping support.
         </para>
       </listitem>
     </itemizedlist>
