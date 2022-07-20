@@ -262,6 +262,7 @@ broken-packages:
   - authenticate-ldap
   - authinfo-hs
   - auto
+  - autodocodec-yaml
   - autom
   - autonix-deps
   - autopack
@@ -420,6 +421,7 @@ broken-packages:
   - bizzlelude-js
   - bkr
   - blakesum
+  - Blammo
   - blas
   - blaze-html-contrib
   - blaze-html-hexpat
@@ -820,7 +822,6 @@ broken-packages:
   - config-parser
   - Configurable
   - configuration
-  - configurator-pg
   - config-value-getopt
   - confsolve
   - congruence-relation
@@ -1134,6 +1135,7 @@ broken-packages:
   - direct-plugins
   - direm
   - dirtree
+  - discord-haskell
   - discordian-calendar
   - discord-types
   - discrete
@@ -1267,6 +1269,7 @@ broken-packages:
   - effin
   - egison-pattern-src
   - ehaskell
+  - ehlo
   - ehs
   - eibd-client-simple
   - eigen
@@ -1314,6 +1317,7 @@ broken-packages:
   - enum-text
   - enum-utf8
   - envelope
+  - env-extra
   - env-parser
   - envstatus
   - epanet-haskell
@@ -1378,6 +1382,7 @@ broken-packages:
   - exinst
   - exists
   - exitcode
+  - exon
   - exp-cache
   - explain
   - explicit-constraint-lens
@@ -1417,6 +1422,7 @@ broken-packages:
   - fast-nats
   - fastpbkdf2
   - FastPush
+  - fast-tags
   - FastxPipe
   - fathead-util
   - fb
@@ -1659,6 +1665,7 @@ broken-packages:
   - gentlemark
   - geocode-google
   - GeocoderOpenCage
+  - geodetics
   - geodetic-types
   - GeoIp
   - geojson-types
@@ -2068,7 +2075,6 @@ broken-packages:
   - hasql-cursor-transaction
   - hasql-explain-tests
   - hasql-generic
-  - hasql-implicits
   - hasql-resource-pool
   - hasql-simple
   - hasql-streams-example
@@ -2147,6 +2153,7 @@ broken-packages:
   - heist-emanote
   - helic
   - helisp
+  - helix
   - hell
   - helm
   - help-esb
@@ -2177,6 +2184,7 @@ broken-packages:
   - hext
   - hextra
   - heyefi
+  - heystone
   - hF2
   - hfann
   - HFitUI
@@ -2453,7 +2461,6 @@ broken-packages:
   - hspec-snap
   - hspec-structured-formatter
   - hspec-tables
-  - hspec-wai-json
   - HsPerl5
   - hs-pgms
   - hspkcs11
@@ -2672,6 +2679,7 @@ broken-packages:
   - interval
   - interval-algebra
   - interval-patterns
+  - interval-tree-clock
   - IntFormats
   - int-multimap
   - intricacy
@@ -2843,6 +2851,7 @@ broken-packages:
   - khph
   - kickass-torrents-dump-parser
   - kickchan
+  - ki-unlifted
   - kleene-list
   - kmonad
   - kmp-dfa
@@ -4006,6 +4015,7 @@ broken-packages:
   - postgresql-tx-simple
   - postgresql-tx-squeal
   - postgresql-typed-lifted
+  - postgrest
   - postgres-tmp
   - postgrest-ws
   - postgres-websockets
@@ -4014,7 +4024,6 @@ broken-packages:
   - postmaster
   - potato-tool
   - potoki-core
-  - powerdns
   - powermate
   - powerpc
   - powerqueue-levelmem
@@ -4110,6 +4119,7 @@ broken-packages:
   - provenience
   - proxy-kindness
   - proxy-mapping
+  - psc-ide
   - pseudo-trie
   - PSQueue
   - PTQ
@@ -4127,6 +4137,7 @@ broken-packages:
   - pure-io
   - purenix
   - pure-priority-queue
+  - purescript-tsd-gen
   - pure-zlib
   - pushbullet
   - pushbullet-types
@@ -4135,10 +4146,12 @@ broken-packages:
   - push-notifications
   - putlenses
   - puzzle-draw
+  - pvector
   - pyffi
   - pyfi
   - python-pickle
   - q4c12-twofinger
+  - qbe
   - qc-oi-testgenerator
   - qd
   - qed
@@ -4316,6 +4329,7 @@ broken-packages:
   - relacion
   - relapse
   - relevant-time
+  - reload
   - remark
   - remarks
   - remote
@@ -4418,6 +4432,7 @@ broken-packages:
   - ruin
   - runhs
   - runmany
+  - rustls
   - rws
   - RxHaskell
   - rz-pipe
@@ -4647,6 +4662,7 @@ broken-packages:
   - simple-form
   - simple-genetic-algorithm
   - SimpleH
+  - SimpleServer
   - simple-index
   - simpleirc
   - simple-log
@@ -4777,6 +4793,7 @@ broken-packages:
   - sodium
   - soegtk
   - softfloat-hs
+  - solga
   - sonic-visualiser
   - Sonnex
   - SoOSiM
@@ -5051,6 +5068,7 @@ broken-packages:
   - tapioca
   - TaskMonad
   - tasty-auto
+  - tasty-autocollect
   - tasty-fail-fast
   - tasty-grading-system
   - tasty-hedgehog-coverage
@@ -5565,6 +5583,7 @@ broken-packages:
   - wai-request-spec
   - wai-responsible
   - wai-router
+  - wai-routes
   - wai-secure-cookies
   - wai-session-alt
   - wai-session-mysql
@@ -5838,6 +5857,7 @@ broken-packages:
   - zendesk-api
   - zeno
   - zeolite-lang
+  - zephyr
   - zeromq4-clone-pattern
   - zeromq4-conduit
   - zeromq4-patterns
