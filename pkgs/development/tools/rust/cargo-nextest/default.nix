@@ -1,17 +1,19 @@
-{ lib, fetchFromGitHub, rustPlatform, stdenv, libiconv }:
+{ lib, fetchFromGitHub, rustPlatform, stdenv, Security }:
 
 rustPlatform.buildRustPackage rec {
   pname = "cargo-nextest";
-  version = "0.9.20";
+  version = "0.9.26";
 
   src = fetchFromGitHub {
     owner = "nextest-rs";
     repo = "nextest";
     rev = "cargo-nextest-${version}";
-    sha256 = "sha256-dsXjoXoFliaALA/tz8/QqC5FpapE/E9nNMJYgvkI+nw=";
+    sha256 = "sha256-/ij0SOuBJ3nTiv2YZCTTcTluYehkUj7Ks3t5F2mRNcM=";
   };
 
-  cargoSha256 = "sha256-3aooeKfQtElWuGtdh0gYvdm62Cm7IhebsintQgOi1Mo=";
+  cargoSha256 = "sha256-HeTJKzKVkgxJ/04ry7plKdENdjzC7VpCQwGz5MXXTFY=";
+
+  buildInputs = lib.optionals stdenv.isDarwin [ Security ];
 
   cargoTestFlags = [ # TODO: investigate some more why these tests fail in nix
     "--"
