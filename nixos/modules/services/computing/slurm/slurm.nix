@@ -109,10 +109,9 @@ in
         extraConfig = mkOption {
           type = types.lines;
           default = "";
-          description = ''
-            Extra configuration for <literal>slurmdbd.conf</literal> See also:
-            <citerefentry><refentrytitle>slurmdbd.conf</refentrytitle>
-            <manvolnum>8</manvolnum></citerefentry>.
+          description = lib.mdDoc ''
+            Extra configuration for `slurmdbd.conf` See also:
+            {manpage}`slurmdbd.conf(8)`.
           '';
         };
       };
@@ -282,9 +281,9 @@ in
         type = types.path;
         internal = true;
         default = etcSlurm;
-        defaultText = literalDocBook ''
+        defaultText = literalMD ''
           Directory created from generated config files and
-          <literal>config.${opt.extraConfigPaths}</literal>.
+          `config.${opt.extraConfigPaths}`.
         '';
         description = ''
           Path to directory with slurm config files. This option is set by default from the

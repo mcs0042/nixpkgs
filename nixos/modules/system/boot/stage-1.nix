@@ -219,7 +219,7 @@ let
 
       # Strip binaries further than normal.
       chmod -R u+w $out
-      stripDirs "$STRIP" "lib bin" "-s"
+      stripDirs "$STRIP" "$RANLIB" "lib bin" "-s"
 
       # Run patchelf to make the programs refer to the copied libraries.
       find $out/bin $out/lib -type f | while read i; do
@@ -611,7 +611,7 @@ in
         then "zstd"
         else "gzip"
       );
-      defaultText = literalDocBook "<literal>zstd</literal> if the kernel supports it (5.9+), <literal>gzip</literal> if not";
+      defaultText = literalMD "`zstd` if the kernel supports it (5.9+), `gzip` if not";
       type = types.either types.str (types.functionTo types.str);
       description = ''
         The compressor to use on the initrd image. May be any of:
