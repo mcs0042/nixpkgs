@@ -74,7 +74,7 @@ in {
     services.syncthing = {
 
       enable = mkEnableOption
-        "Syncthing, a self-hosted open-source alternative to Dropbox and Bittorrent Sync";
+        (lib.mdDoc "Syncthing, a self-hosted open-source alternative to Dropbox and Bittorrent Sync");
 
       cert = mkOption {
         type = types.nullOr types.str;
@@ -325,11 +325,12 @@ in {
             };
 
             type = mkOption {
-              type = types.enum [ "sendreceive" "sendonly" "receiveonly" ];
+              type = types.enum [ "sendreceive" "sendonly" "receiveonly" "receiveencrypted" ];
               default = "sendreceive";
               description = lib.mdDoc ''
                 Whether to only send changes for this folder, only receive them
-                or both.
+                or both. `receiveencrypted` can be used for untrusted devices. See
+                <https://docs.syncthing.net/users/untrusted.html> for reference.
               '';
             };
 
