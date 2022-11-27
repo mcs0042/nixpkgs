@@ -205,7 +205,7 @@ let
 
   gitlab-rake = pkgs.stdenv.mkDerivation {
     name = "gitlab-rake";
-    buildInputs = [ pkgs.makeWrapper ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
     dontBuild = true;
     dontUnpack = true;
     installPhase = ''
@@ -220,7 +220,7 @@ let
 
   gitlab-rails = pkgs.stdenv.mkDerivation {
     name = "gitlab-rails";
-    buildInputs = [ pkgs.makeWrapper ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
     dontBuild = true;
     dontUnpack = true;
     installPhase = ''
@@ -260,6 +260,7 @@ in {
     (mkRenamedOptionModule [ "services" "gitlab" "stateDir" ] [ "services" "gitlab" "statePath" ])
     (mkRenamedOptionModule [ "services" "gitlab" "backupPath" ] [ "services" "gitlab" "backup" "path" ])
     (mkRemovedOptionModule [ "services" "gitlab" "satelliteDir" ] "")
+    (mkRemovedOptionModule [ "services" "gitlab" "logrotate" "extraConfig" ] "Modify services.logrotate.settings.gitlab directly instead")
   ];
 
   options = {
@@ -871,15 +872,6 @@ in {
           default = 30;
           description = lib.mdDoc "How many rotations to keep.";
         };
-
-        extraConfig = mkOption {
-          type = types.lines;
-          default = "";
-          description = lib.mdDoc ''
-            Extra logrotate config options for this path. Refer to
-            <https://linux.die.net/man/8/logrotate> for details.
-          '';
-        };
       };
 
       workhorse.config = mkOption {
@@ -1042,7 +1034,6 @@ in {
           rotate = cfg.logrotate.keep;
           copytruncate = true;
           compress = true;
-          extraConfig = cfg.logrotate.extraConfig;
         };
       };
     };

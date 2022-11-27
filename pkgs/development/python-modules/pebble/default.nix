@@ -8,7 +8,7 @@
 
 buildPythonPackage rec {
   pname = "pebble";
-  version = "5.0.1";
+  version = "5.0.3";
   format = "setuptools";
 
   disabled = pythonOlder "3.7";
@@ -16,7 +16,7 @@ buildPythonPackage rec {
   src = fetchPypi {
     pname = "Pebble";
     inherit version;
-    hash = "sha256-7kHDO+PUEihVcfLMfPkU1MKoGrPTiMaLPHRrerOwuGU=";
+    hash = "sha256-vc/Z6n4K7biVsgQXfBnm1lQ9mWL040AuurIXUASGPag=";
   };
 
   checkInputs = [

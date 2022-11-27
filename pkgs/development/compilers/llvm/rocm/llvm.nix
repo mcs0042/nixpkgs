@@ -9,6 +9,7 @@
 , libxml2
 , libffi
 , libbfd
+, libxcrypt
 , ncurses
 , zlib
 , debugVersion ? false
@@ -23,7 +24,7 @@ let
     if stdenv.isx86_64 then "X86"
     else if stdenv.isAarch64 then "AArch64"
     else throw "Unsupported ROCm LLVM platform";
-in stdenv.mkDerivation rec {
+in stdenv.mkDerivation (finalAttrs: {
   inherit src version;
 
   pname = "rocm-llvm";
@@ -32,7 +33,7 @@ in stdenv.mkDerivation rec {
 
   nativeBuildInputs = [ cmake ninja python3 ];
 
-  buildInputs = [ libxml2 ];
+  buildInputs = [ libxml2 libxcrypt ];
 
   propagatedBuildInputs = [ ncurses zlib ];
 
@@ -84,7 +85,7 @@ in stdenv.mkDerivation rec {
     description = "ROCm fork of the LLVM compiler infrastructure";
     homepage = "https://github.com/RadeonOpenCompute/llvm-project";
     license = with licenses; [ ncsa ];
-    maintainers = with maintainers; [ acowley lovesegfault Flakebi ];
+    maintainers = with maintainers; [ acowley lovesegfault ] ++ teams.rocm.members;
     platforms = platforms.linux;
   };
-}
+})

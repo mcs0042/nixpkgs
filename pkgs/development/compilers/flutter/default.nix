@@ -11,7 +11,11 @@ let
       sources = {
         "${dartVersion}-x86_64-linux" = fetchurl {
           url = "https://storage.googleapis.com/dart-archive/channels/stable/release/${dartVersion}/sdk/dartsdk-linux-x64-release.zip";
-          sha256 = dartHash;
+          sha256 = dartHash.x86_64-linux;
+        };
+        "${dartVersion}-aarch64-linux" = fetchurl {
+          url = "https://storage.googleapis.com/dart-archive/channels/stable/release/${dartVersion}/sdk/dartsdk-linux-arm64-release.zip";
+          sha256 = dartHash.aarch64-linux;
         };
       };
     };
@@ -25,10 +29,13 @@ in
   inherit mkFlutter;
   stable = flutterDrv {
     pname = "flutter";
-    version = "3.3.3";
-    dartVersion = "2.18.2";
-    hash = "sha256-MTZeWQUp4/TcPzYIT6eqIKSPUPvn2Mp/thOQzNgpTXg=";
-    dartHash = "sha256-C3+YjecXLvSmJrLwi9H7TgD9Np0AArRWx3EdBrfQpTU";
+    version = "3.3.8";
+    dartVersion = "2.18.4";
+    hash = "sha256-QH+10F6a0XYEvBetiAi45Sfy7WTdVZ1i8VOO4JuSI24=";
+    dartHash = {
+      x86_64-linux = "sha256-lFw+KaxzhuAMnu6ypczINqywzpiD+8Kd+C/UHJDrO9Y=";
+      aarch64-linux = "sha256-snlFTY4oJ4ALGLc210USbI2Z///cx1IVYUWm7Vo5z2I=";
+    };
     patches = getPatches ./patches/flutter3;
   };
 
@@ -37,7 +44,10 @@ in
     version = "2.10.5";
     dartVersion = "2.16.2";
     hash = "sha256-DTZwxlMUYk8NS1SaWUJolXjD+JnRW73Ps5CdRHDGnt0=";
-    dartHash = "sha256-egrYd7B4XhkBiHPIFE2zopxKtQ58GqlogAKA/UeiXnI=";
+    dartHash = {
+      x86_64-linux = "sha256-egrYd7B4XhkBiHPIFE2zopxKtQ58GqlogAKA/UeiXnI=";
+      aarch64-linux = "sha256-vmerjXkUAUnI8FjK+62qLqgETmA+BLPEZXFxwYpI+KY=";
+    };
     patches = getPatches ./patches/flutter2;
   };
 }
