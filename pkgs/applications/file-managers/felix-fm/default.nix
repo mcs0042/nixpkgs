@@ -9,16 +9,16 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "felix";
-  version = "2.1.0";
+  version = "2.2.2";
 
   src = fetchFromGitHub {
     owner = "kyoheiu";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-CLCzRnczItvnjXtS4BOc9FeBCPQm102U0bDIWAZPzYc=";
+    sha256 = "sha256-VKesly7Jp1PgukArNKvDGzSRh7DaL3A/Dub3dLR6ET4=";
   };
 
-  cargoSha256 = "sha256-H+uOo3Cm1nFPYyA0qOAcaD4mfSd4Uaq5U20t6V4mmcg=";
+  cargoSha256 = "sha256-7+4SIBnu4R2mbH2nWBX9BmJL1n8t46d1vrMpNaUHAo4=";
 
   nativeBuildInputs = [ pkg-config ];
 
@@ -33,6 +33,7 @@ rustPlatform.buildRustPackage rec {
 
   checkFlags = [
     # extra test files not shipped with the repository
+    "--skip=functions::tests::test_list_up_contents"
     "--skip=magic_image::tests::test_inspect_image"
     "--skip=magic_packed::tests::test_inspect_signature"
   ];

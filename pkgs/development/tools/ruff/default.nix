@@ -2,26 +2,24 @@
 , rustPlatform
 , fetchFromGitHub
 , stdenv
-, CoreServices
-, Security
+, darwin
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "ruff";
-  version = "0.0.132";
+  version = "0.0.189";
 
   src = fetchFromGitHub {
     owner = "charliermarsh";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-0UcZBGD1l2hP8VH0tdNKY/SiXVTPLL0/eZpOwYnUgPs=";
+    sha256 = "sha256-KyYQD9Ieg15ZT5JN4EGRusYqBkANw23ao2Of7A9tFE0=";
   };
 
-  cargoSha256 = "sha256-DlSSzFf2AludfAKrXSsI/V0K2ZjCy/ehZd3ULe3fjK4=";
+  cargoSha256 = "sha256-v++DabAqhcvVhKnbVtsiX8empbkDp7oTfUdYTNLpYO8=";
 
   buildInputs = lib.optionals stdenv.isDarwin [
-    CoreServices
-    Security
+    darwin.apple_sdk.frameworks.CoreServices
   ];
 
   meta = with lib; {

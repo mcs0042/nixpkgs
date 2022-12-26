@@ -18,9 +18,11 @@ outer@{ lib, stdenv, fetchurl, fetchpatch, openssl, zlib, pcre, libxml2, libxslt
 , src ? null # defaults to upstream nginx ${version}
 , sha256 ? null # when not specifying src
 , configureFlags ? []
+, nativeBuildInputs ? []
 , buildInputs ? []
 , extraPatches ? []
 , fixPatch ? p: p
+, postPatch ? ""
 , preConfigure ? ""
 , postInstall ? ""
 , meta ? null
@@ -32,6 +34,9 @@ with lib;
 
 let
 
+  moduleNames = map (mod: mod.name or (throw "The nginx module with source ${toString mod.src} does not have a `name` attribute. This prevents duplicate module detection and is no longer supported."))
+    modules;
+
   mapModules = attrPath: flip concatMap modules
     (mod:
       let supports = mod.supports or (_: true);
@@ -41,10 +46,11 @@ let
 
 in
 
+assert assertMsg (unique moduleNames == moduleNames)
+  "nginx: duplicate modules: ${concatStringsSep ", " moduleNames}. A common cause for this is that services.nginx.additionalModules adds a module which the nixos module itself already adds.";
+
 stdenv.mkDerivation {
-  inherit pname;
-  inherit version;
-  inherit nginxVersion;
+  inherit pname version nginxVersion;
 
   outputs = ["out" "doc"];
 
@@ -52,6 +58,9 @@ stdenv.mkDerivation {
     url = "https://nginx.org/download/nginx-${version}.tar.gz";
     inherit sha256;
   };
+
+  nativeBuildInputs = [ removeReferencesTo ]
+    ++ nativeBuildInputs;
 
   buildInputs = [ openssl zlib pcre libxml2 libxslt gd geoip perl ]
     ++ buildInputs
@@ -79,11 +88,11 @@ stdenv.mkDerivation {
     "--http-log-path=/var/log/nginx/access.log"
     "--error-log-path=/var/log/nginx/error.log"
     "--pid-path=/var/log/nginx/nginx.pid"
-    "--http-client-body-temp-path=/var/cache/nginx/client_body"
-    "--http-proxy-temp-path=/var/cache/nginx/proxy"
-    "--http-fastcgi-temp-path=/var/cache/nginx/fastcgi"
-    "--http-uwsgi-temp-path=/var/cache/nginx/uwsgi"
-    "--http-scgi-temp-path=/var/cache/nginx/scgi"
+    "--http-client-body-temp-path=/tmp/nginx_client_body"
+    "--http-proxy-temp-path=/tmp/nginx_proxy"
+    "--http-fastcgi-temp-path=/tmp/nginx_fastcgi"
+    "--http-uwsgi-temp-path=/tmp/nginx_uwsgi"
+    "--http-scgi-temp-path=/tmp/nginx_scgi"
   ] ++ optionals withDebug [
     "--with-debug"
   ] ++ optionals withKTLS [
@@ -149,6 +158,8 @@ stdenv.mkDerivation {
   ] ++ mapModules "patches")
     ++ extraPatches;
 
+  inherit postPatch;
+
   hardeningEnable = optional (!stdenv.isDarwin) "pie";
 
   enableParallelBuilding = true;
@@ -157,8 +168,6 @@ stdenv.mkDerivation {
     mkdir -p $doc
     cp -r ${nginx-doc}/* $doc
   '';
-
-  nativeBuildInputs = [ removeReferencesTo ];
 
   disallowedReferences = map (m: m.src) modules;
 
@@ -170,7 +179,7 @@ stdenv.mkDerivation {
   passthru = {
     modules = modules;
     tests = {
-      inherit (nixosTests) nginx nginx-auth nginx-etag nginx-http3 nginx-pubhtml nginx-sandbox nginx-sso;
+      inherit (nixosTests) nginx nginx-auth nginx-etag nginx-globalredirect nginx-http3 nginx-pubhtml nginx-sandbox nginx-sso;
       variants = lib.recurseIntoAttrs nixosTests.nginx-variants;
       acme-integration = nixosTests.acme;
     } // passthru.tests;

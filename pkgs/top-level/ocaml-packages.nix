@@ -648,8 +648,6 @@ let
 
     js_of_ocaml = callPackage ../development/tools/ocaml/js_of_ocaml { };
 
-    js_of_ocaml-camlp4 = callPackage ../development/tools/ocaml/js_of_ocaml/camlp4.nix {};
-
     js_of_ocaml-compiler = callPackage ../development/tools/ocaml/js_of_ocaml/compiler.nix {};
 
     js_of_ocaml-lwt = callPackage ../development/tools/ocaml/js_of_ocaml/lwt.nix {};
@@ -1557,10 +1555,6 @@ let
 
     zmq-lwt = callPackage ../development/ocaml-modules/zmq/lwt.nix { };
 
-    ocsigen_deriving = callPackage ../development/ocaml-modules/ocsigen-deriving {
-      oasis = ocaml_oasis;
-    };
-
     # Jane Street
 
     janePackage =
@@ -1654,7 +1648,7 @@ in let inherit (pkgs) callPackage; in rec
 
   ocamlPackages_5_0 = mkOcamlPackages (callPackage ../development/compilers/ocaml/5.0.nix { });
 
-  ocamlPackages_latest = ocamlPackages_4_14;
+  ocamlPackages_latest = ocamlPackages_5_0;
 
   ocamlPackages = ocamlPackages_4_14;
 }

@@ -5,9 +5,11 @@
 , fetchpatch
 , python3
 , substituteAll
-, ffmpeg
+, ffmpeg-headless
 , inetutils
 , nixosTests
+, home-assistant
+, testers
 
 # Look up dependencies of specified components in component-packages.nix
 , extraComponents ? [ ]
@@ -41,14 +43,20 @@ let
         };
       });
 
-      backoff = super.backoff.overridePythonAttrs (oldAttrs: rec {
-        version = "1.11.1";
+      caldav = super.caldav.overridePythonAttrs (old: rec {
+        version = "0.9.1";
         src = fetchFromGitHub {
-          owner = "litl";
-          repo = "backoff";
+          owner = "python-caldav";
+          repo = "caldav";
           rev = "v${version}";
-          hash = "sha256-87IMcLaoCn0Vns8Ub/AFmv0gXtS0aPZX0cSt7+lOPm4=";
+          hash = "sha256-Gil0v4pGyp5+TnYPjb8Vk0xTqnQKaeD8Ko/ZWhvkbUk=";
         };
+        postPatch = ''
+          substituteInPlace setup.py \
+            --replace ", 'xandikos<0.2.4'" "" \
+            --replace ", 'radicale'" ""
+        '';
+        checkInputs = old.checkInputs ++ [ self.nose ];
       });
 
       gridnet = super.gridnet.overridePythonAttrs (oldAttrs: rec {
@@ -72,62 +80,6 @@ let
         };
       });
 
-      nibe = super.nibe.overridePythonAttrs (oldAttrs: rec {
-        version = "0.5.0";
-        src = fetchFromGitHub {
-          owner = "yozik04";
-          repo = "nibe";
-          rev = "refs/tags/${version}";
-          hash = "sha256-DguGWNJfc5DfbcKMX2eMM2U1WyVPcdtv2BmpVloOFSU=";
-        };
-      });
-
-      # pytest-aiohttp>0.3.0 breaks home-assistant tests
-      pytest-aiohttp = super.pytest-aiohttp.overridePythonAttrs (oldAttrs: rec {
-        version = "0.3.0";
-        src = self.fetchPypi {
-          inherit version;
-          pname = "pytest-aiohttp";
-          hash = "sha256-ySmFQzljeXc3WDhwO2L+9jUoWYvAqdRRY566lfSqpE8=";
-        };
-        propagatedBuildInputs = with self; [ aiohttp pytest ];
-        doCheck = false;
-        patches = [];
-      });
-      aioecowitt = super.aioecowitt.overridePythonAttrs (oldAttrs: {
-        doCheck = false; # requires aiohttp>=1.0.0
-      });
-      aiohomekit = super.aiohomekit.overridePythonAttrs (oldAttrs: {
-        doCheck = false; # requires aiohttp>=1.0.0
-      });
-      aioopenexchangerates = super.aioopenexchangerates.overridePythonAttrs (oldAttrs: {
-        doCheck = false; # requires aiohttp>=1.0.0
-      });
-      gcal-sync = super.gcal-sync.overridePythonAttrs (oldAttrs: {
-        doCheck = false; # requires aiohttp>=1.0.0
-      });
-      hass-nabucasa = super.hass-nabucasa.overridePythonAttrs (oldAttrs: {
-        doCheck = false; # requires aiohttp>=1.0.0
-      });
-      pylitterbot = super.pylitterbot.overridePythonAttrs (oldAttrs: {
-        doCheck = false; # requires pytest-aiohttp>=1.0.0
-      });
-      pynws = super.pynws.overridePythonAttrs (oldAttrs: {
-        doCheck = false; # requires pytest-aiohttp>=1.0.0
-      });
-      pytomorrowio = super.pytomorrowio.overridePythonAttrs (oldAttrs: {
-        doCheck = false; # requires pytest-aiohttp>=1.0.0
-      });
-      rtsp-to-webrtc = super.rtsp-to-webrtc.overridePythonAttrs (oldAttrs: {
-        doCheck = false; # requires pytest-aiohttp>=1.0.0
-      });
-      snitun = super.snitun.overridePythonAttrs (oldAttrs: {
-        doCheck = false; # requires aiohttp>=1.0.0
-      });
-      zwave-js-server-python = super.zwave-js-server-python.overridePythonAttrs (oldAttrs: {
-        doCheck = false; # requires aiohttp>=1.0.0
-      });
-
       # Pinned due to API changes in 0.1.0
       poolsense = super.poolsense.overridePythonAttrs (oldAttrs: rec {
         version = "0.0.8";
@@ -146,26 +98,6 @@ let
           repo = "pyatag";
           rev = version;
           sha256 = "00ly4injmgrj34p0lyx7cz2crgnfcijmzc0540gf7hpwha0marf6";
-        };
-      });
-
-      pydaikin = super.pydaikin.overridePythonAttrs (oldAttrs: rec {
-        disabledTests = [
-          "test_power_sensors"
-        ];
-      });
-
-      pydeconz = super.pydeconz.overridePythonAttrs (oldAttrs: rec {
-        doCheck = false; # requires pytest-aiohttp>=1.0.0
-      });
-
-      pysensibo = super.pysensibo.overridePythonAttrs (oldAttrs: rec {
-        version = "1.0.20";
-        src = fetchFromGitHub {
-          owner = "andrey-git";
-          repo = "pysensibo";
-          rev = "refs/tags/${version}";
-          hash = "sha256-L2NP4XS+dPlBr2h8tsGoa4G7tI9yiI4fwrhvQaKkexk=";
         };
       });
 
@@ -258,7 +190,7 @@ let
   extraPackagesFile = writeText "home-assistant-packages" (lib.concatMapStringsSep "\n" (pkg: pkg.pname) extraBuildInputs);
 
   # Don't forget to run parse-requirements.py after updating
-  hassVersion = "2022.11.4";
+  hassVersion = "2022.12.8";
 
 in python.pkgs.buildPythonApplication rec {
   pname = "homeassistant";
@@ -275,15 +207,15 @@ in python.pkgs.buildPythonApplication rec {
   src = fetchFromGitHub {
     owner = "home-assistant";
     repo = "core";
-    rev = version;
-    hash = "sha256-3vNwWPFSR9Ap89rAxZjUOptigBaDlboxvLZysMyUUX0=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-oJwA0YELlgMbnf1XiLDGlMLrvFaLP7WMv9/0KOI4XDI=";
   };
 
   # leave this in, so users don't have to constantly update their downstream patch handling
   patches = [
     (substituteAll {
       src = ./patches/ffmpeg-path.patch;
-      ffmpeg = "${lib.getBin ffmpeg}/bin/ffmpeg";
+      ffmpeg = "${lib.getBin ffmpeg-headless}/bin/ffmpeg";
     })
   ];
 
@@ -429,6 +361,10 @@ in python.pkgs.buildPythonApplication rec {
     tests = {
       nixos = nixosTests.home-assistant;
       components = callPackage ./tests.nix { };
+      version = testers.testVersion {
+        package = home-assistant;
+        command = "hass --version";
+      };
     };
   };
 

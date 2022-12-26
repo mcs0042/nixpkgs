@@ -1,7 +1,7 @@
 { lib
 , stdenv
 , fetchFromGitHub
-, writeScript
+, rocmUpdateScript
 , cmake
 , rocm-cmake
 , rocm-runtime
@@ -9,21 +9,16 @@
 , rocm-comgr
 , rocprim
 , hip
-, gtest ? null
-, gbenchmark ? null
+, gtest
+, gbenchmark
 , buildTests ? false
 , buildBenchmarks ? false
 }:
 
-assert buildTests -> gtest != null;
-assert buildBenchmarks -> gbenchmark != null;
-
 # CUB can also be used as a backend instead of rocPRIM.
 stdenv.mkDerivation (finalAttrs: {
   pname = "hipcub";
-  repoVersion = "2.12.0";
-  rocmVersion = "5.3.3";
-  version = "${finalAttrs.repoVersion}-${finalAttrs.rocmVersion}";
+  version = "5.4.0";
 
   outputs = [
     "out"
@@ -36,8 +31,8 @@ stdenv.mkDerivation (finalAttrs: {
   src = fetchFromGitHub {
     owner = "ROCmSoftwarePlatform";
     repo = "hipCUB";
-    rev = "rocm-${finalAttrs.rocmVersion}";
-    hash = "sha256-/GMZKbMD1sZQCM2FulM9jiJQ8ByYZinn0C8d/deFh0g=";
+    rev = "rocm-${finalAttrs.version}";
+    hash = "sha256-ctt7jbVqHNHcOm/Lhg0IFbMZ6JChnMylG7fJgZtzFuM=";
   };
 
   nativeBuildInputs = [
@@ -81,21 +76,17 @@ stdenv.mkDerivation (finalAttrs: {
     rmdir $out/bin
   '';
 
-  passthru.updateScript = writeScript "update.sh" ''
-    #!/usr/bin/env nix-shell
-    #!nix-shell -i bash -p curl jq common-updater-scripts
-    json="$(curl -sL "https://api.github.com/repos/ROCmSoftwarePlatform/hipCUB/releases?per_page=1")"
-    repoVersion="$(echo "$json" | jq '.[0].name | split(" ") | .[1]' --raw-output)"
-    rocmVersion="$(echo "$json" | jq '.[0].tag_name | split("-") | .[1]' --raw-output)"
-    update-source-version hipcub "$repoVersion" --ignore-same-hash --version-key=repoVersion
-    update-source-version hipcub "$rocmVersion" --ignore-same-hash --version-key=rocmVersion
-  '';
+  passthru.updateScript = rocmUpdateScript {
+    name = finalAttrs.pname;
+    owner = finalAttrs.src.owner;
+    repo = finalAttrs.src.repo;
+  };
 
   meta = with lib; {
     description = "Thin wrapper library on top of rocPRIM or CUB";
     homepage = "https://github.com/ROCmSoftwarePlatform/hipCUB";
     license = with licenses; [ bsd3 ];
     maintainers = teams.rocm.members;
-    broken = finalAttrs.rocmVersion != hip.version;
+    broken = finalAttrs.version != hip.version;
   };
 })

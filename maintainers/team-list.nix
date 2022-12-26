@@ -265,6 +265,15 @@ with lib.maintainers; {
     shortName = "GCC";
   };
 
+  geospatial = {
+    members = [
+      imincik
+      sikmir
+    ];
+    scope = "Maintain geospatial packages.";
+    shortName = "Geospatial";
+  };
+
   golang = {
     members = [
       c00w
@@ -497,6 +506,18 @@ with lib.maintainers; {
     enableFeatureFreezePing = true;
   };
 
+  node = {
+    members = [
+      lilyinstarlight
+      marsam
+      winter
+      yuka
+    ];
+    scope = "Maintain Node.js runtimes and build tooling.";
+    shortName = "Node.js";
+    enableFeatureFreezePing = true;
+  };
+
   numtide = {
     members = [
       mic92
@@ -722,6 +743,7 @@ with lib.maintainers; {
 
   vim = {
     members = [
+      figsoda
       jonringer
       softinio
       teto
@@ -733,6 +755,7 @@ with lib.maintainers; {
   xfce = {
     members = [
       romildo
+      muscaln
     ];
     scope = "Maintain Xfce desktop environment and related packages.";
     shortName = "Xfce";

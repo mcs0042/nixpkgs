@@ -1,29 +1,23 @@
 { lib
 , stdenv
 , fetchFromGitHub
-, writeScript
+, rocmUpdateScript
 , cmake
 , rocm-cmake
 , rocm-opencl-runtime
 , clang
-, texlive ? null
-, doxygen ? null
-, sphinx ? null
-, python3Packages ? null
-, openblas ? null
-, buildDocs ? false
+, texlive
+, doxygen
+, sphinx
+, openblas
+, python3Packages
+, buildDocs ? true
 , buildTests ? false
 , buildBenchmarks ? false
 }:
 
-assert buildDocs -> texlive != null;
-assert buildDocs -> doxygen != null;
-assert buildDocs -> sphinx != null;
-assert buildDocs -> python3Packages != null;
-assert buildTests -> openblas != null;
-
 let
-  latex = lib.optionalAttrs buildDocs (texlive.combine {
+  latex = lib.optionalAttrs buildDocs texlive.combine {
     inherit (texlive) scheme-small
     latexmk
     tex-gyre
@@ -35,16 +29,15 @@ let
     tabulary
     varwidth
     titlesec;
-  });
+  };
 in stdenv.mkDerivation (finalAttrs: {
   pname = "miopengemm";
-  rocmVersion = "5.3.3";
-  version = finalAttrs.rocmVersion;
+  version = "5.4.0";
 
   outputs = [
     "out"
   ] ++ lib.optionals buildDocs [
-    "docs"
+    "doc"
   ] ++ lib.optionals buildTests [
     "test"
   ] ++ lib.optionals buildBenchmarks [
@@ -54,7 +47,7 @@ in stdenv.mkDerivation (finalAttrs: {
   src = fetchFromGitHub {
     owner = "ROCmSoftwarePlatform";
     repo = "MIOpenGEMM";
-    rev = "rocm-${finalAttrs.rocmVersion}";
+    rev = "rocm-${finalAttrs.version}";
     hash = "sha256-AiRzOMYRA/0nbQomyq4oOEwNZdkPYWRA2W6QFlctvFc=";
   };
 
@@ -70,7 +63,7 @@ in stdenv.mkDerivation (finalAttrs: {
     latex
     doxygen
     sphinx
-    python3Packages.sphinx_rtd_theme
+    python3Packages.sphinx-rtd-theme
     python3Packages.breathe
   ] ++ lib.optionals buildTests [
     openblas
@@ -104,7 +97,10 @@ in stdenv.mkDerivation (finalAttrs: {
     make examples
   '';
 
-  postInstall = lib.optionalString buildTests ''
+  postInstall = lib.optionalString buildDocs ''
+    mv ../doc/html $out/share/doc/miopengemm
+    mv ../doc/pdf/miopengemm.pdf $out/share/doc/miopengemm
+  '' + lib.optionalString buildTests ''
     mkdir -p $test/bin
     find tests -executable -type f -exec mv {} $test/bin \;
     patchelf --set-rpath ${lib.makeLibraryPath finalAttrs.buildInputs}:$out/lib $test/bin/*
@@ -114,24 +110,17 @@ in stdenv.mkDerivation (finalAttrs: {
     patchelf --set-rpath ${lib.makeLibraryPath finalAttrs.buildInputs}:$out/lib $benchmark/bin/*
   '';
 
-  postFixup = lib.optionalString buildDocs ''
-    mkdir -p $docs/share/doc/miopengemm
-    mv ../doc/html $docs/share/doc/miopengemm
-    mv ../doc/pdf/miopengemm.pdf $docs/share/doc/miopengemm
-  '';
-
-  passthru.updateScript = writeScript "update.sh" ''
-    #!/usr/bin/env nix-shell
-    #!nix-shell -i bash -p curl jq common-updater-scripts
-    rocmVersion="$(curl -sL "https://api.github.com/repos/ROCmSoftwarePlatform/MIOpenGEMM/releases?per_page=1" | jq '.[0].tag_name | split("-") | .[1]' --raw-output)"
-    update-source-version miopengemm "$rocmVersion" --ignore-same-hash --version-key=rocmVersion
-  '';
+  passthru.updateScript = rocmUpdateScript {
+    name = finalAttrs.pname;
+    owner = finalAttrs.src.owner;
+    repo = finalAttrs.src.repo;
+  };
 
   meta = with lib; {
     description = "OpenCL general matrix multiplication API for ROCm";
     homepage = "https://github.com/ROCmSoftwarePlatform/MIOpenGEMM";
     license = with licenses; [ mit ];
     maintainers = teams.rocm.members;
-    broken = finalAttrs.rocmVersion != clang.version;
+    broken = finalAttrs.version != clang.version;
   };
 })

@@ -126,13 +126,22 @@ in
       '';
     };
 
+    hardware.sane.openFirewall = mkOption {
+      type = types.bool;
+      default = false;
+      description = lib.mdDoc ''
+        Open ports needed for discovery of scanners on the local network, e.g.
+        needed for Canon scanners (BJNP protocol).
+      '';
+    };
+
     services.saned.enable = mkOption {
       type = types.bool;
       default = false;
       description = lib.mdDoc ''
         Enable saned network daemon for remote connection to scanners.
 
-        saned would be runned from `scanner` user; to allow
+        saned would be run from `scanner` user; to allow
         access to hardware that doesn't have `scanner` group
         you should add needed groups to this user.
       '';
@@ -163,6 +172,7 @@ in
       services.udev.packages = backends;
 
       users.groups.scanner.gid = config.ids.gids.scanner;
+      networking.firewall.allowedUDPPorts = mkIf config.hardware.sane.openFirewall [ 8612 ];
     })
 
     (mkIf config.services.saned.enable {

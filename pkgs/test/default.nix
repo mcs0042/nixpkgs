@@ -31,6 +31,7 @@ with pkgs;
 
   fetchurl = callPackages ../build-support/fetchurl/tests.nix { };
   fetchpatch = callPackages ../build-support/fetchpatch/tests.nix { };
+  fetchpatch2 = callPackages ../build-support/fetchpatch/tests.nix { fetchpatch = fetchpatch2; };
   fetchzip = callPackages ../build-support/fetchzip/tests.nix { };
   fetchgit = callPackages ../build-support/fetchgit/tests.nix { };
   fetchFirefoxAddon = callPackages ../build-support/fetchfirefoxaddon/tests.nix { };
@@ -76,7 +77,11 @@ with pkgs;
 
   dhall = callPackage ./dhall { };
 
+  cue-validation = callPackage ./cue {};
+
   coq = callPackage ./coq {};
+
+  makeHardcodeGsettingsPatch = callPackage ./make-hardcode-gsettings-patch { };
 
   makeWrapper = callPackage ./make-wrapper { };
   makeBinaryWrapper = callPackage ./make-binary-wrapper {

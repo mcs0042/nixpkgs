@@ -10,7 +10,6 @@
 , substituteAll
 
   # Language dependencies
-, python2
 , python3
 , rustPlatform
 
@@ -122,6 +121,10 @@ self: super: {
       license = lib.licenses.mit;
       maintainers = with lib.maintainers; [ lightquantum ];
     };
+  });
+
+  ChatGPT-nvim = super.ChatGPT-nvim.overrideAttrs (old: {
+    dependencies = with self; [ nui-nvim plenary-nvim telescope-nvim ];
   });
 
   clang_complete = super.clang_complete.overrideAttrs (old: {
@@ -310,7 +313,21 @@ self: super: {
   });
 
   ctrlp-cmatcher = super.ctrlp-cmatcher.overrideAttrs (old: {
-    buildInputs = [ python2 ];
+    # drop Python 2 patches
+    # https://github.com/JazzCore/ctrlp-cmatcher/pull/44
+    patches = [
+      (fetchpatch {
+        name = "drop_python2_pt1.patch";
+        url = "https://github.com/JazzCore/ctrlp-cmatcher/commit/3abad6ea155a7f6e138e1de3ac5428177bfb0254.patch";
+        sha256 = "sha256-fn2puqYeJdPTdlTT4JjwVz7b3A+Xcuj/xtP6TETlB1U=";
+      })
+      (fetchpatch {
+        name = "drop_python2_pt2.patch";
+        url = "https://github.com/JazzCore/ctrlp-cmatcher/commit/385c8d02398dbb328b1a943a94e7109fe6473a08.patch";
+        sha256 = "sha256-yXKCq8sqO0Db/sZREuSeqKwKO71cmTsAvWftoOQehZo=";
+      })
+    ];
+    buildInputs = with python3.pkgs; [ python3 setuptools ];
     buildPhase = ''
       patchShebangs .
       ./install.sh
@@ -374,7 +391,7 @@ self: super: {
   });
 
   forms = super.forms.overrideAttrs (old: {
-    dependencies = with self; [ self.self ];
+    dependencies = [ self.self ];
   });
 
   fruzzy =
@@ -700,7 +717,7 @@ self: super: {
   };
 
   skim-vim = super.skim-vim.overrideAttrs (old: {
-    dependencies = with self; [ skim ];
+    dependencies = [ self.skim ];
   });
 
   sniprun =
@@ -1178,7 +1195,7 @@ self: super: {
   });
 
   vim-wakatime = super.vim-wakatime.overrideAttrs (old: {
-    buildInputs = [ python2 ];
+    buildInputs = [ python3 ];
   });
 
   vim-xdebug = super.vim-xdebug.overrideAttrs (old: {
@@ -1247,6 +1264,10 @@ self: super: {
     dependencies = with self; [ vimproc-vim ];
   });
 
+  vim-zettel = super.vim-zettel.overrideAttrs (old: {
+    dependencies = with self; [ vimwiki fzf-vim ];
+  });
+
   YankRing-vim = super.YankRing-vim.overrideAttrs (old: {
     sourceRoot = ".";
   });
@@ -1301,6 +1322,7 @@ self: super: {
       "coc-jest"
       "coc-json"
       "coc-lists"
+      "coc-ltex"
       "coc-markdownlint"
       "coc-metals"
       "coc-pairs"
