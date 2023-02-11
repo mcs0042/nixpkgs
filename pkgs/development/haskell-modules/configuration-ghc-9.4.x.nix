@@ -60,8 +60,6 @@ in {
 
   # consequences of doctest breakage follow:
 
-  double-conversion = markBroken super.double-conversion;
-  blaze-textual = checkAgainAfter super.double-conversion "2.0.4.1" "double-conversion fails to build; required for testsuite" (dontCheck super.blaze-textual);
   ghc-source-gen = checkAgainAfter super.ghc-source-gen "0.4.3.0" "fails to build" (markBroken super.ghc-source-gen);
 
   lucid = jailbreakForCurrentVersion super.lucid "2.11.1";
@@ -106,6 +104,7 @@ in {
   resolv = doJailbreak super.resolv;
   singleton-bool = doJailbreak super.singleton-bool;
   rope-utf16-splay = doDistribute self.rope-utf16-splay_0_4_0_0;
+  shake-cabal = doDistribute self.shake-cabal_0_2_2_3;
 
   base-orphans = dontCheck super.base-orphans;
 
@@ -183,7 +182,7 @@ in {
   ghc-exactprint = overrideCabal (drv: {
     libraryHaskellDepends = with self; [ HUnit data-default fail filemanip free ghc-paths ordered-containers silently syb Diff ];
   })
-    self.ghc-exactprint_1_6_1;
+    self.ghc-exactprint_1_6_1_1;
 
   # 2022-10-06: plugins disabled for hls 1.8.0.0 based on
   # https://haskell-language-server.readthedocs.io/en/latest/support/plugin-support.html#current-plugin-support-tiers
@@ -203,4 +202,8 @@ in {
   fourmolu = overrideCabal (drv: {
     libraryHaskellDepends = drv.libraryHaskellDepends ++ [ self.file-embed ];
   }) (disableCabalFlag "fixity-th" super.fourmolu_0_10_1_0);
+
+  # The Haskell library has additional dependencies when compiled with ghc-9.4.x.
+  X11-xft = addExtraLibraries [pkgs.xorg.libXau pkgs.xorg.libXdmcp pkgs.expat] super.X11-xft;
+
 }

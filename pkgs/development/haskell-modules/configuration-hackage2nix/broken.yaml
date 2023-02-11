@@ -224,6 +224,7 @@ broken-packages:
   - ascii-string
   - ascii-vector-avc
   - asif
+  - asn1-ber-syntax
   - asn1-codec
   - asn1-data
   - AspectAG
@@ -400,7 +401,6 @@ broken-packages:
   - bindings-wlc
   - bind-marshal
   - binembed
-  - binrep
   - binsm
   - bio
   - BiobaseNewick
@@ -472,7 +472,6 @@ broken-packages:
   - brick-dropdownmenu
   - brick-filetree
   - bricks-internal
-  - brick-skylighting
   - brillig
   - brittany
   - broadcast-chan-tests
@@ -512,6 +511,7 @@ broken-packages:
   - byline
   - by-other-names
   - bytearray-parsing
+  - bytepatch
   - bytestring-aeson-orphans
   - bytestring-arbitrary
   - bytestring-class
@@ -560,6 +560,7 @@ broken-packages:
   - cabal-meta
   - cabal-mon
   - cabal-nirvana
+  - cabal-plan-bounds
   - cabal-progdeps
   - cabalQuery
   - CabalSearch
@@ -853,6 +854,7 @@ broken-packages:
   - Conscript
   - consistent
   - console-program
+  - constable
   - const-math-ghc-plugin
   - constrained
   - constrained-categories
@@ -1091,6 +1093,7 @@ broken-packages:
   - dense
   - dense-int-set
   - dependent-hashmap
+  - dep-t-dynamic
   - deptrack-core
   - dep-t-value
   - derangement
@@ -1443,6 +1446,7 @@ broken-packages:
   - fadno-braids
   - fadno-xml
   - failable-list
+  - FailT
   - failure-detector
   - fake
   - fake-type
@@ -1482,9 +1486,11 @@ broken-packages:
   - fenfire
   - fernet
   - FerryCore
+  - festival
   - Feval
   - fez-conf
   - ffeed
+  - fft
   - ffunctor
   - fgl-extras-decompositions
   - fib
@@ -2217,7 +2223,6 @@ broken-packages:
   - heterogeneous-list-literals
   - hetris
   - heukarya
-  - hevm
   - HExcel
   - hexchat
   - hexif
@@ -2660,7 +2665,6 @@ broken-packages:
   - identifiers
   - idiii
   - idna2008
-  - idris
   - IDynamic
   - ieee-utils
   - iexcloud
@@ -3383,6 +3387,7 @@ broken-packages:
   - monad-control-aligned
   - monadcryptorandom
   - monad-fork
+  - monadic-bang
   - monadiccp
   - monadic-recursion-schemes
   - monad-introspect
@@ -3667,6 +3672,7 @@ broken-packages:
   - OddWord
   - oden-go-packages
   - oeis2
+  - OGDF
   - OGL
   - ogma-language-c
   - ogma-language-cocospec
@@ -3702,6 +3708,7 @@ broken-packages:
   - open-adt
   - OpenAFP
   - openai-hs
+  - openapi3
   - openapi3-code-generator
   - openapi-petstore
   - openapi-typed
@@ -4077,7 +4084,6 @@ broken-packages:
   - posit
   - positron
   - posix-acl
-  - posix-api
   - posix-realtime
   - posix-waitpid
   - postcodes
@@ -4269,6 +4275,7 @@ broken-packages:
   - QuickAnnotate
   - quickbooks
   - quickcheck-arbitrary-template
+  - quickcheck-monoid-subclasses
   - quickcheck-property-comb
   - quickcheck-property-monad
   - quickcheck-rematch
@@ -4323,6 +4330,7 @@ broken-packages:
   - rattle
   - rattletrap
   - raven-haskell-scotty
+  - raylib-imgui
   - raz
   - rbst
   - rclient
@@ -4356,6 +4364,7 @@ broken-packages:
   - record-wrangler
   - recursors
   - red-black-record
+  - redis-glob
   - redis-hs
   - redis-simple
   - Redmine
@@ -4714,7 +4723,6 @@ broken-packages:
   - SFML
   - sfml-audio
   - sfmt
-  - sfnt2woff
   - SG
   - sgd
   - SGplus
@@ -4895,10 +4903,13 @@ broken-packages:
   - SNet
   - snipcheck
   - snorkels
+  - snowchecked
   - snowtify
   - socket-activation
   - socketed
   - socketio
+  - sockets
+  - sockets-and-pipes
   - socket-sctp
   - socket-unix
   - sodium
@@ -5009,6 +5020,7 @@ broken-packages:
   - stm-firehose
   - stm-incremental
   - stm-promise
+  - stm-queue
   - stm-stats
   - stochastic
   - Stomp
@@ -5426,7 +5438,6 @@ broken-packages:
   - trivia
   - tropical
   - tropical-geometry
-  - true-name
   - tsession
   - tslib
   - tsparse
@@ -5547,6 +5558,7 @@ broken-packages:
   - unix-recursive
   - unlift
   - unlifted-list
+  - unliftio-messagebox
   - unlift-stm
   - unm-hip
   - unordered-containers-rematch

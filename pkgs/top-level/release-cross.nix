@@ -34,6 +34,8 @@ let
     nix = nativePlatforms;
     nixUnstable = nativePlatforms;
     mesa = nativePlatforms;
+    rustc = nativePlatforms;
+    cargo = nativePlatforms;
   };
 
   gnuCommon = lib.recursiveUpdate common {
@@ -92,7 +94,7 @@ let
   # with their host distribution's versions of nix's numerous
   # build dependencies.
   nixCrossStatic = {
-    nixStatic = platforms.linux;  # no need for buildPlatform=*-darwin
+    nixStatic = linux;  # no need for buildPlatform=*-darwin
   };
 
 in
@@ -159,6 +161,8 @@ in
   /* Javacript */
   ghcjs = mapTestOnCross lib.systems.examples.ghcjs {
     haskell.packages.ghcjs.hello = nativePlatforms;
+    haskell.packages.native-bignum.ghcHEAD.hello = nativePlatforms;
+    haskellPackages.hello = nativePlatforms;
   };
 
   /* Linux on Raspberrypi */

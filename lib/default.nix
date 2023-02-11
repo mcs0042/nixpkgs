@@ -1,7 +1,7 @@
 /* Library of low-level helper functions for nix expressions.
  *
  * Please implement (mostly) exhaustive unit tests
- * for new functions in `./tests.nix'.
+ * for new functions in `./tests.nix`.
  */
 let
 
@@ -88,13 +88,13 @@ let
       updateManyAttrsByPath;
     inherit (self.lists) singleton forEach foldr fold foldl foldl' imap0 imap1
       concatMap flatten remove findSingle findFirst any all count
-      optional optionals toList range partition zipListsWith zipLists
+      optional optionals toList range replicate partition zipListsWith zipLists
       reverseList listDfs toposort sort naturalSort compareLists take
       drop sublist last init crossLists unique intersectLists
       subtractLists mutuallyExclusive groupBy groupBy';
     inherit (self.strings) concatStrings concatMapStrings concatImapStrings
       intersperse concatStringsSep concatMapStringsSep
-      concatImapStringsSep makeSearchPath makeSearchPathOutput
+      concatImapStringsSep concatLines makeSearchPath makeSearchPathOutput
       makeLibraryPath makeBinPath optionalString
       hasInfix hasPrefix hasSuffix stringToCharacters stringAsChars escape
       escapeShellArg escapeShellArgs
@@ -131,14 +131,15 @@ let
       mkAliasAndWrapDefinitions fixMergeModules mkRemovedOptionModule
       mkRenamedOptionModule mkRenamedOptionModuleWith
       mkMergedOptionModule mkChangedOptionModule
-      mkAliasOptionModule mkDerivedConfig doRename;
+      mkAliasOptionModule mkDerivedConfig doRename
+      mkAliasOptionModuleMD;
     inherit (self.options) isOption mkEnableOption mkSinkUndeclaredOptions
       mergeDefaultOption mergeOneOption mergeEqualOption mergeUniqueOption
       getValues getFiles
       optionAttrSetToDocList optionAttrSetToDocList'
       scrubOptionValue literalExpression literalExample literalDocBook
       showOption showOptionWithDefLocs showFiles
-      unknownModule mkOption mkPackageOption
+      unknownModule mkOption mkPackageOption mkPackageOptionMD
       mdDoc literalMD;
     inherit (self.types) isType setType defaultTypeMerge defaultFunctor
       isOptionType mkOptionType;

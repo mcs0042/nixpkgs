@@ -21,7 +21,7 @@
 
 buildPythonPackage rec {
   pname = "plugwise";
-  version = "0.27.1";
+  version = "0.27.6";
   format = "setuptools";
 
   disabled = pythonOlder "3.7";
@@ -30,7 +30,7 @@ buildPythonPackage rec {
     owner = pname;
     repo = "python-plugwise";
     rev = "refs/tags/v${version}";
-    hash = "sha256-56KJQBYaQK08o9W6ZLWHCLCVPCLHh5Q+GTZqTTexn90=";
+    hash = "sha256-lG41y7bJkb7JdSsbv4PA2uaapkND59CDQq6Fvi+0hgU=";
   };
 
   propagatedBuildInputs = [
@@ -45,7 +45,7 @@ buildPythonPackage rec {
     semver
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     freezegun
     jsonpickle
     mypy
