@@ -34,7 +34,7 @@
 , withCaca ? withFullDeps # Textual display (ASCII art)
 , withCelt ? withFullDeps # CELT decoder
 , withCrystalhd ? withFullDeps
-, withCuda ? withFullDeps && (with stdenv; (!isDarwin && !isAarch64))
+, withCuda ? withFullDeps && (with stdenv; (!isDarwin && !hostPlatform.isAarch))
 , withCudaLLVM ? withFullDeps
 , withDav1d ? withHeadlessDeps # AV1 decoder (focused on speed and correctness)
 , withDc1394 ? withFullDeps && !stdenv.isDarwin # IIDC-1394 grabbing (ieee 1394)
@@ -57,8 +57,8 @@
 , withModplug ? withFullDeps && !stdenv.isDarwin # ModPlug support
 , withMp3lame ? withHeadlessDeps # LAME MP3 encoder
 , withMysofa ? withFullDeps # HRTF support via SOFAlizer
-, withNvdec ? withHeadlessDeps && !stdenv.isDarwin && stdenv.hostPlatform == stdenv.buildPlatform
-, withNvenc ? withHeadlessDeps && !stdenv.isDarwin && stdenv.hostPlatform == stdenv.buildPlatform
+, withNvdec ? withHeadlessDeps && !stdenv.isDarwin && stdenv.hostPlatform == stdenv.buildPlatform && !stdenv.isAarch32
+, withNvenc ? withHeadlessDeps && !stdenv.isDarwin && stdenv.hostPlatform == stdenv.buildPlatform && !stdenv.isAarch32
 , withOgg ? withHeadlessDeps # Ogg container used by vorbis & theora
 , withOpenal ? withFullDeps # OpenAL 1.1 capture support
 , withOpencl ? withFullDeps
@@ -253,6 +253,7 @@
 , zeromq4
 , zimg
 , zlib
+, vulkan-headers
 , vulkan-loader
 , glslang
 /*
@@ -266,6 +267,10 @@
 , MediaToolbox
 , VideoDecodeAcceleration
 , VideoToolbox
+/*
+ *  Testing
+ */
+, testers
 }:
 
 /* Maintainer notes:
@@ -282,7 +287,6 @@
  */
 
 let
-  inherit (stdenv) isCygwin isDarwin isFreeBSD isLinux isAarch64;
   inherit (lib) optional optionals optionalString enableFeature;
 in
 
@@ -321,13 +325,13 @@ assert buildAvformat -> buildAvcodec && buildAvutil; # configure flag since 0.6
 assert buildPostproc -> buildAvutil;
 assert buildSwscale -> buildAvutil;
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "ffmpeg" + (if ffmpegVariant == "small" then "" else "-${ffmpegVariant}");
   inherit version;
 
   src = fetchgit {
     url = "https://git.ffmpeg.org/ffmpeg.git";
-    rev = "n${version}";
+    rev = "n${finalAttrs.version}";
     inherit sha256;
   };
 
@@ -338,6 +342,10 @@ stdenv.mkDerivation rec {
       --replace /usr/local/lib/frei0r-1 ${frei0r}/lib/frei0r-1
     substituteInPlace doc/filters.texi \
       --replace /usr/local/lib/frei0r-1 ${frei0r}/lib/frei0r-1
+  '' + lib.optionalString withVulkan ''
+    # FIXME: horrible hack, remove for next release
+    substituteInPlace libavutil/hwcontext_vulkan.c \
+      --replace VK_EXT_VIDEO_DECODE VK_KHR_VIDEO_DECODE
   '';
 
   patches = map (patch: fetchpatch patch) extraPatches;
@@ -522,7 +530,7 @@ stdenv.mkDerivation rec {
   # outputs where we don't want them. Patch the generated config.h to remove all
   # such references except for data.
   postConfigure = let
-    toStrip = lib.remove "data" outputs; # We want to keep references to the data dir.
+    toStrip = lib.remove "data" finalAttrs.outputs; # We want to keep references to the data dir.
   in
     "remove-references-to ${lib.concatStringsSep " " (map (o: "-t ${placeholder o}") toStrip)} config.h";
 
@@ -589,7 +597,7 @@ stdenv.mkDerivation rec {
   ++ optionals withVorbis [ libvorbis ]
   ++ optionals withVpx [ libvpx ]
   ++ optionals withV4l2 [ libv4l ]
-  ++ optionals withVulkan [ vulkan-loader ]
+  ++ optionals withVulkan [ vulkan-headers vulkan-loader ]
   ++ optionals withWebp [ libwebp ]
   ++ optionals withX264 [ x264 ]
   ++ optionals withX265 [ x265 ]
@@ -649,12 +657,14 @@ stdenv.mkDerivation rec {
 
   # Set RUNPATH so that libnvcuvid and libcuda in /run/opengl-driver(-32)/lib can be found.
   # See the explanation in addOpenGLRunpath.
-  postFixup = optionalString stdenv.isLinux ''
-    addOpenGLRunpath $out/lib/libavcodec.so
-    addOpenGLRunpath $out/lib/libavutil.so
+  postFixup = optionalString (stdenv.isLinux && withLib) ''
+    addOpenGLRunpath ${placeholder "lib"}/lib/libavcodec.so
+    addOpenGLRunpath ${placeholder "lib"}/lib/libavutil.so
   '';
 
   enableParallelBuilding = true;
+
+  passthru.tests.pkg-config = testers.testMetaPkgConfig finalAttrs.finalPackage;
 
   meta = with lib; {
     description = "A complete, cross-platform solution to record, convert and stream audio and video";
@@ -671,7 +681,8 @@ stdenv.mkDerivation rec {
       ++ optional withGPL gpl2Plus
       ++ optional withGPLv3 gpl3Plus
       ++ optional withUnfree unfreeRedistributable;
+    pkgConfigModules = [ "libavutil" ];
     platforms = platforms.all;
     maintainers = with maintainers; [ atemu ];
   };
-}
+})
