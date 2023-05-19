@@ -38,6 +38,7 @@ let
           modules = [ {
             _module.check = false;
           } ] ++ docModules.eager;
+          class = "nixos";
           specialArgs = specialArgs // {
             pkgs = scrubDerivations "pkgs" pkgs;
             # allow access to arbitrary options for eager modules, eg for getting
@@ -131,7 +132,8 @@ let
     desktopItem = pkgs.makeDesktopItem {
       name = "nixos-manual";
       desktopName = "NixOS Manual";
-      genericName = "View NixOS documentation in a web browser";
+      genericName = "System Manual";
+      comment = "View NixOS documentation in a web browser";
       icon = "nix-snowflake";
       exec = "nixos-help";
       categories = ["System"];

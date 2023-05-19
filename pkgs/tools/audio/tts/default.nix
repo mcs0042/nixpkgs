@@ -1,55 +1,31 @@
 { lib
 , python3
 , fetchFromGitHub
-, fetchpatch
 , espeak-ng
+, tts
 }:
 
 let
   python = python3.override {
     packageOverrides = self: super: {
-      # API breakage with 0.9.0
-      # TypeError: mel() takes 0 positional arguments but 2 positional arguments (and 3 keyword-only arguments) were given
-      librosa = super.librosa.overridePythonAttrs (oldAttrs: rec {
-        version = "0.8.1";
-        src = super.fetchPypi {
-          pname = "librosa";
-          inherit version;
-          hash = "sha256-xT0F52iuSj5VOuIcLlAVKT5e+/1cEtSX8RBMtRnMprM=";
-        };
-        propagatedBuildInputs = oldAttrs.propagatedBuildInputs ++ (with super; [
-          resampy
-        ]);
-        doCheck = false;
-      });
-
-      numpy = super.numpy.overridePythonAttrs (oldAttrs: rec {
-        version = "1.23.5";
-        src = super.fetchPypi {
-          pname = "numpy";
-          inherit version;
-          extension = "tar.gz";
-          hash = "sha256-Gxdm1vOXwYFT1AAV3fx53bcVyrrcBNLSKNTlqLxN7Ro=";
-        };
-        doCheck = false;
-      });
     };
   };
 in
 python.pkgs.buildPythonApplication rec {
   pname = "tts";
-  version = "0.12.0";
+  version = "0.13.3";
   format = "pyproject";
 
   src = fetchFromGitHub {
     owner = "coqui-ai";
     repo = "TTS";
     rev = "refs/tags/v${version}";
-    hash = "sha256-3t4JYEwQ+puGLhGl3nn93qsL8IeOwlYtHXTrnZ5Cf+w=";
+    hash = "sha256-cu714/XtVqqlHN2CmUObcNFG6Vdi9VqC4at/HB8euDs=";
   };
 
   postPatch = let
     relaxedConstraints = [
+      "bnunicodenormalizer"
       "cython"
       "gruut"
       "inflect"
@@ -77,6 +53,9 @@ python.pkgs.buildPythonApplication rec {
 
   propagatedBuildInputs = with python.pkgs; [
     anyascii
+    bangla
+    bnnumerizer
+    bnunicodenormalizer
     coqpit
     flask
     fsspec
@@ -114,6 +93,10 @@ python.pkgs.buildPythonApplication rec {
       ${python.pythonForBuild.interpreter} setup.py install --prefix=$out
     )
   '';
+
+  # tests get stuck when run in nixpkgs-review, tested in passthru
+  doCheck = false;
+  passthru.tests.pytest = tts.overridePythonAttrs (_: { doCheck = true; });
 
   nativeCheckInputs = with python.pkgs; [
     espeak-ng
@@ -184,6 +167,8 @@ python.pkgs.buildPythonApplication rec {
     "tests/vocoder_tests/test_multiband_melgan_train.py"
     "tests/vocoder_tests/test_melgan_train.py"
     "tests/vocoder_tests/test_wavernn_train.py"
+    # only a feed forward test, but still takes too long
+    "tests/tts_tests/test_overflow.py"
   ];
 
   passthru = {

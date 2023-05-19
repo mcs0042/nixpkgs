@@ -2,21 +2,20 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "millet";
-  version = "0.8.3";
+  version = "0.9.7";
 
   src = fetchFromGitHub {
     owner = "azdavis";
     repo = pname;
     rev = "v${version}";
-    hash = "sha256-b5zb0sDya/58kEEgqWqu4u6Xo61sq8Le0F3Z1Q3dBdk=";
+    hash = "sha256-4VPxeviXRWyP2pviNg5jST+uzvUA6gAoA/Fnt1daLYc=";
   };
 
   cargoLock = {
     lockFile = ./Cargo.lock;
     outputHashes = {
-      "char-name-0.1.0" = "sha256-mQU6kmVizJJTb3JF61YWUVZqSeGSs6PluCF32y/uov8=";
-      "rowan-0.15.10" = "sha256-yOaUq2tQEiNgQB7qB8fFzfnwUWagu72MIPHmaTX0B0Y=";
-      "sml-libs-0.1.0" = "sha256-6jbRMqlW5sL0x0i4qatduXvLHhrkUE7gsSwC6JYwiHQ=";
+      "char-name-0.1.0" = "sha256-hElcqzsfU6c6HzOqnUpbz+jbNGk6qBS+uk4fo1PC86Y=";
+      "sml-libs-0.1.0" = "sha256-0gRiXJAGddrrbgI3AhlWqVKipNZI0OxMTrkWdcSbG7A=";
     };
   };
 

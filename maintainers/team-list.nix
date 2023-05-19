@@ -149,6 +149,17 @@ with lib.maintainers; {
     enableFeatureFreezePing = true;
   };
 
+  cuda = {
+    members = [
+      connorbaker
+      samuela
+      SomeoneSerge
+    ];
+    scope = "Maintain CUDA-enabled packages";
+    shortName = "Cuda";
+    githubTeams = [ "cuda-maintainers" ];
+  };
+
   darwin = {
     members = [
       toonn
@@ -288,11 +299,13 @@ with lib.maintainers; {
 
   golang = {
     members = [
-      c00w
       kalbasit
       mic92
       zowoq
       qbit
+    ];
+    githubTeams = [
+      "golang"
     ];
     scope = "Maintain Golang compilers.";
     shortName = "Go";
@@ -423,6 +436,22 @@ with lib.maintainers; {
     shortName = "Linux Kernel";
   };
 
+  lisp = {
+    members = [
+      raskin
+      lukego
+      nagy
+      uthar
+      hraban
+    ];
+    githubTeams = [
+      "lisp"
+    ];
+    scope = "Maintain the Lisp ecosystem.";
+    shortName = "lisp";
+    enableFeatureFreezePing = true;
+  };
+
   llvm = {
     members = [
       dtzWill
@@ -494,6 +523,7 @@ with lib.maintainers; {
 
   mate = {
     members = [
+      bobby285271
       j03
       romildo
     ];
@@ -718,11 +748,13 @@ with lib.maintainers; {
   rust = {
     members = [
       figsoda
-      lnl7
       mic92
       tjni
       winter
       zowoq
+    ];
+    githubTeams = [
+      "rust"
     ];
     scope = "Maintain the Rust compiler toolchain and nixpkgs integration.";
     shortName = "Rust";
@@ -798,6 +830,7 @@ with lib.maintainers; {
 
   xfce = {
     members = [
+      bobby285271
       romildo
       muscaln
     ];

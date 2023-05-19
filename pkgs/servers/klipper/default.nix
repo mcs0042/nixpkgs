@@ -3,23 +3,27 @@
 , fetchFromGitHub
 , python3
 , unstableGitUpdater
+, makeWrapper
 }:
 
 stdenv.mkDerivation rec {
   pname = "klipper";
-  version = "unstable-2023-03-15";
+  version = "unstable-2023-04-24";
 
   src = fetchFromGitHub {
     owner = "KevinOConnor";
     repo = "klipper";
-    rev = "c54d83c9f134d47f00da5ecd0d762e01748aaa59";
-    sha256 = "sha256-zPK1dzUFLQmno4A7jEStininVcYpUh0WAFjlAqnTLS0=";
+    rev = "b17ae55f5bd3a079ab3626b1e6fd5c60416e6ba0";
+    sha256 = "sha256-e1luOJdTeSB/UNl/W91tBuuQ5f2fKfo1CSMQiE+A1T4=";
   };
 
   sourceRoot = "source/klippy";
 
   # NB: This is needed for the postBuild step
-  nativeBuildInputs = [ (python3.withPackages ( p: with p; [ cffi ] )) ];
+  nativeBuildInputs = [
+    (python3.withPackages ( p: with p; [ cffi ] ))
+    makeWrapper
+  ];
 
   buildInputs = [ (python3.withPackages (p: with p; [ cffi pyserial greenlet jinja2 markupsafe numpy ])) ];
 
@@ -49,7 +53,9 @@ stdenv.mkDerivation rec {
     cp -r $src/docs $out/lib/docs
     cp -r $src/config $out/lib/config
 
+    mkdir -p $out/bin
     chmod 755 $out/lib/klipper/klippy.py
+    makeWrapper $out/lib/klipper/klippy.py $out/bin/klippy --chdir $out/lib/klipper
     runHook postInstall
   '';
 
