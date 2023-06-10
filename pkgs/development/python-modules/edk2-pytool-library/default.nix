@@ -3,24 +3,33 @@
 , fetchFromGitHub
 , setuptools
 , setuptools-scm
+, pyasn1
+, pyasn1-modules
+, cryptography
 , pytestCheckHook
 }:
 
 buildPythonPackage rec {
   pname = "edk2-pytool-library";
-  version = "0.14.1";
+  version = "0.15.2";
   format = "pyproject";
 
   src = fetchFromGitHub {
     owner = "tianocore";
     repo = "edk2-pytool-library";
     rev = "v${version}";
-    hash = "sha256-l3ZM2xxZrFz7n/uLSd994l+mGJDi4Qw4C2Lg2uyttL8=";
+    hash = "sha256-gadFpFDHfiZ0vbUIEODu4SUL5SSsukdThxqP2ik5adI=";
   };
 
   nativeBuildInputs = [
     setuptools
     setuptools-scm
+  ];
+
+  propagatedBuildInputs = [
+    pyasn1
+    pyasn1-modules
+    cryptography
   ];
 
   nativeCheckInputs = [
@@ -34,6 +43,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Python library package that supports UEFI development";
     homepage = "https://github.com/tianocore/edk2-pytool-library";
+    changelog = "https://github.com/tianocore/edk2-pytool-library/releases/tag/v${version}";
     license = licenses.bsd2Patent;
     maintainers = with maintainers; [ nickcao ];
   };

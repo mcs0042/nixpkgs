@@ -146,7 +146,6 @@ in {
         kernelPatches.bridge_stp_helper
         kernelPatches.request_key_helper
         kernelPatches.export-rt-sched-migrate
-        kernelPatches.CVE-2023-32233
       ];
     };
 
@@ -154,7 +153,6 @@ in {
       kernelPatches = [
         kernelPatches.bridge_stp_helper
         kernelPatches.request_key_helper
-        kernelPatches.fix-em-ice-bonding
       ];
     };
 
@@ -170,8 +168,6 @@ in {
       kernelPatches = [
         kernelPatches.bridge_stp_helper
         kernelPatches.request_key_helper
-        kernelPatches.make-maple-state-reusable-after-mas_empty_area
-        kernelPatches.fix-em-ice-bonding
       ];
     };
 
@@ -179,18 +175,7 @@ in {
       kernelPatches = [
         kernelPatches.bridge_stp_helper
         kernelPatches.request_key_helper
-        kernelPatches.make-maple-state-reusable-after-mas_empty_area
-        kernelPatches.fix-em-ice-bonding
         kernelPatches.export-rt-sched-migrate
-      ];
-    };
-
-    linux_6_2 = callPackage ../os-specific/linux/kernel/linux-6.2.nix {
-      kernelPatches = [
-        kernelPatches.bridge_stp_helper
-        kernelPatches.request_key_helper
-        kernelPatches.make-maple-state-reusable-after-mas_empty_area
-        kernelPatches.fix-em-ice-bonding
       ];
     };
 
@@ -198,8 +183,6 @@ in {
       kernelPatches = [
         kernelPatches.bridge_stp_helper
         kernelPatches.request_key_helper
-        kernelPatches.make-maple-state-reusable-after-mas_empty_area
-        kernelPatches.fix-em-ice-bonding
       ];
     };
 
@@ -208,7 +191,6 @@ in {
         kernelPatches = [
           kernelPatches.bridge_stp_helper
           kernelPatches.request_key_helper
-          kernelPatches.make-maple-state-reusable-after-mas_empty_area
         ];
       };
       latest = packageAliases.linux_latest.kernel;
@@ -286,6 +268,7 @@ in {
     linux_5_18 = throw "linux 5.18 was removed because it has reached its end of life upstream";
     linux_5_19 = throw "linux 5.19 was removed because it has reached its end of life upstream";
     linux_6_0 = throw "linux 6.0 was removed because it has reached its end of life upstream";
+    linux_6_2 = throw "linux 6.2 was removed because it has reached its end of life upstream";
 
     linux_xanmod_tt = throw "linux_xanmod_tt was removed because upstream no longer offers this option";
 
@@ -386,6 +369,8 @@ in {
     ena = callPackage ../os-specific/linux/ena {};
 
     kvdo = callPackage ../os-specific/linux/kvdo {};
+
+    lenovo-legion-module = callPackage ../os-specific/linux/lenovo-legion { };
 
     liquidtux = callPackage ../os-specific/linux/liquidtux {};
 
@@ -585,13 +570,13 @@ in {
     linux_5_10 = recurseIntoAttrs (packagesFor kernels.linux_5_10);
     linux_5_15 = recurseIntoAttrs (packagesFor kernels.linux_5_15);
     linux_6_1 = recurseIntoAttrs (packagesFor kernels.linux_6_1);
-    linux_6_2 = recurseIntoAttrs (packagesFor kernels.linux_6_2);
     linux_6_3 = recurseIntoAttrs (packagesFor kernels.linux_6_3);
   } // lib.optionalAttrs config.allowAliases {
     linux_4_9 = throw "linux 4.9 was removed because it will reach its end of life within 22.11"; # Added 2022-11-08
     linux_5_18 = throw "linux 5.18 was removed because it reached its end of life upstream"; # Added 2022-09-17
     linux_5_19 = throw "linux 5.19 was removed because it reached its end of life upstream"; # Added 2022-11-01
     linux_6_0 = throw "linux 6.0 was removed because it reached its end of life upstream"; # Added 2023-01-20
+    linux_6_2 = throw "linux 6.2 was removed because it reached its end of life upstream"; # Added 2023-05-26
   };
 
   rtPackages = {

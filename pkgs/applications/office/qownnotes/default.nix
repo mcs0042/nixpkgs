@@ -11,25 +11,28 @@
 , qt5compat
 , makeWrapper
 , wrapQtAppsHook
+, botan2
+, pkg-config
 }:
 
 let
   pname = "qownnotes";
   appname = "QOwnNotes";
-  version = "23.5.0";
+  version = "23.6.0";
 in
 stdenv.mkDerivation {
   inherit pname appname version;
 
   src = fetchurl {
     url = "https://download.tuxfamily.org/${pname}/src/${pname}-${version}.tar.xz";
-    hash = "sha256-W1bu3isEe1j7XTj+deLNk6Ncssy2UKG+eF36fe1FFWs=";
+    hash = "sha256-g8sWnc0b+DciEu6ZtQsPTUUfcudWKCNSQc6K67tLsYg=";
   };
 
   nativeBuildInputs = [
     qmake
     qttools
     wrapQtAppsHook
+    pkg-config
   ] ++ lib.optionals stdenv.isDarwin [ makeWrapper ];
 
   buildInputs = [
@@ -38,7 +41,12 @@ stdenv.mkDerivation {
     qtsvg
     qtwebsockets
     qt5compat
+    botan2
   ] ++ lib.optionals stdenv.isLinux [ qtwayland ];
+
+  qmakeFlags = [
+    "USE_SYSTEM_BOTAN=1"
+  ];
 
   postInstall =
   # Create a lowercase symlink for Linux

@@ -10,16 +10,16 @@
 
 buildGoModule rec {
   pname = "grafana-agent";
-  version = "0.33.2";
+  version = "0.34.0";
 
   src = fetchFromGitHub {
     rev = "v${version}";
     owner = "grafana";
     repo = "agent";
-    hash = "sha256-9/1EzRIuWpXbEVA6WIy5WAHFkJgPoqABLfvgA7DB/oU=";
+    hash = "sha256-OIvLgI853qQ4Nc8xBKfwWKohyW/b53UBxpNauAgOS48=";
   };
 
-  vendorHash = "sha256-ZeSK5sTU/ey0pe303Y5eZi7D25lTXaQHJsPLDQ/tB+s=";
+  vendorHash = "sha256-BfEnMGP3IMtJwOjZRFpNc58PaQ116U/p9jRsiGdIpCQ=";
   proxyVendor = true; # darwin/linux hash mismatch
 
   ldflags = let
@@ -71,6 +71,6 @@ buildGoModule rec {
     description = "A lightweight subset of Prometheus and more, optimized for Grafana Cloud";
     license = licenses.asl20;
     homepage = "https://grafana.com/products/cloud";
-    maintainers = with maintainers; [ flokli indeednotjames ];
+    maintainers = with maintainers; [ flokli emilylange ];
   };
 }
