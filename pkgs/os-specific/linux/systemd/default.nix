@@ -145,7 +145,7 @@ assert withUkify -> withEfi;
 let
   wantCurl = withRemote || withImportd;
   wantGcrypt = withResolved || withImportd;
-  version = "253.5";
+  version = "253.6";
 
   # Bump this variable on every (major) version change. See below (in the meson options list) for why.
   # command:
@@ -162,7 +162,7 @@ stdenv.mkDerivation (finalAttrs: {
     owner = "systemd";
     repo = "systemd-stable";
     rev = "v${version}";
-    hash = "sha256-B3A9AvpfZ8SYsiZvHnWO4RHs1/6EdczWF2NmrSqxQ7c=";
+    hash = "sha256-LZs6QuBe23W643bTuz+MD2pzHiapsBJBHoFXi/QjzG4=";
   };
 
   # On major changes, or when otherwise required, you *must* reformat the patches,
@@ -508,9 +508,10 @@ stdenv.mkDerivation (finalAttrs: {
     "-Dsysvinit-path="
     "-Dsysvrcnd-path="
 
-    "-Dsulogin-path=${util-linux}/bin/sulogin"
-    "-Dmount-path=${util-linux}/bin/mount"
-    "-Dumount-path=${util-linux}/bin/umount"
+    "-Dsulogin-path=${util-linux.login}/bin/sulogin"
+    "-Dnologin-path=${util-linux.login}/bin/nologin"
+    "-Dmount-path=${lib.getOutput "mount" util-linux}/bin/mount"
+    "-Dumount-path=${lib.getOutput "mount" util-linux}/bin/umount"
     "-Dcreate-log-dirs=false"
 
     # Use cgroupsv2. This is already the upstream default, but better be explicit.
@@ -561,8 +562,8 @@ stdenv.mkDerivation (finalAttrs: {
             "man/systemd-makefs@.service.xml"
           ];
         }
-        { search = "/sbin/swapon"; replacement = "${lib.getBin util-linux}/sbin/swapon"; where = [ "src/core/swap.c" "src/basic/unit-def.h" ]; }
-        { search = "/sbin/swapoff"; replacement = "${lib.getBin util-linux}/sbin/swapoff"; where = [ "src/core/swap.c" ]; }
+        { search = "/sbin/swapon"; replacement = "${lib.getOutput "swap" util-linux}/sbin/swapon"; where = [ "src/core/swap.c" "src/basic/unit-def.h" ]; }
+        { search = "/sbin/swapoff"; replacement = "${lib.getOutput "swap" util-linux}/sbin/swapoff"; where = [ "src/core/swap.c" ]; }
         {
           search = "/bin/echo";
           replacement = "${coreutils}/bin/echo";

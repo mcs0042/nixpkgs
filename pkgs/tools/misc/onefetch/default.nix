@@ -14,16 +14,16 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "onefetch";
-  version = "2.18.0";
+  version = "2.18.1";
 
   src = fetchFromGitHub {
     owner = "o2sh";
     repo = pname;
     rev = version;
-    hash = "sha256-XjsKdfz4uQ1W8ul/2dbKiz7oVksUv5UNBF0U0MNsUPs=";
+    hash = "sha256-xa7LdIeeSzCoSUVe9CzC3hKDiKlQdr011+iF/WOVGx0=";
   };
 
-  cargoHash = "sha256-G7cJoUxkOn6pQtRwzI8/KFvvbkN8JLgZcdUUZffIydo=";
+  cargoHash = "sha256-zaRoL5fV0Vyca0Ay1WIl/1jAlPSeuoBevgrEFER6XJU=";
 
   cargoPatches = [
     # enable pkg-config feature of zstd
@@ -59,6 +59,6 @@ rustPlatform.buildRustPackage rec {
     homepage = "https://github.com/o2sh/onefetch";
     changelog = "https://github.com/o2sh/onefetch/blob/v${version}/CHANGELOG.md";
     license = licenses.mit;
-    maintainers = with maintainers; [ Br1ght0ne figsoda kloenk SuperSandro2000 ];
+    maintainers = with maintainers; [ Br1ght0ne figsoda kloenk ];
   };
 }

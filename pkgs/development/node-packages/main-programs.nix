@@ -8,7 +8,6 @@
   "@squoosh/cli" = "squoosh-cli";
   "@webassemblyjs/cli-1.11.1" = "wasm2wast";
   coffee-script = "coffee";
-  typescript = "tsc";
   vue-cli = "vue";
   "@withgraphite/graphite-cli" = "gt";
 
@@ -17,7 +16,6 @@
   "@antora/cli" = "antora";
   "@astrojs/language-server" = "astro-ls";
   "@babel/cli" = "babel";
-  "@bitwarden/cli" = "bw";
   "@commitlint/cli" = "commitlint";
   "@forge/cli" = "forge";
   "@gitbeaker/cli" = "gitbeaker";

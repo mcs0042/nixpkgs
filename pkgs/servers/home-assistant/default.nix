@@ -76,6 +76,16 @@ let
         doCheck = false;
       });
 
+      ha-av = super.av.overridePythonAttrs (oldAttrs: rec {
+        pname = "ha-av";
+        version = "10.1.0";
+
+        src = fetchPypi {
+          inherit pname version;
+          hash = "sha256-HjOu/A1U3CfoVq6VqxA621/9wXk8hFnTFWtdpnVoFr4=";
+        };
+      });
+
       jaraco-abode = super.jaraco-abode.overridePythonAttrs (oldAttrs: rec {
         version = "3.3.0";
         src = fetchFromGitHub {
@@ -231,15 +241,6 @@ let
         doCheck = false;
       });
 
-      sqlalchemy = super.sqlalchemy.overridePythonAttrs (oldAttrs: rec {
-        version = "2.0.12";
-        src = fetchPypi {
-          pname = "SQLAlchemy";
-          inherit version;
-          hash = "sha256-vd/FvR3uXbD93J2rJvgAwoPzJD5ygbvxByAP7TASX5w=";
-        };
-      });
-
       # Pinned due to API changes in 0.3.0
       tailscale = super.tailscale.overridePythonAttrs (oldAttrs: rec {
         version = "0.2.0";
@@ -296,7 +297,7 @@ let
   extraBuildInputs = extraPackages python.pkgs;
 
   # Don't forget to run parse-requirements.py after updating
-  hassVersion = "2023.6.2";
+  hassVersion = "2023.7.3";
 
 in python.pkgs.buildPythonApplication rec {
   pname = "homeassistant";
@@ -312,7 +313,7 @@ in python.pkgs.buildPythonApplication rec {
   # Primary source is the pypi sdist, because it contains translations
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-WPjqKCktCEk7yPrz8/GDphoFtD4Q3j0cIxUxOEwc/i0=";
+    hash = "sha256-wYS7G3AD1G7UzXfrJxrHGpQTBLJFa7Qln1VU0pdcNro=";
   };
 
   # Secondary source is git for tests
@@ -320,7 +321,7 @@ in python.pkgs.buildPythonApplication rec {
     owner = "home-assistant";
     repo = "core";
     rev = "refs/tags/${version}";
-    hash = "sha256-qAwNuCoQN2r++QvKCTdNs7AePszSxwrFaY5FHXf3Vy8=";
+    hash = "sha256-2m0RpEQ4Rds9+JVQj5/HTmOZzYd4yWL+MfjQs923VL0=";
   };
 
   nativeBuildInputs = with python.pkgs; [
@@ -356,8 +357,9 @@ in python.pkgs.buildPythonApplication rec {
       "pip"
       "PyJWT"
       "pyOpenSSL"
+      "PyYAML"
       "requests"
-      "typing-extensions"
+      "typing_extensions"
       "voluptuous-serialize"
       "yarl"
     ];

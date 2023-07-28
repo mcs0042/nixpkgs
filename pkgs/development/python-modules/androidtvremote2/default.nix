@@ -10,7 +10,7 @@
 
 buildPythonPackage rec {
   pname = "androidtvremote2";
-  version = "0.0.9";
+  version = "0.0.12";
   format = "pyproject";
 
   disabled = pythonOlder "3.7";
@@ -19,7 +19,7 @@ buildPythonPackage rec {
     owner = "tronikos";
     repo = "androidtvremote2";
     rev = "refs/tags/v${version}";
-    hash = "sha256-gQ2PVEhX1jwd0yvMf/Z0yKvruDzpY5080x4IU2i/PJ4=";
+    hash = "sha256-A/1zNBrYo9oPAVexq/W2G9mqBeTsUvF5/T2db6g9AGk=";
   };
 
   nativeBuildInputs = [
