@@ -19,13 +19,13 @@
 }:
 
 let
-  version = "1.16.5";
+  version = "1.17.2";
 
   src = fetchFromGitHub {
     owner = "paperless-ngx";
     repo = "paperless-ngx";
     rev = "refs/tags/v${version}";
-    hash = "sha256-suwXFqq3QSdY0KzSpr6NKPwm6xtMBR8aP5VV3XTynqI=";
+    hash = "sha256-/0Ml3NRTghqNykB1RZfqDW9TtENnSRM7wqG7Vn4Kl04=";
   };
 
   # Use specific package versions required by paperless-ngx
@@ -51,7 +51,7 @@ let
     pname = "paperless-ngx-frontend";
     inherit version src;
 
-    npmDepsHash = "sha256-rzIDivZTZZWt6kgLt8mstYmvv5TlC+O8O/g01+aLMHQ=";
+    npmDepsHash = "sha256-6EvC9Ka8gl0eRgJtHooB3yQNVGYzuH/WRga4AtzQ0EY=";
 
     nativeBuildInputs = [
       python3
@@ -248,6 +248,7 @@ python.pkgs.buildPythonApplication rec {
     pytest-django
     pytest-env
     pytest-httpx
+    pytest-rerunfailures
     pytest-xdist
     pytestCheckHook
     reportlab
