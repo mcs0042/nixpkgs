@@ -1,6 +1,7 @@
 { lib
 , rustPlatform
 , fetchFromGitHub
+, installShellFiles
 , stdenv
 , darwin
 , gcc
@@ -9,18 +10,19 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "fh";
-  version = "0.1.1";
+  version = "0.1.7";
 
   src = fetchFromGitHub {
     owner = "DeterminateSystems";
     repo = "fh";
     rev = "v${version}";
-    hash = "sha256-lTm4C06FtlaIJyhqZ4POubiR4qc0fPHawLS4cpneACg=";
+    hash = "sha256-gyxlVSraZIVAyOaJk90fub4b8g1w4KXwqa1ecNAC7xA=";
   };
 
-  cargoHash = "sha256-CvuQeS+g9bdpYzop63BL0UKQsdOELGt1tR2Xz4FLxpE=";
+  cargoHash = "sha256-Tm/O9H0l37h+2zb4dgO6Z6CaYye8O+zVMrsUpWJ9okI=";
 
   nativeBuildInputs = [
+    installShellFiles
     rustPlatform.bindgenHook
   ];
 
@@ -33,14 +35,17 @@ rustPlatform.buildRustPackage rec {
     NIX_CFLAGS_COMPILE = "-I${lib.getDev libcxx}/include/c++/v1";
   };
 
-  # Cargo.lock is outdated
-  postConfigure = ''
-    cargo metadata --offline
+  postInstall = ''
+    installShellCompletion --cmd fh \
+      --bash <($out/bin/fh completion bash) \
+      --fish <($out/bin/fh completion fish) \
+      --zsh <($out/bin/fh completion zsh)
   '';
 
   meta = with lib; {
     description = "The official FlakeHub CLI";
     homepage = "https://github.com/DeterminateSystems/fh";
+    changelog = "https://github.com/DeterminateSystems/fh/releases/tag/${src.rev}";
     license = licenses.asl20;
     maintainers = with maintainers; [ figsoda ];
     mainProgram = "fh";

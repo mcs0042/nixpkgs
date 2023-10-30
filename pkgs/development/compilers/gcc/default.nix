@@ -27,6 +27,7 @@
 , gnused ? null
 , cloog # unused; just for compat with gcc4, as we override the parameter on some places
 , buildPackages
+, pkgsBuildTarget
 , libxcrypt
 , disableGdbPlugin ? !enablePlugin
 , nukeReferences
@@ -115,7 +116,7 @@ let inherit version;
     patches = callFile ./patches {};
 
     /* Cross-gcc settings (build == host != target) */
-    crossMingw = targetPlatform != hostPlatform && targetPlatform.libc == "msvcrt";
+    crossMingw = targetPlatform != hostPlatform && targetPlatform.isMinGW;
     stageNameAddon = if withoutTargetLibc then "stage-static" else "stage-final";
     crossNameAddon = optionalString (targetPlatform != hostPlatform) "${targetPlatform.config}-${stageNameAddon}-";
 
@@ -176,6 +177,7 @@ let inherit version;
         nukeReferences
         patchelf
         perl
+        pkgsBuildTarget
         profiledCompiler
         reproducibleBuild
         staticCompiler
@@ -309,17 +311,15 @@ lib.pipe ((callFile ./common/builder.nix {}) ({
         libc = if libcCross != null then libcCross else stdenv.cc.libc;
       in
         (
-        '' echo "fixing the \`GLIBC_DYNAMIC_LINKER'${lib.optionalString atLeast6 ", \\`UCLIBC_DYNAMIC_LINKER',"} and \`${if atLeast6 then "MUSL" else "UCLIBC"}_DYNAMIC_LINKER' macros..."
+        '' echo "fixing the {GLIBC,UCLIBC,MUSL}_DYNAMIC_LINKER macros..."
            for header in "gcc/config/"*-gnu.h "gcc/config/"*"/"*.h
            do
              grep -q ${lib.optionalString (!atLeast6) "LIBC"}_DYNAMIC_LINKER "$header" || continue
-             echo "  fixing \`$header'..."
+             echo "  fixing $header..."
              sed -i "$header" \
-                 -e 's|define[[:blank:]]*\([UCG]\+\)LIBC_DYNAMIC_LINKER\([0-9]*\)[[:blank:]]"\([^\"]\+\)"$|define \1LIBC_DYNAMIC_LINKER\2 "${libc.out}\3"|g'${lib.optionalString atLeast6 " \\"}
-        '' + lib.optionalString atLeast6 ''
-${""}                -e 's|define[[:blank:]]*MUSL_DYNAMIC_LINKER\([0-9]*\)[[:blank:]]"\([^\"]\+\)"$|define MUSL_DYNAMIC_LINKER\1 "${libc.out}\2"|g'
-        '' + ''
-${""}          done
+                 -e 's|define[[:blank:]]*\([UCG]\+\)LIBC_DYNAMIC_LINKER\([0-9]*\)[[:blank:]]"\([^\"]\+\)"$|define \1LIBC_DYNAMIC_LINKER\2 "${libc.out}\3"|g' \
+                 -e 's|define[[:blank:]]*MUSL_DYNAMIC_LINKER\([0-9]*\)[[:blank:]]"\([^\"]\+\)"$|define MUSL_DYNAMIC_LINKER\1 "${libc.out}\2"|g'
+             done
         '' + lib.optionalString (atLeast6 && targetPlatform.libc == "musl") ''
            sed -i gcc/config/linux.h -e '1i#undef LOCAL_INCLUDE_DIR'
         ''
@@ -327,9 +327,7 @@ ${""}          done
     ))
       + lib.optionalString (atLeast7 && targetPlatform.isAvr) (''
             makeFlagsArray+=(
-          '' + (lib.optionalString atLeast10 ''
                '-s' # workaround for hitting hydra log limit
-          '') + ''
                'LIMITS_H_TEST=false'
             )
           '');
@@ -450,7 +448,7 @@ ${""}          done
 }
 ))
 ([
-  (callPackage ./common/libgcc.nix   { inherit version langC langCC langJit targetPlatform hostPlatform withoutTargetLibc enableShared; })
+  (callPackage ./common/libgcc.nix   { inherit version langC langCC langJit targetPlatform hostPlatform withoutTargetLibc enableShared libcCross; })
 ] ++ optionals atLeast11 [
   (callPackage ./common/checksum.nix { inherit langC langCC; })
 ])

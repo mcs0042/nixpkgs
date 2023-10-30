@@ -13,8 +13,8 @@ let
     aspnetcore_6_0
   ];
 
-  version = "2.8.2";
-  hash = "sha256-u6uKLmNNw9DllAV4MmexVsy5GrGqd4XRJRRXpERQfXE=";
+  version = "2.10.0";
+  hash = "sha256-RpcT2zneKbbZieI2Omf+fcfmU7/MnkpYGKhFj9tnKrs=";
 
 in
 stdenv.mkDerivation {
@@ -44,6 +44,7 @@ stdenv.mkDerivation {
     description = "A convenient free open source bilibili live recording tool";
     homepage = "https://rec.danmuji.org/";
     changelog = "https://github.com/BililiveRecorder/BililiveRecorder/releases/tag/${version}";
+    mainProgram = "BililiveRecorder";
     license = licenses.gpl3Only;
     maintainers = with maintainers; [ zaldnoay ];
     platforms = platforms.unix;

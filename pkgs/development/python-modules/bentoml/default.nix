@@ -12,6 +12,7 @@
 , cloudpickle
 , deepmerge
 , fs
+, httpx
 , inflection
 , jinja2
 , numpy
@@ -68,7 +69,7 @@
 }:
 
 let
-  version = "1.1.4";
+  version = "1.1.7";
   aws = [ fs-s3fs ];
   grpc = [
     grpcio
@@ -103,9 +104,15 @@ buildPythonPackage {
   src = fetchFromGitHub {
     owner = "bentoml";
     repo = "BentoML";
-    rev = "v${version}";
-    hash = "sha256-aGSw40haVGo4UpUItStsFxfgjAnY4Rhiat4qDUIINWU=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-xuUfdVa0d4TzJqPBNJvUikIPsjSgn+VdhdZidHMnAxA=";
   };
+
+  # https://github.com/bentoml/BentoML/pull/4227 should fix this test
+  postPatch = ''
+    substituteInPlace tests/unit/_internal/utils/test_analytics.py \
+      --replace "requests" "httpx"
+  '';
 
   pythonRelaxDeps = [
     "opentelemetry-semantic-conventions"
@@ -126,6 +133,7 @@ buildPythonPackage {
     cloudpickle
     deepmerge
     fs
+    httpx
     inflection
     jinja2
     numpy
