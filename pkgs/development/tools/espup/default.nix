@@ -15,16 +15,16 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "espup";
-  version = "0.6.1";
+  version = "0.9.0";
 
   src = fetchFromGitHub {
     owner = "esp-rs";
     repo = "espup";
     rev = "v${version}";
-    hash = "sha256-2LSlnGte65eemlDw67mPhmf+RuLwnbavNyMYMLgrx/E=";
+    hash = "sha256-CNEfqrysSETTJzhVl45Aip04QRxE9Kbqalu6SLQ16i4=";
   };
 
-  cargoHash = "sha256-4Gm8nQIsZzaPYtqf7eAyX0iX0rUFBnEiavJR1qcc8/g=";
+  cargoHash = "sha256-9eQm2+p8eXrfbvdjfqQrbQ4oprNJL8rO88gafBe8/RQ=";
 
   nativeBuildInputs = [
     pkg-config

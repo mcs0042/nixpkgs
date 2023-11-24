@@ -191,6 +191,11 @@ runTests {
     expected = "a\nb\nc\n";
   };
 
+  testReplicateString = {
+    expr = strings.replicate 5 "hello";
+    expected = "hellohellohellohellohello";
+  };
+
   testSplitStringsSimple = {
     expr = strings.splitString "." "a.b.c.d";
     expected = [ "a" "b" "c" "d" ];
@@ -719,6 +724,15 @@ runTests {
   testFindFirstExample2 = {
     expr = lists.findFirst (x: x > 9) 7 [ 1 6 4 ];
     expected = 7;
+  };
+
+  testAllUnique_true = {
+    expr = allUnique [ 3 2 4 1 ];
+    expected = true;
+  };
+  testAllUnique_false = {
+    expr = allUnique [ 3 2 3 4 ];
+    expected = false;
   };
 
 # ATTRSETS
@@ -1906,4 +1920,32 @@ runTests {
     expr = (with types; either int (listOf (either bool str))).description;
     expected = "signed integer or list of (boolean or string)";
   };
+
+# Meta
+  testGetExe'Output = {
+    expr = getExe' {
+      type = "derivation";
+      out = "somelonghash";
+      bin = "somelonghash";
+    } "executable";
+    expected = "somelonghash/bin/executable";
+  };
+
+  testGetExeOutput = {
+    expr = getExe {
+      type = "derivation";
+      out = "somelonghash";
+      bin = "somelonghash";
+      meta.mainProgram = "mainProgram";
+    };
+    expected = "somelonghash/bin/mainProgram";
+  };
+
+  testGetExe'FailureFirstArg = testingThrow (
+    getExe' "not a derivation" "executable"
+  );
+
+  testGetExe'FailureSecondArg = testingThrow (
+    getExe' { type = "derivation"; } "dir/executable"
+  );
 }

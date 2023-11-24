@@ -515,7 +515,7 @@ let
       enableOCR = true;
       preBootCommands = ''
         machine.start()
-        machine.wait_for_text("Passphrase for")
+        machine.wait_for_text("[Pp]assphrase for")
         machine.send_chars("supersecret\n")
       '';
     };
@@ -781,7 +781,7 @@ in {
         encrypted.enable = true;
         encrypted.blkDev = "/dev/vda3";
         encrypted.label = "crypt";
-        encrypted.keyFile = "/mnt-root/keyfile";
+        encrypted.keyFile = "/${if systemdStage1 then "sysroot" else "mnt-root"}/keyfile";
       };
     '';
   };
@@ -937,6 +937,10 @@ in {
     enableOCR = true;
     preBootCommands = ''
       machine.start()
+      # Enter it wrong once
+      machine.wait_for_text("enter passphrase for ")
+      machine.send_chars("wrong\n")
+      # Then enter it right.
       machine.wait_for_text("enter passphrase for ")
       machine.send_chars("password\n")
     '';
@@ -980,6 +984,68 @@ in {
         "swapon -L swap",
         "mkfs.bcachefs -L root --metadata_replicas 2 --foreground_target ssd --promote_target ssd --background_target hdd --label ssd /dev/vda3 --label hdd /dev/vda4",
         "mount -t bcachefs /dev/vda3:/dev/vda4 /mnt",
+        "mkfs.ext3 -L boot /dev/vda1",
+        "mkdir -p /mnt/boot",
+        "mount /dev/vda1 /mnt/boot",
+      )
+    '';
+  };
+
+  bcachefsLinuxTesting = makeInstallerTest "bcachefs-linux-testing" {
+    extraInstallerConfig = {
+      imports = [ no-zfs-module ];
+
+      boot = {
+        supportedFilesystems = [ "bcachefs" ];
+        kernelPackages = pkgs.linuxPackages_testing;
+      };
+    };
+
+    extraConfig = ''
+      boot.kernelPackages = pkgs.linuxPackages_testing;
+    '';
+
+    createPartitions = ''
+      machine.succeed(
+        "flock /dev/vda parted --script /dev/vda -- mklabel msdos"
+        + " mkpart primary ext2 1M 100MB"          # /boot
+        + " mkpart primary linux-swap 100M 1024M"  # swap
+        + " mkpart primary 1024M -1s",             # /
+        "udevadm settle",
+        "mkswap /dev/vda2 -L swap",
+        "swapon -L swap",
+        "mkfs.bcachefs -L root /dev/vda3",
+        "mount -t bcachefs /dev/vda3 /mnt",
+        "mkfs.ext3 -L boot /dev/vda1",
+        "mkdir -p /mnt/boot",
+        "mount /dev/vda1 /mnt/boot",
+      )
+    '';
+  };
+
+  bcachefsUpgradeToLinuxTesting = makeInstallerTest "bcachefs-upgrade-to-linux-testing" {
+    extraInstallerConfig = {
+      imports = [ no-zfs-module ];
+      boot.supportedFilesystems = [ "bcachefs" ];
+      # We don't have network access in the VM, we need this for `nixos-install`
+      system.extraDependencies = [ pkgs.linux_testing ];
+    };
+
+    extraConfig = ''
+      boot.kernelPackages = pkgs.linuxPackages_testing;
+    '';
+
+    createPartitions = ''
+      machine.succeed(
+        "flock /dev/vda parted --script /dev/vda -- mklabel msdos"
+        + " mkpart primary ext2 1M 100MB"          # /boot
+        + " mkpart primary linux-swap 100M 1024M"  # swap
+        + " mkpart primary 1024M -1s",             # /
+        "udevadm settle",
+        "mkswap /dev/vda2 -L swap",
+        "swapon -L swap",
+        "mkfs.bcachefs -L root /dev/vda3",
+        "mount -t bcachefs /dev/vda3 /mnt",
         "mkfs.ext3 -L boot /dev/vda1",
         "mkdir -p /mnt/boot",
         "mount /dev/vda1 /mnt/boot",

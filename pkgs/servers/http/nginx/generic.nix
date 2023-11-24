@@ -124,7 +124,11 @@ stdenv.mkDerivation {
   ] ++ lib.optionals (stdenv.cc.isGNU && lib.versionAtLeast stdenv.cc.version "11") [
     # fix build vts module on gcc11
     "-Wno-error=stringop-overread"
-  ] ++ lib.optional stdenv.isDarwin "-Wno-error=deprecated-declarations");
+  ] ++ lib.optionals stdenv.isDarwin [
+    "-Wno-error=deprecated-declarations"
+    "-Wno-error=gnu-folding-constant"
+    "-Wno-error=unused-but-set-variable"
+  ]);
 
   configurePlatforms = [];
 
@@ -186,7 +190,7 @@ stdenv.mkDerivation {
   passthru = {
     inherit modules;
     tests = {
-      inherit (nixosTests) nginx nginx-auth nginx-etag nginx-globalredirect nginx-http3 nginx-proxyprotocol nginx-pubhtml nginx-sandbox nginx-sso nginx-status-page nginx-unix-socket;
+      inherit (nixosTests) nginx nginx-auth nginx-etag nginx-globalredirect nginx-http3 nginx-proxyprotocol nginx-pubhtml nginx-sso nginx-status-page nginx-unix-socket;
       variants = lib.recurseIntoAttrs nixosTests.nginx-variants;
       acme-integration = nixosTests.acme;
     } // passthru.tests;

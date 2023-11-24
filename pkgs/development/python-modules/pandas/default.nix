@@ -65,27 +65,22 @@
 
 buildPythonPackage rec {
   pname = "pandas";
-  version = "2.1.0";
-  format = "pyproject";
+  version = "2.1.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.8";
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "pandas-dev";
     repo = "pandas";
     rev = "refs/tags/v${version}";
-    hash = "sha256-QwMW/qc1n51DaVhUnIaG0bdOvDitvvPh6ftoDawiYlc=";
+    hash = "sha256-6SgW4BtO7EFnS8P8LL4AGk5EdPwOQ0+is0wXgqsm9w0=";
   };
-
-  patches = [
-    # https://github.com/pandas-dev/pandas/issues/54888#issuecomment-1701186809
-    ./installer-fix.patch
-  ];
 
   postPatch = ''
     substituteInPlace pyproject.toml \
       --replace "meson-python==0.13.1" "meson-python>=0.13.1" \
-      --replace "meson==1.0.1" "meson>=1.0.1"
+      --replace "meson==1.2.1" "meson>=1.2.1"
   '';
 
   nativeBuildInputs = [
@@ -227,6 +222,9 @@ buildPythonPackage rec {
     "test_binops"
     # These tests are unreliable on aarch64-darwin. See https://github.com/pandas-dev/pandas/issues/38921.
     "test_rolling"
+  ] ++ lib.optional stdenv.is32bit [
+    # https://github.com/pandas-dev/pandas/issues/37398
+    "test_rolling_var_numerical_issues"
   ];
 
   # Tests have relative paths, and need to reference compiled C extensions
@@ -251,9 +249,8 @@ buildPythonPackage rec {
   ];
 
   meta = with lib; {
-    # https://github.com/pandas-dev/pandas/issues/14866
-    # pandas devs are no longer testing i686 so safer to assume it's broken
-    broken = stdenv.isi686;
+    # pandas devs no longer test i686, it's commonly broken
+    # broken = stdenv.isi686;
     changelog = "https://pandas.pydata.org/docs/whatsnew/index.html";
     description = "Powerful data structures for data analysis, time series, and statistics";
     downloadPage = "https://github.com/pandas-dev/pandas";

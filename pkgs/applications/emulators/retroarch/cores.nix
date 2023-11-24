@@ -164,16 +164,6 @@ in
     };
   };
 
-  beetle-snes = mkLibretroCore {
-    core = "mednafen-snes";
-    src = getCoreSrc "beetle-snes";
-    makefile = "Makefile";
-    meta = {
-      description = "Port of Mednafen's SNES core to libretro";
-      license = lib.licenses.gpl2Only;
-    };
-  };
-
   beetle-supafaust = mkLibretroCore {
     core = "mednafen-supafaust";
     src = getCoreSrc "beetle-supafaust";
@@ -770,7 +760,7 @@ in
     # causes redefinition of _FORTIFY_SOURCE
     hardeningDisable = [ "fortify3" ];
 
-    postBuild = "cd $NIX_BUILD_TOP/source/build/pcsx2";
+    postBuild = "cd pcsx2";
     meta = {
       description = "Port of PCSX2 to libretro";
       license = lib.licenses.gpl3Plus;
