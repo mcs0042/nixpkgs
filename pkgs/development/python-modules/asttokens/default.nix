@@ -9,11 +9,12 @@
 
 buildPythonPackage rec {
   pname = "asttokens";
-  version = "2.0.5";
+  version = "2.4.0";
+  format = "pyproject";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-mlTBFPAsepSA1WVQkyVGo/H+cdigLxvHzNDuPuNc9NU=";
+    hash = "sha256-LgFxuZGyyVmsxsSTGASSNoRKXaHWW6JnLEiAwciUg04=";
   };
 
   nativeBuildInputs = [
@@ -24,7 +25,7 @@ buildPythonPackage rec {
     six
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     astroid
     pytestCheckHook
   ];

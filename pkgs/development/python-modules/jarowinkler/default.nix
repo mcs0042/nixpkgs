@@ -2,52 +2,36 @@
 , buildPythonPackage
 , pythonOlder
 , fetchFromGitHub
-, cmake
-, ninja
-, cython
-, rapidfuzz-capi
-, scikit-build
 , setuptools
-, jarowinkler-cpp
+, rapidfuzz
 , hypothesis
 , pytestCheckHook
 }:
 
 buildPythonPackage rec {
   pname = "jarowinkler";
-  version = "1.1.2";
+  version = "2.0.1";
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.8";
 
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "maxbachmann";
     repo = "JaroWinkler";
     rev = "refs/tags/v${version}";
-    hash = "sha256-yaJcmHkLxiRqrBiIel97mFxpav3N5QQSM+L9jA1kn5A=";
+    hash = "sha256-B3upTBNqMyi+CH7Zx04wceEXjGJnr6S3BIl87AQkfbo=";
   };
 
   nativeBuildInputs = [
-    cmake
-    cython
-    ninja
-    rapidfuzz-capi
-    scikit-build
     setuptools
   ];
 
-  buildInputs = [
-    jarowinkler-cpp
+  propagatedBuildInputs = [
+    rapidfuzz
   ];
 
-  preBuild = ''
-    export JAROWINKLER_BUILD_EXTENSION=1
-  '';
-
-  dontUseCmakeConfigure = true;
-
-  checkInputs = [
+  nativeCheckInputs = [
     hypothesis
     pytestCheckHook
   ];

@@ -3,6 +3,7 @@
 , fetchFromGitHub
 , substituteAll
 , cinnamon
+, circle-flags
 , gettext
 , gobject-introspection
 , mpv
@@ -12,13 +13,13 @@
 
 stdenv.mkDerivation rec {
   pname = "hypnotix";
-  version = "2.8";
+  version = "3.7";
 
   src = fetchFromGitHub {
     owner = "linuxmint";
     repo = "hypnotix";
     rev = version;
-    hash = "sha256-uj5Bn3K9SCKE4p1jylfQ8XnAwNnN4VXHLMLrwhKhzsk=";
+    hash = "sha256-H8+KJ9+HLAorGIeljw8H3N8W3E2yYhAno1xy+jI54zM=";
   };
 
   patches = [
@@ -31,6 +32,7 @@ stdenv.mkDerivation rec {
   postPatch = ''
     substituteInPlace usr/lib/hypnotix/hypnotix.py \
       --replace __DEB_VERSION__ ${version} \
+      --replace /usr/share/circle-flags-svg ${circle-flags}/share/circle-flags-svg \
       --replace /usr/share/hypnotix $out/share/hypnotix
   '';
 
@@ -44,11 +46,11 @@ stdenv.mkDerivation rec {
   dontWrapGApps = true;
 
   buildInputs = [
-    cinnamon.xapps
+    cinnamon.xapp
   ];
 
   pythonPath = with python3.pkgs; [
-    imdbpy
+    cinemagoer
     pygobject3
     requests
     setproctitle
@@ -81,7 +83,7 @@ stdenv.mkDerivation rec {
     homepage = "https://github.com/linuxmint/hypnotix";
     changelog = "https://github.com/linuxmint/hypnotix/blob/${src.rev}/debian/changelog";
     license = lib.licenses.gpl3Plus;
-    maintainers = with lib.maintainers; [ dotlambda ];
+    maintainers = with lib.maintainers; [ dotlambda bobby285271 ];
     platforms = lib.platforms.linux;
   };
 }

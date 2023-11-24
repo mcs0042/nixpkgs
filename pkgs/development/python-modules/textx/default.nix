@@ -12,7 +12,6 @@
 , gprof2dot
 , html5lib
 , jinja2
-, memory_profiler
 , psutil
 , pytestCheckHook
 }:
@@ -27,7 +26,7 @@ let
       owner = pname;
       repo = pname;
       rev = version;
-      sha256 = "sha256-uZlO82dKtWQQR5+Q7dWk3+ZoUzAjDJ8qzC4UMLCtnBk=";
+      hash = "sha256-uZlO82dKtWQQR5+Q7dWk3+ZoUzAjDJ8qzC4UMLCtnBk=";
     };
 
     postPatch = ''
@@ -53,7 +52,7 @@ let
 
     postInstall = ''
       # FileNotFoundError: [Errno 2] No such file or directory: '$out/lib/python3.10/site-packages/textx/textx.tx
-      cp "$src/textx/textx.tx" "$out/lib/${python.libPrefix}/site-packages/${pname}/"
+      cp "$src/textx/textx.tx" "$out/${python.sitePackages}/${pname}/"
 
       # Install tests as the tests output.
       mkdir $testout

@@ -6,47 +6,49 @@
 , pkg-config
 , gnome
 , glib
-, gtk3
-, wrapGAppsHook
+, gtk4
+, desktop-file-utils
+, wrapGAppsHook4
 , gettext
 , itstool
-, libhandy
+, libadwaita
 , libxml2
 , libxslt
-, docbook_xsl
+, docbook-xsl-nons
 , docbook_xml_dtd_43
 , systemd
-, python3
 , gsettings-desktop-schemas
 }:
 
 stdenv.mkDerivation rec {
   pname = "gnome-logs";
-  version = "42.0";
+  version = "45.beta";
 
   src = fetchurl {
     url = "mirror://gnome/sources/gnome-logs/${lib.versions.major version}/${pname}-${version}.tar.xz";
-    sha256 = "TV5FFp1r9DkC16npoHk8kW65LaumuoWzXI629nLNq9c=";
+    sha256 = "nbxJ/7J90jQuji/UmK8ltUENsjkQ/I7/XmiTrHa7jK4=";
   };
 
   nativeBuildInputs = [
-    python3
     meson
     ninja
     pkg-config
-    wrapGAppsHook
+    wrapGAppsHook4
     gettext
     itstool
     libxml2
     libxslt
-    docbook_xsl
+    docbook-xsl-nons
     docbook_xml_dtd_43
+    glib
+    gtk4
+    desktop-file-utils
   ];
 
   buildInputs = [
     glib
-    gtk3
-    libhandy
+    gtk4
+    libadwaita
     systemd
     gsettings-desktop-schemas
   ];
@@ -54,11 +56,6 @@ stdenv.mkDerivation rec {
   mesonFlags = [
     "-Dman=true"
   ];
-
-  postPatch = ''
-    chmod +x meson_post_install.py
-    patchShebangs meson_post_install.py
-  '';
 
   doCheck = true;
 

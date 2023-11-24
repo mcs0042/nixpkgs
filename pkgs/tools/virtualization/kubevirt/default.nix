@@ -8,16 +8,16 @@
 
 buildGoModule rec {
   pname = "kubevirt";
-  version = "0.54.0";
+  version = "1.1.0";
 
   src = fetchFromGitHub {
     owner = "kubevirt";
     repo = "kubevirt";
     rev = "v${version}";
-    sha256 = "sha256-MNNseahFXLH9ImViI6542bTwZW4ZXpFMJUz8NMRP/uU";
+    sha256 = "sha256-dW2rHW/37Jpk3vuu3O87nynK8Mp0IAqpkRvBDxT/++I=";
   };
 
-  vendorSha256 = null;
+  vendorHash = null;
 
   subPackages = [ "cmd/virtctl" ];
 

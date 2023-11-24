@@ -1,6 +1,8 @@
-{ fetchurl
+{ fetchFromGitLab
 , lib
 , stdenv
+, autoreconfHook
+, gtk-doc
 , pkg-config
 , intltool
 , gettext
@@ -17,16 +19,30 @@
 
 stdenv.mkDerivation rec {
   pname = "libgsf";
-  version = "1.14.50";
+  version = "1.14.51";
 
   outputs = [ "out" "dev" ];
 
-  src = fetchurl {
-    url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "bmwg0HeDOQadWDwNY3WdKX6BfqENDYl+u+ll8W4ujlI=";
+  src = fetchFromGitLab {
+    domain = "gitlab.gnome.org";
+    owner = "GNOME";
+    repo = "libgsf";
+    rev = "LIBGSF_${lib.replaceStrings ["."] ["_"] version}";
+    hash = "sha256-iJcfR+iy1bbRkh+yCAEhY5ks8V6vXIPH7namZSvP98c=";
   };
 
+  postPatch = ''
+    # Fix cross-compilation
+    substituteInPlace configure.ac \
+      --replace "AC_PATH_PROG(PKG_CONFIG, pkg-config, no)" \
+                "PKG_PROG_PKG_CONFIG"
+  '';
+
+  strictDeps = true;
+
   nativeBuildInputs = [
+    autoreconfHook
+    gtk-doc
     pkg-config
     intltool
     libintl
@@ -38,7 +54,7 @@ stdenv.mkDerivation rec {
     zlib
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     perl
   ];
 
@@ -55,6 +71,14 @@ stdenv.mkDerivation rec {
     patchShebangs ./tests/
   '';
 
+  # checking pkg-config is at least version 0.9.0... ./configure: line 15213: no: command not found
+  # configure: error: in `/build/libgsf-1.14.50':
+  # configure: error: The pkg-config script could not be found or is too old.  Make sure it
+  # is in your PATH or set the PKG_CONFIG environment variable to the full
+  preConfigure = ''
+    export PKG_CONFIG="$(command -v "$PKG_CONFIG")"
+  '';
+
   passthru = {
     updateScript = gnome.updateScript {
       packageName = pname;
@@ -65,7 +89,7 @@ stdenv.mkDerivation rec {
   meta = with lib; {
     description = "GNOME's Structured File Library";
     homepage = "https://www.gnome.org/projects/libgsf";
-    license = licenses.lgpl2Plus;
+    license = licenses.lgpl21Only;
     maintainers = with maintainers; [ lovek323 ];
     platforms = lib.platforms.unix;
 

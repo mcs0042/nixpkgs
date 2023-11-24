@@ -1,6 +1,4 @@
 { lib
-, aeppl
-, aesara
 , arviz
 , buildPythonPackage
 , cachetools
@@ -8,38 +6,33 @@
 , fastprogress
 , fetchFromGitHub
 , numpy
+, pytensor
 , pythonOlder
-, pythonRelaxDepsHook
 , scipy
 , typing-extensions
 }:
 
 buildPythonPackage rec {
   pname = "pymc";
-  version = "4.1.3";
-  format = "setuptools";
+  version = "5.9.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "pymc-devs";
     repo = "pymc";
     rev = "refs/tags/v${version}";
-    hash = "sha256-fqhtfMGopzVgonF5+qyFhm72KV0hX8QE95slI/HBZYU=";
+    hash = "sha256-yY8W3B1yqj0oOkR6+nMbFgCFmTStXkePWnEYPHI8Zto=";
   };
 
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
-  ];
-
   propagatedBuildInputs = [
-    aeppl
-    aesara
     arviz
     cachetools
     cloudpickle
     fastprogress
     numpy
+    pytensor
     scipy
     typing-extensions
   ];
@@ -48,11 +41,6 @@ buildPythonPackage rec {
     substituteInPlace setup.py \
       --replace ', "pytest-cov"' ""
   '';
-
-  pythonRelaxDeps = [
-    "aesara"
-    "aeppl"
-  ];
 
   # The test suite is computationally intensive and test failures are not
   # indicative for package usability hence tests are disabled by default.
@@ -65,6 +53,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Bayesian estimation, particularly using Markov chain Monte Carlo (MCMC)";
     homepage = "https://github.com/pymc-devs/pymc3";
+    changelog = "https://github.com/pymc-devs/pymc/releases/tag/v${version}";
     license = licenses.asl20;
     maintainers = with maintainers; [ nidabdella ];
   };

@@ -6,16 +6,16 @@
 
 buildPythonPackage rec {
   pname = "bottle";
-  version = "0.12.21";
+  version = "0.12.25";
 
   format = "setuptools";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "787c61b6cc02b9c229bf2663011fac53dd8fc197f7f8ad2eeede29d888d7887e";
+    hash = "sha256-4anJSXCubXELP7RSYpTf64byy0qB7/OkuY3ED7Dl4CE=";
   };
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
   ];
 
@@ -27,7 +27,11 @@ buildPythonPackage rec {
     "test_delete_cookie"
     "test_error"
     "test_error_in_generator_callback"
+    # timing sensitive
+    "test_ims"
   ];
+
+  __darwinAllowLocalNetworking = true;
 
   meta = with lib; {
     homepage = "https://bottlepy.org/";

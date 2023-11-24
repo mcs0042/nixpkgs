@@ -1,35 +1,42 @@
-{ lib, buildGoModule, fetchFromGitHub }:
+{ lib, buildGoModule, fetchFromGitHub, stdenv }:
 
 buildGoModule rec {
   pname = "earthly";
-  version = "0.6.19";
+  version = "0.7.21";
 
   src = fetchFromGitHub {
     owner = "earthly";
     repo = "earthly";
     rev = "v${version}";
-    sha256 = "sha256-TjAooHRkmC9bmgfRSLQByXyyKHVgXqj4X5xbCqAEYpM=";
+    hash = "sha256-ts+XSPRkDQElyM8nr6Vtf8Ov6C5OoiIhMNnFv6YA2bw=";
   };
 
-  vendorSha256 = "sha256-bXu1W0FpEPLBBw4D1B95Q3Uh2Ro2BYvjaPkROJpFlK4=";
+  vendorHash = "sha256-/ZHoi5aHJ79kjUgbFKBVHDZyVyCdFfY/fJDrHdUmuUE=";
+  subPackages = [ "cmd/earthly" "cmd/debugger" ];
+
+  CGO_ENABLED = 0;
 
   ldflags = [
-    "-s" "-w"
+    "-s"
+    "-w"
     "-X main.Version=v${version}"
-    "-X main.DefaultBuildkitdImage=earthly/buildkitd:v${version}"
+    "-X main.DefaultBuildkitdImage=docker.io/earthly/buildkitd:v${version}"
+    "-X main.GitSha=v${version}"
+    "-X main.DefaultInstallationName=earthly"
+  ] ++ lib.optionals stdenv.isLinux [
+    "-extldflags '-static'"
   ];
 
-  BUILDTAGS = "dfrunmount dfrunsecurity dfsecrets dfssh dfrunnetwork";
-  preBuild = ''
-    makeFlagsArray+=(BUILD_TAGS="${BUILDTAGS}")
-  '';
-
-  # For some reasons the tests fail, but the program itself seems to work.
-  doCheck = false;
+  tags = [
+    "dfrunmount"
+    "dfrunnetwork"
+    "dfrunsecurity"
+    "dfsecrets"
+    "dfssh"
+  ];
 
   postInstall = ''
     mv $out/bin/debugger $out/bin/earthly-debugger
-    mv $out/bin/shellrepeater $out/bin/earthly-shellrepeater
   '';
 
   meta = with lib; {
@@ -37,6 +44,6 @@ buildGoModule rec {
     homepage = "https://earthly.dev/";
     changelog = "https://github.com/earthly/earthly/releases/tag/v${version}";
     license = licenses.mpl20;
-    maintainers = with maintainers; [ zoedsoupe ];
+    maintainers = with maintainers; [ zoedsoupe konradmalik ];
   };
 }

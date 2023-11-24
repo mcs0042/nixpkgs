@@ -3,40 +3,50 @@
 , buildPythonPackage
 , pythonOlder
 , fetchPypi
+, flit-core
 , watchdog
-, dataclasses
 , ephemeral-port-reserve
 , pytest-timeout
 , pytest-xprocess
 , pytestCheckHook
+, markupsafe
+# for passthru.tests
+, moto, sentry-sdk
 }:
 
 buildPythonPackage rec {
   pname = "werkzeug";
-  version = "2.1.2";
-  format = "setuptools";
+  version = "2.3.7";
+  format = "pyproject";
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
-    pname = "Werkzeug";
-    inherit version;
-    sha256 = "sha256-HOCOgJPtZ9Y41jh5/Rujc1gX96gN42dNKT9ZhPJftuY=";
+    inherit pname version;
+    hash = "sha256-K4wORHtLnbzIXdl7butNy69si2w74L1lTiVVPgohV9g=";
   };
 
-  propagatedBuildInputs = lib.optionals (!stdenv.isDarwin) [
-    # watchdog requires macos-sdk 10.13+
-    watchdog
-  ] ++ lib.optionals (pythonOlder "3.7") [
-    dataclasses
+  nativeBuildInputs = [
+    flit-core
   ];
 
-  checkInputs = [
+  propagatedBuildInputs = [
+    markupsafe
+  ];
+
+  passthru.optional-dependencies = {
+    watchdog = lib.optionals (!stdenv.isDarwin) [
+      # watchdog requires macos-sdk 10.13[
+      watchdog
+    ];
+  };
+
+  nativeCheckInputs = [
     ephemeral-port-reserve
     pytest-timeout
     pytest-xprocess
     pytestCheckHook
-  ];
+  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
 
   disabledTests = lib.optionals stdenv.isDarwin [
     "test_get_machine_id"
@@ -53,6 +63,10 @@ buildPythonPackage rec {
     "-m 'not filterwarnings'"
   ];
 
+  passthru.tests = {
+    inherit moto sentry-sdk;
+  };
+
   meta = with lib; {
     homepage = "https://palletsprojects.com/p/werkzeug/";
     description = "The comprehensive WSGI web application library";
@@ -63,6 +77,6 @@ buildPythonPackage rec {
       utility libraries.
     '';
     license = licenses.bsd3;
-    maintainers = with maintainers; [ SuperSandro2000 ];
+    maintainers = with maintainers; [ ];
   };
 }

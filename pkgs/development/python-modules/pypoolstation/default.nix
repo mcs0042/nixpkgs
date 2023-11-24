@@ -3,21 +3,21 @@
 , backoff
 , buildPythonPackage
 , fetchPypi
+, importlib-metadata
 , poetry-core
 , pythonOlder
 }:
 
 buildPythonPackage rec {
   pname = "pypoolstation";
-  version = "0.4.8";
+  version = "0.5.3";
   format = "pyproject";
 
   disabled = pythonOlder "3.7";
 
   src = fetchPypi {
-    pname = "PyPoolstation";
-    inherit version;
-    sha256 = "sha256-6Fdam/LS3Nicrhe5jHHvaKCpE0HigfOVszjb5c1VM3Y=";
+    inherit pname version;
+    hash = "sha256-hszGCA2DDGQSh37lxp8G0bqHliH/+i2so5imDyzyOJw=";
   };
 
   nativeBuildInputs = [
@@ -27,6 +27,7 @@ buildPythonPackage rec {
   propagatedBuildInputs = [
     aiohttp
     backoff
+    importlib-metadata
   ];
 
   # Project has no tests

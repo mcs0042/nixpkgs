@@ -9,14 +9,14 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "loksh";
-  version = "7.1";
+  version = "7.4";
 
   src = fetchFromGitHub {
     owner = "dimkr";
     repo = finalAttrs.pname;
     rev = finalAttrs.version;
     fetchSubmodules = true;
-    sha256 = "sha256-APjY7wQUfUTXe3TRKWkDmMZuax0MpuU/KmgZfogdAGU=";
+    sha256 = "sha256-gQK9gq6MsKVyOikOW0sW/SbIM1K/3I8pn58P/SqzKys=";
   };
 
   nativeBuildInputs = [

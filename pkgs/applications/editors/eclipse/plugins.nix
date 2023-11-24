@@ -254,13 +254,13 @@ rec {
 
   cdt = buildEclipseUpdateSite rec {
     name = "cdt-${version}";
-    # find current version at https://www.eclipse.org/cdt/downloads.php
-    version = "10.6.0";
+    # find current version at https://github.com/eclipse-cdt/cdt/releases
+    version = "11.3.0";
 
     src = fetchzip {
       stripRoot = false;
       url = "https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/tools/cdt/releases/${lib.versions.majorMinor version}/${name}/${name}.zip";
-      hash = "sha256-eMvZ2UvPpUq1J4DDg6f+R1g217bnRjxmr5zWUAhef/c=";
+      hash = "sha256-jmHiIohn8Ol0QhTCOVRStIAKmMzOPcQ5i5QNz6hKQ4M=";
     };
 
     meta = with lib; {
@@ -355,7 +355,7 @@ rec {
 
     src = fetchzip {
       url = "https://download.jboss.org/drools/release/${version}/droolsjbpm-tools-distribution-${version}.zip";
-      sha512 = "2qzc1iszqfrfnw8xip78n3kp6hlwrvrr708vlmdk7nv525xhs0ssjaxriqdhcr0s6jripmmazxivv3763rnk2bfkh31hmbnckpx4r3m";
+      hash = "sha512-dWTS72R2VRgGnG6JafMwZ+wd+1e13pil0SAz2HDMXUmtgYa9iLLtma3SjcDJeWdOoblzWHRu7Ihblx3+Ogb2sQ==";
       postFetch = ''
         # update site is a couple levels deep, alongside some other irrelevant stuff
         cd $out;
@@ -433,25 +433,26 @@ rec {
     };
   };
 
-  gnuarmeclipse = buildEclipseUpdateSite rec {
-    name = "gnuarmeclipse-${version}";
-    version = "3.1.1-201606210758";
+  embed-cdt = buildEclipseUpdateSite rec {
+    name = "embed-cdt-${version}";
+    version = "6.3.1";
 
     src = fetchzip {
-      stripRoot = false;
-      url = "https://github.com/gnuarmeclipse/plug-ins/releases/download/v${version}/ilg.gnuarmeclipse.repository-${version}.zip";
-      sha256 = "1g77jlhfa3csaxxps1z5lasrd9l2p5ajnddnq9ra5syw8ggkdc2h";
+      stripRoot = true;
+      url = "https://github.com/eclipse-embed-cdt/eclipse-plugins/archive/v${version}.zip";
+      sha256 = "sha256-0wHRIls48NGDQzD+wuX79Thgiax+VVYVPJw2Z6NEzsg=";
     };
 
     meta = with lib; {
-      homepage = "http://gnuarmeclipse.livius.net/";
-      description = "GNU ARM Eclipse Plug-ins";
+      homepage = "https://github.com/eclipse-embed-cdt/eclipse-plugins";
+      description = "Embedded C/C++ Development Tools (formerly GNU MCU/ARM Eclipse)";
       sourceProvenance = with sourceTypes; [ binaryBytecode ];
-      license = licenses.epl10;
+      license = licenses.epl20;
       platforms = platforms.all;
       maintainers = [ maintainers.bjornfor ];
     };
   };
+  gnuarmeclipse = embed-cdt; # backward compat alias, added 2022-11-04
 
   jsonedit = buildEclipsePlugin rec {
     name = "jsonedit-${version}";

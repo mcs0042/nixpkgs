@@ -1,30 +1,36 @@
-{ lib, stdenv, fetchFromGitHub, sqlite, zlib, perl }:
+{ lib, stdenv, fetchFromGitHub, sqlite, zlib, perl, testers }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "tippecanoe";
-  version = "1.36.0";
+  version = "2.35.0";
 
   src = fetchFromGitHub {
-    owner = "mapbox";
-    repo = pname;
-    rev = version;
-    sha256 = "0lbmhly4ivnqc6qk1k3sdqvsg6x3nfd8gnjx846bhqj4wag3f88m";
+    owner = "felt";
+    repo = "tippecanoe";
+    rev = finalAttrs.version;
+    hash = "sha256-l19p/Ql1gaNJpmDH46jwLgUUmJ5YTYRQi6DdayAd84Q=";
   };
 
   buildInputs = [ sqlite zlib ];
-  checkInputs = [ perl ];
+  nativeCheckInputs = [ perl ];
 
   makeFlags = [ "PREFIX=$(out)" ];
 
   enableParallelBuilding = true;
-  doCheck = true;
+
+  # https://github.com/felt/tippecanoe/issues/148
+  doCheck = false;
+
+  passthru.tests.version = testers.testVersion {
+    package = finalAttrs.finalPackage;
+    version = "v${finalAttrs.version}";
+  };
 
   meta = with lib; {
-    broken = stdenv.isDarwin || stdenv.isAarch64;
     description = "Build vector tilesets from large collections of GeoJSON features";
-    homepage = "https://github.com/mapbox/tippecanoe";
+    homepage = "https://github.com/felt/tippecanoe";
     license = licenses.bsd2;
     maintainers = with maintainers; [ sikmir ];
-    platforms = with platforms; linux ++ darwin;
+    platforms = platforms.unix;
   };
-}
+})

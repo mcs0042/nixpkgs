@@ -1,6 +1,7 @@
 { lib
 , buildPythonPackage
 , fetchPypi
+, fetchpatch
 , astropy
 , pillow
 , pythonOlder
@@ -13,13 +14,13 @@
 
 buildPythonPackage rec {
   pname = "pyvo";
-  version = "1.3";
+  version = "1.4.2";
 
   disabled = pythonOlder "3.8"; # according to setup.cfg
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "846a54a05a8ddb47a8c2cc3077434779b0e4ccc1b74a7a5408593cb673307d67";
+    hash = "sha256-Zv4piGWs/XJbxfGHUHctfxuImbjluxd1chUgvtV9lcs=";
   };
 
   SETUPTOOLS_SCM_PRETEND_VERSION = version;
@@ -33,7 +34,7 @@ buildPythonPackage rec {
     requests
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pillow
     pytestCheckHook
     pytest-astropy

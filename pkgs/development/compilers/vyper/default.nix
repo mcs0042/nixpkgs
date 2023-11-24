@@ -6,10 +6,12 @@
 , writeText
 , asttokens
 , pycryptodome
+, importlib-metadata
+, cbor2
 , recommonmark
 , semantic-version
 , sphinx
-, sphinx_rtd_theme
+, sphinx-rtd-theme
 , pytest-runner
 , setuptools-scm
 , git
@@ -27,14 +29,14 @@ let
 in
 buildPythonPackage rec {
   pname = "vyper";
-  version = "0.3.3";
+  version = "0.3.10";
   format = "setuptools";
 
   disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-BAnNj27B1HAb9VVDA69bFGbQjeOpl0g5EB2juajqBAw=";
+    hash = "sha256-jcH1AcqrQX+wzpxoppRFh/AUfsfMfTiJzzpFwZRm5Ik=";
   };
 
   nativeBuildInputs = [
@@ -47,17 +49,19 @@ buildPythonPackage rec {
     setuptools-scm
   ];
 
-  pythonRelaxDeps = [ "semantic-version" ];
+  pythonRelaxDeps = [ "asttokens" "semantic-version" ];
 
   propagatedBuildInputs = [
     asttokens
     pycryptodome
     semantic-version
+    importlib-metadata
+    cbor2
 
     # docs
     recommonmark
     sphinx
-    sphinx_rtd_theme
+    sphinx-rtd-theme
   ];
 
   checkPhase = ''
@@ -69,8 +73,5 @@ buildPythonPackage rec {
     homepage = "https://github.com/vyperlang/vyper";
     license = licenses.asl20;
     maintainers = with maintainers; [ siraben ];
-    knownVulnerabilities = [
-      "CVE-2022-29255"
-    ];
   };
 }

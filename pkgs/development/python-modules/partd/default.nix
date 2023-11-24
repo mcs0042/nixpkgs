@@ -12,15 +12,15 @@
 
 buildPythonPackage rec {
   pname = "partd";
-  version = "1.2.0";
+  version = "1.4.0";
   disabled = isPy27;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "aa67897b84d522dcbc86a98b942afab8c6aa2f7f677d904a616b74ef5ddbc3eb";
+    hash = "sha256-qg/zXbvMgHrjdNtWMy9MGzm0b2e/KXX1FR4LQYau0NU=";
   };
 
-  checkInputs = [ pytest ];
+  nativeCheckInputs = [ pytest ];
 
   propagatedBuildInputs = [ locket numpy pandas pyzmq toolz ];
 

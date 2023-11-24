@@ -3,23 +3,32 @@
 , fetchFromGitHub
 , six
 , pytestCheckHook
-, mock
 }:
 
 buildPythonPackage rec {
   pname = "imapclient";
-  version = "2.2.0";
+  version = "3.0.0";
+
+  format = "setuptools";
 
   src = fetchFromGitHub {
     owner = "mjs";
     repo = "imapclient";
-    rev = version;
-    sha256 = "sha256-q/8LFKHgrY3pQV7Coz+5pZAw696uABMTEkYoli6C2KA=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-ylYGh+78I+6pdvHuQPw8Gks9TLkXQL5HQiaZDnJK3DA=";
   };
 
   propagatedBuildInputs = [ six ];
 
-  checkInputs = [ pytestCheckHook mock ];
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  pythonImportsCheck = [
+    "imapclient"
+    "imapclient.response_types"
+    "imapclient.exceptions"
+    "imapclient.testable_imapclient"
+    "imapclient.tls"
+  ];
 
   meta = with lib; {
     homepage = "https://imapclient.readthedocs.io";

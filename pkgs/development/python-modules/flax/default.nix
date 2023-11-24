@@ -1,12 +1,21 @@
-{ buildPythonPackage
+{ lib
+, buildPythonPackage
 , fetchFromGitHub
 , jaxlib
-, keras
-, lib
-, matplotlib
+, pythonRelaxDepsHook
+, setuptools-scm
+, jax
 , msgpack
 , numpy
 , optax
+, pyyaml
+, rich
+, tensorstore
+, typing-extensions
+, matplotlib
+, cloudpickle
+, einops
+, keras
 , pytest-xdist
 , pytestCheckHook
 , tensorflow
@@ -14,29 +23,44 @@
 
 buildPythonPackage rec {
   pname = "flax";
-  version = "0.4.1";
+  version = "0.7.5";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "google";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "0j5ngdndm9nm49gcda7m36qzwk5lcbi4jnij9fi96vld54ip6f6v";
+    repo = "flax";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-NDah0ayQbiO1/sTU1DDf/crPq5oLTnSuosV7cFHlTM8=";
   };
 
-  buildInputs = [ jaxlib ];
+  nativeBuildInputs = [
+    jaxlib
+    pythonRelaxDepsHook
+    setuptools-scm
+  ];
 
   propagatedBuildInputs = [
-    matplotlib
+    jax
     msgpack
     numpy
     optax
+    pyyaml
+    rich
+    tensorstore
+    typing-extensions
   ];
+
+  passthru.optional-dependencies = {
+    all = [ matplotlib ];
+  };
 
   pythonImportsCheck = [
     "flax"
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
+    cloudpickle
+    einops
     keras
     pytest-xdist
     pytestCheckHook
@@ -59,11 +83,18 @@ buildPythonPackage rec {
     # `tensorflow_datasets`, `vocabulary`) so the benefits of trying to run them
     # would be limited anyway.
     "examples/*"
+
+    # See https://github.com/google/flax/issues/3232.
+    "tests/jax_utils_test.py"
+
+    # Requires orbax which is not packaged as of 2023-07-27.
+    "tests/checkpoints_test.py"
   ];
 
   meta = with lib; {
     description = "Neural network library for JAX";
     homepage = "https://github.com/google/flax";
+    changelog = "https://github.com/google/flax/releases/tag/v${version}";
     license = licenses.asl20;
     maintainers = with maintainers; [ ndl ];
   };

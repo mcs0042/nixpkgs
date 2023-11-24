@@ -6,26 +6,24 @@
 , pkg-config
 , which
 , libapparmor
-, apparmor-parser
 , libseccomp
 , libselinux
 , makeWrapper
-, procps
 , nixosTests
 }:
 
 buildGoModule rec {
   pname = "runc";
-  version = "1.1.3";
+  version = "1.1.10";
 
   src = fetchFromGitHub {
     owner = "opencontainers";
     repo = "runc";
     rev = "v${version}";
-    sha256 = "sha256-s0VRj/hjevtTZ9rUQsAsI2pg4ygahlrBIfFdETWy9W0=";
+    hash = "sha256-YoRwr5imolblix1st/YeVTrAUdQXTqrx1BdNMdYlt/0=";
   };
 
-  vendorSha256 = null;
+  vendorHash = null;
   outputs = [ "out" "man" ];
 
   nativeBuildInputs = [ go-md2man installShellFiles makeWrapper pkg-config which ];
@@ -46,7 +44,6 @@ buildGoModule rec {
     install -Dm755 runc $out/bin/runc
     installManPage man/*/*.[1-9]
     wrapProgram $out/bin/runc \
-      --prefix PATH : ${lib.makeBinPath [ procps ]} \
       --prefix PATH : /run/current-system/systemd/bin
     runHook postInstall
   '';

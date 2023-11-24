@@ -9,14 +9,20 @@
 
  buildPythonPackage rec {
   pname = "nunavut";
-  version = "1.7.5";
+  version = "2.3.1";
+  format = "setuptools";
 
-  disabled = pythonOlder "3.5";
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-4wZfj2C6aUNqHaA00KiiXbKOMf/XBSD0N2+9c++e0K8=";
+    hash = "sha256-23C3biUUs10Po5qzn3EFaq4+HeWCXIC6WzxOKy59VgM=";
   };
+
+  postPatch = ''
+    substituteInPlace setup.cfg \
+      --replace "pydsdl ~= 1.16" "pydsdl"
+  '';
 
   propagatedBuildInputs = [
     importlib-resources
@@ -44,6 +50,7 @@
       authors to generate code, schemas, metadata, documentation, etc.
     '';
     homepage = "https://nunavut.readthedocs.io/";
+    changelog = "https://github.com/OpenCyphal/nunavut/releases/tag/${version}";
     maintainers = with maintainers; [ wucke13 ];
     license = with licenses; [ bsd3 mit ];
   };

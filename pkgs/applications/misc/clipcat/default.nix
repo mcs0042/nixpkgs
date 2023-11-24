@@ -1,20 +1,31 @@
-{ lib, fetchFromGitHub, installShellFiles, rustPlatform, rustfmt, xorg
-, pkg-config, llvmPackages, clang, protobuf, python3 }:
+{ lib
+, fetchFromGitHub
+, installShellFiles
+, rustPlatform
+, rustfmt
+, xorg
+, pkg-config
+, protobuf
+, python3
+}:
 
 rustPlatform.buildRustPackage rec {
   pname = "clipcat";
-  version = "0.5.0";
+  version = "0.5.1";
 
   src = fetchFromGitHub {
     owner = "xrelkd";
     repo = pname;
     rev = "v${version}";
-    sha256 = "0rxl3ksjinw07q3p2vjqg80k3c6wx2q7pzpf2344zyfb4gkqzx1c";
+    sha256 = "sha256-dV17xP6xG6Nyi6m0CdH8Mk4Y0giDtsv/QiM23jF58q0=";
   };
 
-  cargoSha256 = "1n4il3l59m2a6ca54vfaivzg25abf8s4w5kpd5q51p13624iz0kb";
-
-  LIBCLANG_PATH = "${llvmPackages.libclang.lib}/lib";
+  cargoLock = {
+    lockFile = ./Cargo.lock;
+    outputHashes = {
+      "x11-clipboard-0.6.0" = "sha256-dKx2kda5JC79juksP2qiO9yfeFCWymcYhGPSygQ0mrg=";
+    };
+  };
 
   # needed for internal protobuf c wrapper library
   PROTOC = "${protobuf}/bin/protoc";
@@ -23,8 +34,7 @@ rustPlatform.buildRustPackage rec {
   nativeBuildInputs = [
     pkg-config
 
-    clang
-    llvmPackages.libclang
+    rustPlatform.bindgenHook
 
     rustfmt
     protobuf
@@ -33,6 +43,7 @@ rustPlatform.buildRustPackage rec {
 
     installShellFiles
   ];
+
   buildInputs = [ xorg.libxcb ];
 
   buildFeatures = [ "all" ];
@@ -49,5 +60,6 @@ rustPlatform.buildRustPackage rec {
     license = licenses.gpl3Only;
     platforms = platforms.linux;
     maintainers = with maintainers; [ xrelkd ];
+    mainProgram = "clipcatd";
   };
 }

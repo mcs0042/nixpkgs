@@ -1,11 +1,9 @@
 # tests available at pkgs/test/vim
-{ lib, stdenv, vim, vimPlugins, vim_configurable, buildEnv, writeText
+{ lib, stdenv, vim, vimPlugins, buildEnv, writeText
 , runCommand, makeWrapper
-, nix-prefetch-hg, nix-prefetch-git
-, fetchFromGitHub, runtimeShell
-, hasLuaModule
 , python3
 , callPackage, makeSetupHook
+, linkFarm
 }:
 
 /*
@@ -16,7 +14,7 @@ USAGE EXAMPLE
 Install Vim like this eg using nixos option environment.systemPackages which will provide
 vim-with-plugins in PATH:
 
-  vim_configurable.customize {
+  vim-full.customize {
     name = "vim-with-plugins"; # optional
 
     # add custom .vimrc lines like this:
@@ -51,8 +49,6 @@ this to your .vimrc should make most plugins work:
 
   set rtp+=~/.nix-profile/share/vim-plugins/youcompleteme
   " or for p in ["youcompleteme"] | exec 'set rtp+=~/.nix-profile/share/vim-plugins/'.p | endfor
-
-which is what the [VAM]/pathogen solutions above basically do.
 
 Learn about about plugin Vim plugin mm managers at
 http://vim-wiki.mawercer.de/wiki/topic/vim%20plugin%20managment.html.
@@ -109,7 +105,7 @@ fitting the vimrcConfig.vam.pluginDictionaries option.
 Thus the most simple usage would be:
 
   vim_with_plugins =
-    let vim = vim_configurable;
+    let vim = vim-full;
         inherit (vimUtil.override {inherit vim}) rtpPath addRtp buildVimPlugin vimHelpTags;
         vimPlugins = [
           # the derivation list from the buffer created by nix#ExportPluginsForNix
@@ -168,26 +164,17 @@ let
 
   rtpPath = ".";
 
-  # Generates a packpath folder as expected by vim
+  vimFarm = prefix: name: drvs:
+    let mkEntryFromDrv = drv: { name = "${prefix}/${lib.getName drv}"; path = drv; };
+    in linkFarm name (map mkEntryFromDrv drvs);
+
+  /* Generates a packpath folder as expected by vim
+       Example:
+       packDir (myVimPackage.{ start = [ vimPlugins.vim-fugitive ]; opt = [] })
+       => "/nix/store/xxxxx-pack-dir"
+  */
   packDir = packages:
   let
-    # dir is "start" or "opt"
-    linkLuaPlugin = plugin: packageName: dir: ''
-      mkdir -p $out/pack/${packageName}/${dir}/${plugin.pname}/lua
-      ln -sf ${plugin}/share/lua/5.1/* $out/pack/${packageName}/${dir}/${plugin.pname}/lua
-      ln -sf ${plugin}/${plugin.pname}-${plugin.version}-rocks/${plugin.pname}/${plugin.version}/* $out/pack/${packageName}/${dir}/${plugin.pname}/
-    '';
-
-    linkVimlPlugin = plugin: packageName: dir: ''
-      mkdir -p $out/pack/${packageName}/${dir}
-      if test -e "$out/pack/${packageName}/${dir}/${lib.getName plugin}"; then
-        printf "\nERROR - Duplicated vim plugin: ${lib.getName plugin}\n\n"
-        exit 1
-      fi
-      ln -sf ${plugin}/${rtpPath} $out/pack/${packageName}/${dir}/${lib.getName plugin}
-    '';
-
-
     packageLinks = packageName: {start ? [], opt ? []}:
     let
       # `nativeImpl` expects packages to be derivations, not strings (as
@@ -197,29 +184,26 @@ let
       depsOfOptionalPlugins = lib.subtractLists opt (findDependenciesRecursively opt);
       startWithDeps = findDependenciesRecursively start;
       allPlugins = lib.unique (startWithDeps ++ depsOfOptionalPlugins);
-      python3Env = python3.withPackages (ps:
-        lib.flatten (builtins.map (plugin: (plugin.python3Dependencies or (_: [])) ps) allPlugins)
-      );
-    in
-      [ "mkdir -p $out/pack/${packageName}/start" ]
-      # To avoid confusion, even dependencies of optional plugins are added
-      # to `start` (except if they are explicitly listed as optional plugins).
-      ++ (builtins.map (x: linkVimlPlugin x packageName "start") allPlugins)
-      ++ ["mkdir -p $out/pack/${packageName}/opt"]
-      ++ (builtins.map (x: linkVimlPlugin x packageName "opt") opt)
+      allPython3Dependencies = ps:
+        lib.flatten (builtins.map (plugin: (plugin.python3Dependencies or (_: [])) ps) allPlugins);
+      python3Env = python3.withPackages allPython3Dependencies;
+
+      packdirStart = vimFarm "pack/${packageName}/start" "packdir-start" allPlugins;
+      packdirOpt = vimFarm "pack/${packageName}/opt" "packdir-opt" opt;
       # Assemble all python3 dependencies into a single `site-packages` to avoid doing recursive dependency collection
       # for each plugin.
       # This directory is only for python import search path, and will not slow down the startup time.
-      ++ [
-        "mkdir -p $out/pack/${packageName}/start/__python3_dependencies"
-        "ln -s ${python3Env}/${python3Env.sitePackages} $out/pack/${packageName}/start/__python3_dependencies/python3"
-      ];
+      # see :help python3-directory for more details
+      python3link = runCommand "vim-python3-deps" {} ''
+        mkdir -p $out/pack/${packageName}/start/__python3_dependencies
+        ln -s ${python3Env}/${python3Env.sitePackages} $out/pack/${packageName}/start/__python3_dependencies/python3
+      '';
+    in
+      [ packdirStart packdirOpt ] ++ lib.optional (allPython3Dependencies python3.pkgs != []) python3link;
   in
-      stdenv.mkDerivation {
-        name = "vim-pack-dir";
-        src = ./.;
-        installPhase = lib.concatStringsSep "\n" (lib.flatten (lib.mapAttrsToList packageLinks packages));
-        preferLocalBuild = true;
+    buildEnv {
+      name = "vim-pack-dir";
+      paths = (lib.flatten (lib.mapAttrsToList packageLinks packages));
     };
 
   nativeImpl = packages:
@@ -242,8 +226,8 @@ let
    */
   vimrcContent = {
     packages ? null,
-    vam ? null,
-    pathogen ? null,
+    vam ? null, # deprecated
+    pathogen ? null, # deprecated
     plug ? null,
     beforePlugins ? ''
       " configuration generated by NIX
@@ -253,48 +237,19 @@ let
   }:
 
     let
-      /* pathogen mostly can set &rtp at startup time. Deprecated.
-      */
-      pathogenImpl = let
-        knownPlugins = pathogen.knownPlugins or vimPlugins;
-
-        plugins = findDependenciesRecursively (map (pluginToDrv knownPlugins) pathogen.pluginNames);
-
-        pathogenPackages.pathogen = {
-          start = plugins;
-        };
-      in
-        nativeImpl pathogenPackages;
-
       /* vim-plug is an extremely popular vim plugin manager.
       */
       plugImpl =
       ''
-        source ${vimPlugins.vim-plug.rtp}/plug.vim
+        source ${vimPlugins.vim-plug}/plug.vim
         silent! call plug#begin('/dev/null')
 
-        '' + (lib.concatMapStringsSep "\n" (pkg: "Plug '${pkg.rtp}'") plug.plugins) + ''
+        '' + (lib.concatMapStringsSep "\n" (pkg: "Plug '${pkg}'") plug.plugins) + ''
 
         call plug#end()
       '';
 
-      /*
-       vim-addon-manager = VAM
-
-       * maps names to plugin location
-
-       * manipulates &rtp at startup time
-         or when Vim has been running for a while
-
-       * can activate plugins laziy (eg when loading a specific filetype)
-
-       * knows about vim plugin dependencies (addon-info.json files)
-
-       * still is minimalistic (only loads one file), the "check out" code it also
-         has only gets loaded when a plugin is requested which is not found on disk
-         yet
-
-      */
+     # vim-addon-manager = VAM (deprecated)
       vamImpl =
       let
         knownPlugins = vam.knownPlugins or vimPlugins;
@@ -314,7 +269,7 @@ let
       ]
       ++ lib.optional (vam != null) (lib.warn "'vam' attribute is deprecated. Use 'packages' instead in your vim configuration" vamImpl)
       ++ lib.optional (packages != null && packages != []) (nativeImpl packages)
-      ++ lib.optional (pathogen != null) (lib.warn "'pathogen' attribute is deprecated. Use 'packages' instead in your vim configuration" pathogenImpl)
+      ++ lib.optional (pathogen != null) (throw "pathogen is now unsupported, replace `pathogen = {}` with `packages.home = { start = []; }`")
       ++ lib.optional (plug != null) plugImpl
       ++ [ customRC ];
 
@@ -362,8 +317,8 @@ rec {
       lib.warnIf (wrapManual != null) ''
         vim.customize: wrapManual is deprecated: the manual is now included by default if `name == "vim"`.
         ${if wrapManual == true && name != "vim" then "Set `standalone = false` to include the manual."
-        else if wrapManual == false && name == "vim" then "Set `standalone = true` to get the *vim wrappers only."
-        else ""}''
+        else lib.optionalString (wrapManual == false && name == "vim") "Set `standalone = true` to get the *vim wrappers only."
+        }''
       lib.warnIf (wrapGui != null)
         "vim.customize: wrapGui is deprecated: gvim is now automatically included if present"
       lib.throwIfNot (vimExecutableName == null && gvimExecutableName == null)
@@ -373,9 +328,9 @@ rec {
           if vimrcFile != null then vimrcFile
           else if vimrcConfig != null then mkVimrcFile vimrcConfig
           else throw "at least one of vimrcConfig and vimrcFile must be specified";
-        bin = runCommand "${name}-bin" { buildInputs = [ makeWrapper ]; } ''
+        bin = runCommand "${name}-bin" { nativeBuildInputs = [ makeWrapper ]; } ''
           vimrc=${lib.escapeShellArg vimrc}
-          gvimrc=${if gvimrcFile != null then lib.escapeShellArg gvimrcFile else ""}
+          gvimrc=${lib.optionalString (gvimrcFile != null) (lib.escapeShellArg gvimrcFile)}
 
           mkdir -p "$out/bin"
           for exe in ${
@@ -408,7 +363,7 @@ rec {
   vimGenDocHook = callPackage ({ vim }:
     makeSetupHook {
       name = "vim-gen-doc-hook";
-      deps = [ vim ];
+      propagatedBuildInputs = [ vim ];
       substitutions = {
         vimBinary = "${vim}/bin/vim";
         inherit rtpPath;
@@ -418,7 +373,7 @@ rec {
   vimCommandCheckHook = callPackage ({ neovim-unwrapped }:
     makeSetupHook {
       name = "vim-command-check-hook";
-      deps = [ neovim-unwrapped ];
+      propagatedBuildInputs = [ neovim-unwrapped ];
       substitutions = {
         vimBinary = "${neovim-unwrapped}/bin/nvim";
         inherit rtpPath;
@@ -428,7 +383,7 @@ rec {
   neovimRequireCheckHook = callPackage ({ neovim-unwrapped }:
     makeSetupHook {
       name = "neovim-require-check-hook";
-      deps = [ neovim-unwrapped ];
+      propagatedBuildInputs = [ neovim-unwrapped ];
       substitutions = {
         nvimBinary = "${neovim-unwrapped}/bin/nvim";
         inherit rtpPath;
@@ -436,34 +391,27 @@ rec {
     } ./neovim-require-check-hook.sh) {};
 
   inherit (import ./build-vim-plugin.nix {
-    inherit lib stdenv rtpPath vim vimGenDocHook
-      toVimPlugin vimCommandCheckHook neovimRequireCheckHook;
-  }) buildVimPlugin buildVimPluginFrom2Nix;
+    inherit lib stdenv rtpPath toVimPlugin;
+  }) buildVimPlugin;
 
+  buildVimPluginFrom2Nix = lib.warn "buildVimPluginFrom2Nix is deprecated: use buildVimPlugin instead" buildVimPlugin;
 
   # used to figure out which python dependencies etc. neovim needs
   requiredPlugins = {
     packages ? {},
-    givenKnownPlugins ? null,
-    vam ? null,
-    pathogen ? null,
     plug ? null, ...
   }:
     let
-      # This is probably overcomplicated, but I don't understand this well enough to know what's necessary.
-      knownPlugins = if givenKnownPlugins != null then givenKnownPlugins else
-                     if vam != null && vam ? knownPlugins then vam.knownPlugins else
-                     if pathogen != null && pathogen ? knownPlugins then pathogen.knownPlugins else
-                     vimPlugins;
-      pathogenPlugins = findDependenciesRecursively (map (pluginToDrv knownPlugins) pathogen.pluginNames);
-      vamPlugins = findDependenciesRecursively (map (pluginToDrv knownPlugins) (lib.concatMap vamDictToNames vam.pluginDictionaries));
-      nonNativePlugins = (lib.optionals (pathogen != null) pathogenPlugins)
-                      ++ (lib.optionals (vam != null) vamPlugins)
-                      ++ (lib.optionals (plug != null) plug.plugins);
       nativePluginsConfigs = lib.attrsets.attrValues packages;
-      nativePlugins = lib.concatMap ({start?[], opt?[], knownPlugins?vimPlugins}: start++opt) nativePluginsConfigs;
+      nonNativePlugins = (lib.optionals (plug != null) plug.plugins);
+      nativePlugins = lib.concatMap (requiredPluginsForPackage) nativePluginsConfigs;
     in
       nativePlugins ++ nonNativePlugins;
+
+
+  # figures out which python dependencies etc. is needed for one vim package
+  requiredPluginsForPackage = { start ? [], opt ? []}:
+    start ++ opt;
 
   toVimPlugin = drv:
     drv.overrideAttrs(oldAttrs: {
@@ -471,7 +419,7 @@ rec {
       forceShare = [ "man" "info" ];
 
       nativeBuildInputs = oldAttrs.nativeBuildInputs or []
-      ++ lib.optionals (stdenv.hostPlatform == stdenv.buildPlatform) [
+      ++ lib.optionals (stdenv.buildPlatform.canExecute stdenv.hostPlatform) [
         vimCommandCheckHook vimGenDocHook
         # many neovim plugins keep using buildVimPlugin
         neovimRequireCheckHook

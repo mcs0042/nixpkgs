@@ -10,13 +10,14 @@
 , pytestCheckHook
 , pythonOlder
 , requests
+, simple-websocket
 , tornado
 , websocket-client
 }:
 
 buildPythonPackage rec {
   pname = "python-engineio";
-  version = "4.3.3";
+  version = "4.7.1";
   format = "setuptools";
 
   disabled = pythonOlder "3.6";
@@ -24,11 +25,25 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "miguelgrinberg";
     repo = "python-engineio";
-    rev = "v${version}";
-    sha256 = "sha256-+0H7Ojy5/K0EllNTSvGLNIZlglcMh76r9XHxFMUwrrY=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-jHXpPnrQlIpmQ2sY4y6AUx/6W8Pf+683s4NmmlwZO58=";
   };
 
-  checkInputs = [
+  propagatedBuildInputs = [
+    simple-websocket
+  ];
+
+  passthru.optional-dependencies = {
+    client = [
+      requests
+      websocket-client
+    ];
+    asyncio_client = [
+      aiohttp
+    ];
+  };
+
+  nativeCheckInputs = [
     aiohttp
     eventlet
     mock
@@ -66,6 +81,7 @@ buildPythonPackage rec {
       bidirectional event-based communication between clients and a server.
     '';
     homepage = "https://github.com/miguelgrinberg/python-engineio/";
+    changelog = "https://github.com/miguelgrinberg/python-engineio/blob/v${version}/CHANGES.md";
     license = with licenses; [ mit ];
     maintainers = with maintainers; [ mic92 ];
   };

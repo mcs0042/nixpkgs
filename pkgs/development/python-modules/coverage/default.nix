@@ -7,18 +7,18 @@
 
 buildPythonPackage rec {
   pname = "coverage";
-  version = "6.3.2";
+  version = "7.3.1";
   # uses f strings
   disabled = pythonOlder "3.5";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-A+KngmCGuR7zRf8YdC7p/Eemg5zNUXBh74+hl25lLOk=";
+    hash = "sha256-bLf+FYHetnt4LBUxNlQeIJAaoxLO7a8UZ9yzUlV4eVI=";
   };
 
   # No tests in archive
   doCheck = false;
-  checkInputs = [ mock ];
+  nativeCheckInputs = [ mock ];
 
   meta = {
     description = "Code coverage measurement for python";

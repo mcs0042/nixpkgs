@@ -8,9 +8,9 @@ let
   systemd = cfg.package;
 in rec {
 
-  shellEscape = s: (replaceChars [ "\\" ] [ "\\\\" ] s);
+  shellEscape = s: (replaceStrings [ "\\" ] [ "\\\\" ] s);
 
-  mkPathSafeName = lib.replaceChars ["@" ":" "\\" "[" "]"] ["-" "-" "-" "" ""];
+  mkPathSafeName = lib.replaceStrings ["@" ":" "\\" "[" "]"] ["-" "-" "-" "" ""];
 
   # a type for options that take a unit name
   unitNameType = types.strMatching "[a-zA-Z0-9@%:_.\\-]+[.](service|socket|device|mount|automount|swap|target|path|timer|scope|slice)";
@@ -20,12 +20,16 @@ in rec {
       pkgs.runCommand "unit-${mkPathSafeName name}"
         { preferLocalBuild = true;
           allowSubstitutes = false;
-          inherit (unit) text;
+          # unit.text can be null. But variables that are null listed in
+          # passAsFile are ignored by nix, resulting in no file being created,
+          # making the mv operation fail.
+          text = optionalString (unit.text != null) unit.text;
+          passAsFile = [ "text" ];
         }
         ''
           name=${shellEscape name}
-          mkdir -p "$out/$(dirname "$name")"
-          echo -n "$text" > "$out/$name"
+          mkdir -p "$out/$(dirname -- "$name")"
+          mv "$textPath" "$out/$name"
         ''
     else
       pkgs.runCommand "unit-${mkPathSafeName name}-disabled"
@@ -63,7 +67,12 @@ in rec {
 
   assertMacAddress = name: group: attr:
     optional (attr ? ${name} && ! isMacAddress attr.${name})
-      "Systemd ${group} field `${name}' must be a valid mac address.";
+      "Systemd ${group} field `${name}' must be a valid MAC address.";
+
+  assertNetdevMacAddress = name: group: attr:
+    optional (attr ? ${name} && (! isMacAddress attr.${name} && attr.${name} != "none"))
+      "Systemd ${group} field `${name}` must be a valid MAC address or the special value `none`.";
+
 
   isPort = i: i >= 0 && i <= 65535;
 
@@ -73,6 +82,10 @@ in rec {
 
   assertValueOneOf = name: values: group: attr:
     optional (attr ? ${name} && !elem attr.${name} values)
+      "Systemd ${group} field `${name}' cannot have value `${toString attr.${name}}'.";
+
+  assertValuesSomeOfOr = name: values: default: group: attr:
+    optional (attr ? ${name} && !(all (x: elem x values) (splitString " " attr.${name}) || attr.${name} == default))
       "Systemd ${group} field `${name}' cannot have value `${toString attr.${name}}'.";
 
   assertHasField = name: group: attr:
@@ -187,11 +200,14 @@ in rec {
         done
       done
 
-      # Symlink all units defined by systemd.units. If these are also
-      # provided by systemd or systemd.packages, then add them as
+      # Symlink units defined by systemd.units where override strategy
+      # shall be automatically detected. If these are also provided by
+      # systemd or systemd.packages, then add them as
       # <unit-name>.d/overrides.conf, which makes them extend the
       # upstream unit.
-      for i in ${toString (mapAttrsToList (n: v: v.unit) units)}; do
+      for i in ${toString (mapAttrsToList
+          (n: v: v.unit)
+          (lib.filterAttrs (n: v: (attrByPath [ "overrideStrategy" ] "asDropinIfExists" v) == "asDropinIfExists") units))}; do
         fn=$(basename $i/*)
         if [ -e $out/$fn ]; then
           if [ "$(readlink -f $i/$fn)" = /dev/null ]; then
@@ -210,11 +226,21 @@ in rec {
         fi
       done
 
+      # Symlink units defined by systemd.units which shall be
+      # treated as drop-in file.
+      for i in ${toString (mapAttrsToList
+          (n: v: v.unit)
+          (lib.filterAttrs (n: v: v ? overrideStrategy && v.overrideStrategy == "asDropin") units))}; do
+        fn=$(basename $i/*)
+        mkdir -p $out/$fn.d
+        ln -s $i/$fn $out/$fn.d/overrides.conf
+      done
+
       # Create service aliases from aliases option.
       ${concatStrings (mapAttrsToList (name: unit:
           concatMapStrings (name2: ''
             ln -sfn '${name}' $out/'${name2}'
-          '') unit.aliases) units)}
+          '') (unit.aliases or [])) units)}
 
       # Create .wants and .requires symlinks from the wantedBy and
       # requiredBy options.
@@ -222,13 +248,13 @@ in rec {
           concatMapStrings (name2: ''
             mkdir -p $out/'${name2}.wants'
             ln -sfn '../${name}' $out/'${name2}.wants'/
-          '') unit.wantedBy) units)}
+          '') (unit.wantedBy or [])) units)}
 
       ${concatStrings (mapAttrsToList (name: unit:
           concatMapStrings (name2: ''
             mkdir -p $out/'${name2}.requires'
             ln -sfn '../${name}' $out/'${name2}.requires'/
-          '') unit.requiredBy) units)}
+          '') (unit.requiredBy or [])) units)}
 
       ${optionalString (type == "system") ''
         # Stupid misc. symlinks.
@@ -245,7 +271,7 @@ in rec {
 
   makeJobScript = name: text:
     let
-      scriptName = replaceChars [ "\\" "@" ] [ "-" "_" ] (shellEscape name);
+      scriptName = replaceStrings [ "\\" "@" ] [ "-" "_" ] (shellEscape name);
       out = (pkgs.writeShellScriptBin scriptName ''
         set -e
         ${text}
@@ -256,7 +282,7 @@ in rec {
       });
     in "${out}/bin/${scriptName}";
 
-  unitConfig = { config, options, ... }: {
+  unitConfig = { config, name, options, ... }: {
     config = {
       unitConfig =
         optionalAttrs (config.requires != [])
@@ -276,15 +302,17 @@ in rec {
         // optionalAttrs (config.requisite != [])
           { Requisite = toString config.requisite; }
         // optionalAttrs (config ? restartTriggers && config.restartTriggers != [])
-          { X-Restart-Triggers = toString config.restartTriggers; }
+          { X-Restart-Triggers = "${pkgs.writeText "X-Restart-Triggers-${name}" (toString config.restartTriggers)}"; }
         // optionalAttrs (config ? reloadTriggers && config.reloadTriggers != [])
-          { X-Reload-Triggers = toString config.reloadTriggers; }
+          { X-Reload-Triggers = "${pkgs.writeText "X-Reload-Triggers-${name}" (toString config.reloadTriggers)}"; }
         // optionalAttrs (config.description != "") {
           Description = config.description; }
         // optionalAttrs (config.documentation != []) {
           Documentation = toString config.documentation; }
         // optionalAttrs (config.onFailure != []) {
           OnFailure = toString config.onFailure; }
+        // optionalAttrs (config.onSuccess != []) {
+          OnSuccess = toString config.onSuccess; }
         // optionalAttrs (options.startLimitIntervalSec.isDefined) {
           StartLimitIntervalSec = toString config.startLimitIntervalSec;
         } // optionalAttrs (options.startLimitBurst.isDefined) {
@@ -338,7 +366,7 @@ in rec {
     '';
 
   targetToUnit = name: def:
-    { inherit (def) aliases wantedBy requiredBy enable;
+    { inherit (def) aliases wantedBy requiredBy enable overrideStrategy;
       text =
         ''
           [Unit]
@@ -347,29 +375,28 @@ in rec {
     };
 
   serviceToUnit = name: def:
-    { inherit (def) aliases wantedBy requiredBy enable;
-      text = commonUnitText def +
-        ''
-          [Service]
-          ${let env = cfg.globalEnvironment // def.environment;
-            in concatMapStrings (n:
-              let s = optionalString (env.${n} != null)
-                "Environment=${builtins.toJSON "${n}=${env.${n}}"}\n";
-              # systemd max line length is now 1MiB
-              # https://github.com/systemd/systemd/commit/e6dde451a51dc5aaa7f4d98d39b8fe735f73d2af
-              in if stringLength s >= 1048576 then throw "The value of the environment variable ‘${n}’ in systemd service ‘${name}.service’ is too long." else s) (attrNames env)}
-          ${if def ? reloadIfChanged && def.reloadIfChanged then ''
-            X-ReloadIfChanged=true
-          '' else if (def ? restartIfChanged && !def.restartIfChanged) then ''
-            X-RestartIfChanged=false
-          '' else ""}
-          ${optionalString (def ? stopIfChanged && !def.stopIfChanged) "X-StopIfChanged=false"}
-          ${attrsToSection def.serviceConfig}
-        '';
+    { inherit (def) aliases wantedBy requiredBy enable overrideStrategy;
+      text = commonUnitText def + ''
+        [Service]
+      '' + (let env = cfg.globalEnvironment // def.environment;
+        in concatMapStrings (n:
+          let s = optionalString (env.${n} != null)
+            "Environment=${builtins.toJSON "${n}=${env.${n}}"}\n";
+          # systemd max line length is now 1MiB
+          # https://github.com/systemd/systemd/commit/e6dde451a51dc5aaa7f4d98d39b8fe735f73d2af
+          in if stringLength s >= 1048576 then throw "The value of the environment variable ‘${n}’ in systemd service ‘${name}.service’ is too long." else s) (attrNames env))
+      + (if def ? reloadIfChanged && def.reloadIfChanged then ''
+        X-ReloadIfChanged=true
+      '' else if (def ? restartIfChanged && !def.restartIfChanged) then ''
+        X-RestartIfChanged=false
+      '' else "")
+       + optionalString (def ? stopIfChanged && !def.stopIfChanged) ''
+         X-StopIfChanged=false
+      '' + attrsToSection def.serviceConfig;
     };
 
   socketToUnit = name: def:
-    { inherit (def) aliases wantedBy requiredBy enable;
+    { inherit (def) aliases wantedBy requiredBy enable overrideStrategy;
       text = commonUnitText def +
         ''
           [Socket]
@@ -380,7 +407,7 @@ in rec {
     };
 
   timerToUnit = name: def:
-    { inherit (def) aliases wantedBy requiredBy enable;
+    { inherit (def) aliases wantedBy requiredBy enable overrideStrategy;
       text = commonUnitText def +
         ''
           [Timer]
@@ -389,7 +416,7 @@ in rec {
     };
 
   pathToUnit = name: def:
-    { inherit (def) aliases wantedBy requiredBy enable;
+    { inherit (def) aliases wantedBy requiredBy enable overrideStrategy;
       text = commonUnitText def +
         ''
           [Path]
@@ -398,7 +425,7 @@ in rec {
     };
 
   mountToUnit = name: def:
-    { inherit (def) aliases wantedBy requiredBy enable;
+    { inherit (def) aliases wantedBy requiredBy enable overrideStrategy;
       text = commonUnitText def +
         ''
           [Mount]
@@ -407,7 +434,7 @@ in rec {
     };
 
   automountToUnit = name: def:
-    { inherit (def) aliases wantedBy requiredBy enable;
+    { inherit (def) aliases wantedBy requiredBy enable overrideStrategy;
       text = commonUnitText def +
         ''
           [Automount]
@@ -416,11 +443,28 @@ in rec {
     };
 
   sliceToUnit = name: def:
-    { inherit (def) aliases wantedBy requiredBy enable;
+    { inherit (def) aliases wantedBy requiredBy enable overrideStrategy;
       text = commonUnitText def +
         ''
           [Slice]
           ${attrsToSection def.sliceConfig}
         '';
     };
+
+  # Create a directory that contains systemd definition files from an attrset
+  # that contains the file names as keys and the content as values. The values
+  # in that attrset are determined by the supplied format.
+  definitions = directoryName: format: definitionAttrs:
+    let
+      listOfDefinitions = lib.mapAttrsToList
+        (name: format.generate "${name}.conf")
+        definitionAttrs;
+    in
+    pkgs.runCommand directoryName { } ''
+      mkdir -p $out
+      ${(lib.concatStringsSep "\n"
+        (map (pkg: "cp ${pkg} $out/${pkg.name}") listOfDefinitions)
+      )}
+    '';
+
 }

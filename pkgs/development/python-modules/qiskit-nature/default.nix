@@ -7,7 +7,7 @@
 , numpy
 , psutil
 , qiskit-terra
-, retworkx
+, rustworkx
 , scikit-learn
 , scipy
 , withPyscf ? false
@@ -21,15 +21,15 @@
 
 buildPythonPackage rec {
   pname = "qiskit-nature";
-  version = "0.3.2";
+  version = "0.6.2";
 
   disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "Qiskit";
     repo = pname;
-    rev = version;
-    sha256 = "sha256-BXUVRZ8X3OJiRexNXZsnvp+Yh8ARNYohYH49/IYFYM0=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-X/4jA/e2nmmaVEiCgd/4KJc/sAdcYDkyKzvyVztovXM=";
   };
 
   propagatedBuildInputs = [
@@ -37,12 +37,12 @@ buildPythonPackage rec {
     numpy
     psutil
     qiskit-terra
-    retworkx
+    rustworkx
     scikit-learn
     scipy
   ] ++ lib.optional withPyscf pyscf;
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
     ddt
     pylatexenc

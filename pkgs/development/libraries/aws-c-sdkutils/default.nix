@@ -2,17 +2,18 @@
 , fetchFromGitHub
 , aws-c-common
 , cmake
+, nix
 }:
 
 stdenv.mkDerivation rec {
   pname = "aws-c-sdkutils";
-  version = "0.1.2";
+  version = "0.1.12";
 
   src = fetchFromGitHub {
     owner = "awslabs";
     repo = "aws-c-sdkutils";
     rev = "v${version}";
-    sha256 = "sha256-G+ykP39EmI8BCeulTsZ/OSFKRzXVbEK0+mtJ3tugl5M=";
+    sha256 = "sha256-4YuOC90FBcuNYGBsqw3wKYNGkg3MssezvR8bu6BNGeM=";
   };
 
   nativeBuildInputs = [
@@ -28,6 +29,10 @@ stdenv.mkDerivation rec {
   ];
 
   doCheck = true;
+
+  passthru.tests = {
+    inherit nix;
+  };
 
   meta = with lib; {
     description = "AWS SDK utility library";

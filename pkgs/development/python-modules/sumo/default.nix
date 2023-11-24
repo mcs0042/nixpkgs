@@ -13,20 +13,21 @@
 , spglib
 , castepxbin
 , pytestCheckHook
+, colormath
 }:
 
 buildPythonPackage rec {
   pname = "sumo";
-  version = "2.3.0";
+  version = "2.3.7";
   format = "setuptools";
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "SMTG-UCL";
     repo = "sumo";
     rev = "refs/tags/v${version}";
-    sha256 = "sha256-apI5Qt7Wrr4FXKL48iqqIQJDX2BIf3PPz/qIgSO7nuo=";
+    hash = "sha256-9NHz8SPymD9zANWMeajjavpjw68X4abqhrLl0dn92l0=";
   };
 
   nativeBuildInputs = [
@@ -34,30 +35,21 @@ buildPythonPackage rec {
   ];
 
   propagatedBuildInputs = [
-    spglib
-    numpy
-    scipy
-    h5py
-    pymatgen
-    phonopy
-    matplotlib
-    seekpath
     castepxbin
+    colormath
+    h5py
+    matplotlib
+    numpy
+    phonopy
+    pymatgen
+    scipy
+    seekpath
+    spglib
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
   ];
-
-  disabledTests = [
-    # slight disagreement between caastepxbin versions
-    "test_castep_phonon_read_bands"
-  ];
-
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "castepxbin==0.1.0" "castepxbin>=0.1.0"
-  '';
 
   pythonImportsCheck = [
     "sumo"
@@ -66,6 +58,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Toolkit for plotting and analysis of ab initio solid-state calculation data";
     homepage = "https://github.com/SMTG-UCL/sumo";
+    changelog = "https://github.com/SMTG-Bham/sumo/releases/tag/v${version}";
     license = licenses.mit;
     maintainers = with maintainers; [ psyanticy ];
   };

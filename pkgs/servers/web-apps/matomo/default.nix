@@ -1,21 +1,20 @@
-{ lib, stdenv, fetchurl, makeWrapper, php }:
+{ lib, stdenv, fetchurl, makeWrapper, php, nixosTests }:
 
 let
   versions = {
     matomo = {
-      version = "4.5.0";
-      sha256 = "sha256-OyjdzY+ENYxOTVjDLjj2unJbpaGODIH2I5Acmt45HDA=";
+      version = "4.15.1";
+      hash = "sha256-XnfiprGLqFQqPk30gcAVLdBZ3pYMSdBPfnicm7V1PSc=";
     };
-
     matomo-beta = {
-      version = "4.6.0";
+      version = "5.0.0";
       # `beta` examples: "b1", "rc1", null
       # when updating: use null if stable version is >= latest beta or release candidate
-      beta = "b2";
-      sha256 = "sha256-7p/ZPtr5a/tBjrM27ILF3rNfxDIWuzWKCXNom3HlyL8=";
+      beta = "rc3";
+      hash = "sha256-Q5GB4i0ew6+tr8Bsm9PYkzJ8U6DmVPwG2QCi8CTge5E=";
     };
   };
-  common = pname: { version, sha256, beta ? null }:
+  common = pname: { version, hash, beta ? null }:
     let
       fullVersion = version + lib.optionalString (beta != null) "-${toString beta}";
       name = "${pname}-${fullVersion}";
@@ -27,7 +26,7 @@ let
 
         src = fetchurl {
           url = "https://builds.matomo.org/matomo-${version}.tar.gz";
-          inherit sha256;
+          inherit hash;
         };
 
         nativeBuildInputs = [ makeWrapper ];
@@ -40,10 +39,11 @@ let
           # TODO: is upstream interested in this?
           # -> discussion at https://github.com/matomo-org/matomo/issues/12646
           ./make-localhost-default-database-host.patch
-
           # This changes the default config for path.geoip2 so that it doesn't point
           # to the nix store.
-          ./change-path-geoip2.patch
+          (if lib.versionOlder version "5.0"
+           then ./change-path-geoip2-4.x.patch
+           else ./change-path-geoip2-5.x.patch)
         ];
 
         # this bootstrap.php adds support for getting PIWIK_USER_PATH
@@ -104,12 +104,16 @@ let
           popd > /dev/null
         '';
 
+        passthru = {
+          tests = nixosTests.matomo."${pname}";
+        };
+
         meta = with lib; {
           description = "A real-time web analytics application";
           license = licenses.gpl3Plus;
           homepage = "https://matomo.org/";
           platforms = platforms.all;
-          maintainers = with maintainers; [ florianjacob kiwi sebbel ];
+          maintainers = with maintainers; [ florianjacob kiwi sebbel twey boozedog ] ++ teams.flyingcircus.members;
         };
       };
 in

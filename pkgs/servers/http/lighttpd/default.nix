@@ -10,33 +10,20 @@
 , enableWebDAV ? false, sqlite, libuuid
 , enableExtendedAttrs ? false, attr
 , perl
+, nixosTests
 }:
 
 stdenv.mkDerivation rec {
   pname = "lighttpd";
-  version = "1.4.64";
+  version = "1.4.73";
 
   src = fetchurl {
     url = "https://download.lighttpd.net/lighttpd/releases-${lib.versions.majorMinor version}.x/${pname}-${version}.tar.xz";
-    sha256 = "sha256-4Uidn6dJb78uBxwzi1k7IwDTjCPx5ZZ+UsnvSC4bDiY=";
+    sha256 = "sha256-gYgW0LMUsKqHKKcHZRNDX21esifzthMjRo4fENvoTKg=";
   };
-
-  patches = [
-    (fetchpatch {
-      name = "macos-10.12-avoid-ccrandomgeneratebytes.patch";
-      url = "https://redmine.lighttpd.net/projects/lighttpd/repository/14/revisions/6791f71b20a127b5b0091020dd065f4f9c7cafb6/diff?format=diff";
-      sha256 = "1x5ybkvxwinl7s1nv3rrc57m4mj38q0gbyjp1ijr4w5lhabw4vzs";
-    })
-  ];
 
   postPatch = ''
     patchShebangs tests
-    # Linux sandbox has an empty hostname and not /etc/hosts, which fails some tests
-    sed -ire '/[$]self->{HOSTNAME} *=/i     if(length($name)==0) { $name = "127.0.0.1" }' tests/LightyTest.pm
-    # it's difficult to prevent this test from trying to use /var/tmp (which
-    # the sandbox doesn't have) so until libredirect has support for mkstemp
-    # calls it's easiest to disable it
-    sed -i '/test_mod_ssi/d' src/t/test_mod.c
   '';
 
   depsBuildBuild = [ buildPackages.stdenv.cc ];
@@ -68,7 +55,7 @@ stdenv.mkDerivation rec {
     sed -i "s:/usr/bin/file:${file}/bin/file:g" configure
   '';
 
-  checkInputs = [ perl ];
+  nativeCheckInputs = [ perl ];
   doCheck = true;
 
   postInstall = ''
@@ -79,6 +66,10 @@ stdenv.mkDerivation rec {
     rm "$out/share/lighttpd/doc/config/conf.d/Makefile"*
     rm "$out/share/lighttpd/doc/config/vhosts.d/Makefile"*
   '';
+
+  passthru.tests = {
+    inherit (nixosTests) lighttpd;
+  };
 
   meta = with lib; {
     description = "Lightweight high-performance web server";

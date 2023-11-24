@@ -5,19 +5,18 @@
 , ninja
 , gettext
 , pkg-config
-, wrapGAppsHook
+, wrapGAppsHook4
 , itstool
 , desktop-file-utils
-, vala_0_56
+, vala
 , gobject-introspection
 , libxml2
 , gtk4
 , glib
-, gsound
 , sound-theme-freedesktop
 , gsettings-desktop-schemas
 , gnome-desktop
-, geocode-glib
+, geocode-glib_2
 , gnome
 , gdk-pixbuf
 , geoclue2
@@ -27,21 +26,21 @@
 
 stdenv.mkDerivation rec {
   pname = "gnome-clocks";
-  version = "42.0";
+  version = "45.0";
 
   src = fetchurl {
     url = "mirror://gnome/sources/gnome-clocks/${lib.versions.major version}/${pname}-${version}.tar.xz";
-    sha256 = "DnEY20oDLjzqMhLZjLuCjWt88i/gXgxfyLORxqPdb+A=";
+    sha256 = "/I60/ZUw8eZB3ADuIIbufTVKegCwoNFyLjBdXJqrkbU=";
   };
 
   nativeBuildInputs = [
-    vala_0_56
+    vala
     meson
     ninja
     pkg-config
     gettext
     itstool
-    wrapGAppsHook
+    wrapGAppsHook4
     desktop-file-utils
     libxml2
     gobject-introspection # for finding vapi files
@@ -53,10 +52,9 @@ stdenv.mkDerivation rec {
     gsettings-desktop-schemas
     gdk-pixbuf
     gnome-desktop
-    geocode-glib
+    geocode-glib_2
     geoclue2
     libgweather
-    gsound
     libadwaita
   ];
 
@@ -81,6 +79,6 @@ stdenv.mkDerivation rec {
     description = "Clock application designed for GNOME 3";
     maintainers = teams.gnome.members;
     license = licenses.gpl2Plus;
-    platforms = platforms.linux;
+    platforms = platforms.unix;
   };
 }

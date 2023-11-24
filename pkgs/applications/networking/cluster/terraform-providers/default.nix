@@ -1,10 +1,11 @@
 { lib
 , stdenv
 , buildGoModule
-, buildGo117Module
 , fetchFromGitHub
+, fetchFromGitLab
 , callPackage
 , config
+, writeShellScript
 
 , cdrtools # libvirt
 }:
@@ -16,27 +17,40 @@ let
     ({ owner
      , repo
      , rev
-     , version
-     , sha256
-     , vendorSha256
+     , spdx ? "UNSET"
+     , version ? lib.removePrefix "v" rev
+     , hash
+     , vendorHash
      , deleteVendor ? false
      , proxyVendor ? false
+     , mkProviderFetcher ? fetchFromGitHub
      , mkProviderGoModule ? buildGoModule
-     , # Looks like "registry.terraform.io/vancluever/acme"
-       provider-source-address
+       # "https://registry.terraform.io/providers/vancluever/acme"
+     , homepage ? ""
+       # "registry.terraform.io/vancluever/acme"
+     , provider-source-address ? lib.replaceStrings [ "https://registry" ".io/providers" ] [ "registry" ".io" ] homepage
+     , ...
      }@attrs:
+      assert lib.stringLength provider-source-address > 0;
       mkProviderGoModule {
         pname = repo;
-        inherit vendorSha256 version deleteVendor proxyVendor;
+        inherit vendorHash version deleteVendor proxyVendor;
         subPackages = [ "." ];
         doCheck = false;
         # https://github.com/hashicorp/terraform-provider-scaffolding/blob/a8ac8375a7082befe55b71c8cbb048493dd220c2/.goreleaser.yml
         # goreleaser (used for builds distributed via terraform registry) requires that CGO is disabled
         CGO_ENABLED = 0;
         ldflags = [ "-s" "-w" "-X main.version=${version}" "-X main.commit=${rev}" ];
-        src = fetchFromGitHub {
+        src = mkProviderFetcher {
           name = "source-${rev}";
-          inherit owner repo rev sha256;
+          inherit owner repo rev hash;
+        };
+        # nixpkgs-update: no auto update
+        # easier to update all providers together
+
+        meta = {
+          inherit homepage;
+          license = lib.getLicenseFromSpdxId spdx;
         };
 
         # Move the provider to libexec
@@ -48,7 +62,13 @@ let
         '';
 
         # Keep the attributes around for later consumption
-        passthru = attrs;
+        passthru = attrs // {
+          inherit provider-source-address;
+          updateScript = writeShellScript "update" ''
+            provider="$(basename ${provider-source-address})"
+            ./pkgs/applications/networking/cluster/terraform-providers/update-provider "$provider"
+          '';
+        };
       });
 
   list = lib.importJSON ./providers.json;
@@ -59,18 +79,13 @@ let
   # These are the providers that don't fall in line with the default model
   special-providers =
     {
+      # github api seems to be broken, doesn't just fail to recognize the license, it's ignored entirely.
+      checkly = automated-providers.checkly.override { spdx = "MIT"; };
+      gitlab = automated-providers.gitlab.override { mkProviderFetcher = fetchFromGitLab; owner = "gitlab-org"; };
+      # actions update always fails but can't reproduce the failure.
+      heroku = automated-providers.heroku.override { spdx = "MPL-2.0"; };
       # mkisofs needed to create ISOs holding cloud-init data and wrapped to terraform via deecb4c1aab780047d79978c636eeb879dd68630
       libvirt = automated-providers.libvirt.overrideAttrs (_: { propagatedBuildInputs = [ cdrtools ]; });
-      # fails to build on x86_64-darwin with 1.18
-      lxd = automated-providers.lxd.override { mkProviderGoModule = buildGo117Module; };
-      # fails to build on x86_64-darwin with 1.18
-      netlify = automated-providers.netlify.override { mkProviderGoModule = buildGo117Module; };
-      # fails to build on x86_64-darwin with 1.18
-      pass = automated-providers.pass.override { mkProviderGoModule = buildGo117Module; };
-      # fails to build on x86_64-darwin with 1.18
-      skytap = automated-providers.skytap.override { mkProviderGoModule = buildGo117Module; };
-      # fails to build on x86_64-{darwin,linux} with 1.18
-      tencentcloud = automated-providers.tencentcloud.override { mkProviderGoModule = buildGo117Module; };
     };
 
   # Put all the providers we not longer support in this list.
@@ -80,10 +95,7 @@ let
       removed = name: date: throw "the ${name} terraform provider removed from nixpkgs on ${date}";
     in
     lib.optionalAttrs config.allowAliases {
-      b2 = removed "b2" "2022/06";
-      opc = archived "opc" "2022/05";
-      oraclepaas = archived "oraclepaas" "2022/05";
-      template = archived "template" "2022/05";
+      fly = archived "fly" "2023/10";
     };
 
   # excluding aliases, used by terraform-full

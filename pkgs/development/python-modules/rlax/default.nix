@@ -14,11 +14,11 @@
 
 buildPythonPackage rec {
   pname = "rlax";
-  version = "0.1.2";
+  version = "0.1.6";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-hAG0idz5VkGVvxaJWoxlVZ8myeHF6ndDxB0SyJm7qV8=";
+    hash = "sha256-C3nFOv/zxvAoz6WZ0RAZffzEbxIx/XrGabO4QPxrik8=";
   };
 
   buildInputs = [
@@ -28,7 +28,7 @@ buildPythonPackage rec {
     tensorflow-probability
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     bsuite
     dm-env
     dm-haiku

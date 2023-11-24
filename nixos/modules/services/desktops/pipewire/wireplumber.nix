@@ -14,14 +14,14 @@ in
         type = lib.types.bool;
         default = config.services.pipewire.enable;
         defaultText = lib.literalExpression "config.services.pipewire.enable";
-        description = "Whether to enable Wireplumber, a modular session / policy manager for PipeWire";
+        description = lib.mdDoc "Whether to enable Wireplumber, a modular session / policy manager for PipeWire";
       };
 
       package = lib.mkOption {
         type = lib.types.package;
         default = pkgs.wireplumber;
         defaultText = lib.literalExpression "pkgs.wireplumber";
-        description = "The wireplumber derivation to use.";
+        description = lib.mdDoc "The wireplumber derivation to use.";
       };
     };
   };
@@ -29,8 +29,8 @@ in
   config = lib.mkIf cfg.enable {
     assertions = [
       {
-        assertion = !config.services.pipewire.media-session.enable;
-        message = "WirePlumber and pipewire-media-session can't be enabled at the same time.";
+        assertion = !config.hardware.bluetooth.hsphfpd.enable;
+        message = "Using Wireplumber conflicts with hsphfpd, as it provides the same functionality. `hardware.bluetooth.hsphfpd.enable` needs be set to false";
       }
     ];
 

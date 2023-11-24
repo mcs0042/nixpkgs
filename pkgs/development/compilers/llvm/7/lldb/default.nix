@@ -52,13 +52,17 @@ stdenv.mkDerivation rec {
   ] ++ lib.optionals stdenv.isDarwin [
     darwin.libobjc
     darwin.apple_sdk.libs.xpc
-    darwin.apple_sdk.frameworks.Foundation darwin.bootstrap_cmds darwin.apple_sdk.frameworks.Carbon darwin.apple_sdk.frameworks.Cocoa
+    darwin.apple_sdk.frameworks.Foundation
+    darwin.bootstrap_cmds
+    darwin.apple_sdk.frameworks.Carbon
+    darwin.apple_sdk.frameworks.Cocoa
+    darwin.apple_sdk.frameworks.DebugSymbols
   ];
 
   CXXFLAGS = "-fno-rtti";
   hardeningDisable = [ "format" ];
 
-  NIX_CFLAGS_COMPILE = lib.optionalString stdenv.cc.isClang "-I${libxml2.dev}/include/libxml2";
+  env.NIX_CFLAGS_COMPILE = lib.optionalString stdenv.cc.isClang "-I${libxml2.dev}/include/libxml2";
 
   cmakeFlags = [
     "-DLLDB_INCLUDE_TESTS=${if doCheck then "YES" else "NO"}"
@@ -85,5 +89,7 @@ stdenv.mkDerivation rec {
       larger LLVM Project, such as the Clang expression parser and LLVM
       disassembler.
     '';
+    # never built on aarch64-darwin since first introduction in nixpkgs
+    broken = stdenv.isDarwin && stdenv.isAarch64;
   };
 }

@@ -2,22 +2,24 @@
 , hwdata
 , static ? stdenv.hostPlatform.isStatic
 , IOKit
+, gitUpdater
 }:
 
 stdenv.mkDerivation rec {
   pname = "pciutils";
-  version = "3.7.0"; # with release-date database
+  version = "3.10.0"; # with release-date database
 
   src = fetchurl {
     url = "mirror://kernel/software/utils/pciutils/pciutils-${version}.tar.xz";
-    sha256 = "1ss0rnfsx8gvqjxaji4mvbhf9xyih4cadmgadbwwv8mnx1xvjh4x";
+    sha256 = "sha256-I4ouJxZnMOU6F/4Hv60ingf6ObYYEX5ZRLbX7an7sOk=";
   };
 
   nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ zlib kmod which ] ++
-    lib.optional stdenv.hostPlatform.isDarwin IOKit;
+  buildInputs = [ which zlib ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [ IOKit ]
+    ++ lib.optionals stdenv.hostPlatform.isLinux [ kmod ];
 
-  preConfigure = if stdenv.cc.isGNU then null else ''
+  preConfigure = lib.optionalString (!stdenv.cc.isGNU) ''
     substituteInPlace Makefile --replace 'CC=$(CROSS_COMPILE)gcc' ""
   '';
 
@@ -41,6 +43,12 @@ stdenv.mkDerivation rec {
     # full closure of hwdata)
     cp --reflink=auto ${hwdata}/share/hwdata/pci.ids $out/share/pci.ids
   '';
+
+  passthru.updateScript = gitUpdater {
+    # No nicer place to find latest release.
+    url = "https://github.com/pciutils/pciutils.git";
+    rev-prefix = "v";
+  };
 
   meta = with lib; {
     homepage = "https://mj.ucw.cz/sw/pciutils/";

@@ -7,12 +7,13 @@
 , pytestCheckHook
 , pkg-config
 , cairo
+, libxcrypt
 , python
 }:
 
 buildPythonPackage rec {
   pname = "pycairo";
-  version = "1.20.1";
+  version = "1.24.0";
 
   disabled = pythonOlder "3.6";
 
@@ -21,8 +22,8 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "pygobject";
     repo = "pycairo";
-    rev = "v${version}";
-    sha256 = "09aisph7ycgb4xi2xglvrn59i3cyqms8jbb876cl9763g7yqbcr6";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-eAE0YPZAV90MP6g1V1T80suaRV15ts38kYt6Djb78Xk=";
   };
 
   nativeBuildInputs = [
@@ -33,9 +34,11 @@ buildPythonPackage rec {
 
   buildInputs = [
     cairo
+  ] ++ lib.optionals (pythonOlder "3.9") [
+    libxcrypt
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
   ];
 
@@ -43,7 +46,7 @@ buildPythonPackage rec {
     # This is only used for figuring out what version of Python is in
     # use, and related stuff like figuring out what the install prefix
     # should be, but it does need to be able to execute Python code.
-    "-Dpython=${python.pythonForBuild.interpreter}"
+    "-Dpython=${python.pythonOnBuildForHost.interpreter}"
   ];
 
   meta = with lib; {

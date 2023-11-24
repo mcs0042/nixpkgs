@@ -1,7 +1,10 @@
-{ lib, stdenv, fetchFromGitHub, autoreconfHook, doxygen
-, numactl, rdma-core, libbfd, libiberty, perl, zlib, symlinkJoin
-, enableCuda ? false
+{ lib, stdenv, fetchFromGitHub, autoreconfHook, doxygen, numactl
+, rdma-core, libbfd, libiberty, perl, zlib, symlinkJoin, pkg-config
+, config
+, enableCuda ? config.cudaSupport
 , cudatoolkit
+, enableRocm ? config.rocmSupport
+, rocmPackages
 }:
 
 let
@@ -11,18 +14,28 @@ let
     paths = [ cudatoolkit cudatoolkit.lib ];
   };
 
-in stdenv.mkDerivation rec {
+  rocmList = with rocmPackages; [ rocm-core rocm-runtime rocm-device-libs clr ];
+
+  rocm = symlinkJoin {
+    name = "rocm";
+    paths = rocmList;
+  };
+
+in
+stdenv.mkDerivation rec {
   pname = "ucx";
-  version = "1.12.1";
+  version = "1.15.0";
 
   src = fetchFromGitHub {
     owner = "openucx";
     repo = "ucx";
     rev = "v${version}";
-    sha256 = "08ajhbhzwkfzhkhswk56zx17q18ii67dg1ca1f5grl9qjgj3mmyw";
+    sha256 = "sha256-VxIxrk9qKM6Ncfczl4p2EhXiLNgPaYTmjhqi6/w2ZNY=";
   };
 
-  nativeBuildInputs = [ autoreconfHook doxygen ];
+  outputs = [ "out" "doc" "dev" ];
+
+  nativeBuildInputs = [ autoreconfHook doxygen pkg-config ];
 
   buildInputs = [
     libbfd
@@ -31,21 +44,31 @@ in stdenv.mkDerivation rec {
     perl
     rdma-core
     zlib
-  ] ++ lib.optional enableCuda cudatoolkit;
+  ] ++ lib.optional enableCuda cudatoolkit
+  ++ lib.optionals enableRocm rocmList;
 
   configureFlags = [
-    "--with-rdmacm=${rdma-core}"
+    "--with-rdmacm=${lib.getDev rdma-core}"
     "--with-dc"
     "--with-rc"
     "--with-dm"
-    "--with-verbs=${rdma-core}"
-  ] ++ lib.optional enableCuda "--with-cuda=${cudatoolkit'}";
+    "--with-verbs=${lib.getDev rdma-core}"
+  ] ++ lib.optional enableCuda "--with-cuda=${cudatoolkit'}"
+  ++ lib.optional enableRocm "--with-rocm=${rocm}";
+
+  postInstall = ''
+    find $out/lib/ -name "*.la" -exec rm -f \{} \;
+
+    moveToOutput bin/ucx_info $dev
+
+    moveToOutput share/ucx/examples $doc
+  '';
 
   enableParallelBuilding = true;
 
   meta = with lib; {
     description = "Unified Communication X library";
-    homepage = "http://www.openucx.org";
+    homepage = "https://www.openucx.org";
     license = licenses.bsd3;
     platforms = platforms.linux;
     maintainers = [ maintainers.markuskowa ];

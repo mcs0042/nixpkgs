@@ -1,10 +1,41 @@
-{ lib, stdenv, fetchFromGitHub, fetchpatch, texinfo, libXext, xorgproto, libX11
-, libXpm, libXt, libXcursor, alsa-lib, cmake, zlib, libpng, libvorbis
-, libXxf86dga, libXxf86misc
-, libXxf86vm, openal, libGLU, libGL, libjpeg, flac
-, libXi, libXfixes, freetype, libopus, libtheora
-, physfs, enet, pkg-config, gtk3, pcre, libpulseaudio, libpthreadstubs
+{ lib
+, alsa-lib
+, cmake
+, enet
+, fetchFromGitHub
+, fetchpatch
+, flac
+, freetype
+, gtk3
+, libGL
+, libGLU
+, libjpeg
+, libopus
+, libpng
+, libpthreadstubs
+, libpulseaudio
+, libtheora
+, libvorbis
+, libwebp
+, libX11
+, libXcursor
 , libXdmcp
+, libXext
+, libXfixes
+, libXi
+, libXpm
+, libXt
+, libXxf86dga
+, libXxf86misc
+, libXxf86vm
+, openal
+, pcre
+, physfs
+, pkg-config
+, stdenv
+, texinfo
+, xorgproto
+, zlib
 }:
 
 stdenv.mkDerivation rec {
@@ -18,19 +49,51 @@ stdenv.mkDerivation rec {
     sha256 = "sha256-uNcaeTelFNfg+YjPYc7nK4TrFDxJsEuPhsF8x1cvIYQ=";
   };
 
-  nativeBuildInputs = [ cmake ];
+  nativeBuildInputs = [
+    cmake
+    pkg-config
+  ];
+
   buildInputs = [
-    texinfo libXext xorgproto libX11 libXpm libXt libXcursor
-    alsa-lib zlib libpng libvorbis libXxf86dga libXxf86misc
-    libXxf86vm openal libGLU libGL
-    libjpeg flac
-    libXi libXfixes
-    enet libtheora freetype physfs libopus pkg-config gtk3 pcre libXdmcp
-    libpulseaudio libpthreadstubs
+    enet
+    flac
+    freetype
+    gtk3
+    libGL
+    libGLU
+    libjpeg
+    libopus
+    libpng
+    libtheora
+    libvorbis
+    libwebp
+    openal
+    pcre
+    physfs
+    texinfo
+    zlib
+  ] ++ lib.optionals stdenv.isLinux [
+    alsa-lib
+    libpthreadstubs
+    libpulseaudio
+    libX11
+    libXcursor
+    libXdmcp
+    libXext
+    libXfixes
+    libXi
+    libXpm
+    libXt
+    libXxf86dga
+    libXxf86misc
+    libXxf86vm
+    xorgproto
   ];
 
   postPatch = ''
     sed -e 's@/XInput2.h@/XI2.h@g' -i CMakeLists.txt "src/"*.c
+    sed -e 's@Kernel/IOKit/hidsystem/IOHIDUsageTables.h@IOKit/hid/IOHIDUsageTables.h@g' -i include/allegro5/platform/alosx.h
+    sed -e 's@OpenAL/@AL/@g' -i addons/audio/openal.c
   '';
 
   cmakeFlags = [ "-DCMAKE_SKIP_RPATH=ON" ];
@@ -40,6 +103,6 @@ stdenv.mkDerivation rec {
     homepage = "https://liballeg.org/";
     license = licenses.zlib;
     maintainers = [ maintainers.raskin ];
-    platforms = platforms.linux;
+    platforms = platforms.linux ++ platforms.darwin;
   };
 }

@@ -2,7 +2,6 @@
 , buildPythonPackage
 , callPackage
 , fetchFromGitHub
-, asgiref
 , click
 , h11
 , httptools
@@ -10,22 +9,24 @@
 , pyyaml
 , typing-extensions
 , uvloop
-, watchgod
+, watchfiles
 , websockets
-, wsproto
+, hatchling
 , pythonOlder
 }:
 
 buildPythonPackage rec {
   pname = "uvicorn";
-  version = "0.17.6";
-  disabled = pythonOlder "3.6";
+  version = "0.23.2";
+  disabled = pythonOlder "3.8";
+
+  format = "pyproject";
 
   src = fetchFromGitHub {
     owner = "encode";
     repo = pname;
-    rev = version;
-    hash = "sha256-iJlAU7zZl9X3FcQlJoJ7KlETZOx6WsE9FcpCK4Cm/Fo=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-98Ahb6syD/J9StwaOqVj/MCdzbHOgey0sixp7SJnROE=";
   };
 
   outputs = [
@@ -33,19 +34,22 @@ buildPythonPackage rec {
     "testsout"
   ];
 
+  nativeBuildInputs = [ hatchling ];
+
   propagatedBuildInputs = [
-    asgiref
     click
     h11
+  ] ++ lib.optionals (pythonOlder "3.11") [
+    typing-extensions
+  ];
+
+  passthru.optional-dependencies.standard = [
     httptools
     python-dotenv
     pyyaml
     uvloop
-    watchgod
+    watchfiles
     websockets
-    wsproto
-  ] ++ lib.optionals (pythonOlder "3.8") [
-    typing-extensions
   ];
 
   postInstall = ''

@@ -4,6 +4,7 @@
 , cmake
 , pkg-config
 , lxqt-build-tools
+, lxqt-menu-data
 , pcre
 , libexif
 , xorg
@@ -11,39 +12,40 @@
 , menu-cache
 , qtx11extras
 , qttools
-, lxqtUpdateScript
+, gitUpdater
 }:
 
 mkDerivation rec {
   pname = "libfm-qt";
-  version = "1.1.0";
+  version = "1.4.0";
 
   src = fetchFromGitHub {
     owner = "lxqt";
     repo = "libfm-qt";
     rev = version;
-    sha256 = "kF3u1Eh45l/HvL5R0PazIfGIdOVYyB2VAI33NwRfLJk=";
+    hash = "sha256-QxPYSA7537K+/dRTxIYyg+Q/kj75rZOdzlUsmSdQcn4=";
   };
 
   nativeBuildInputs = [
     cmake
     pkg-config
     lxqt-build-tools
+    qttools
   ];
 
   buildInputs = [
+    lxqt-menu-data
     pcre
     libexif
     xorg.libpthreadstubs
     xorg.libxcb
     xorg.libXdmcp
     qtx11extras
-    qttools
     libfm
     menu-cache
   ];
 
-  passthru.updateScript = lxqtUpdateScript { inherit pname version src; };
+  passthru.updateScript = gitUpdater { };
 
   meta = with lib; {
     homepage = "https://github.com/lxqt/libfm-qt";

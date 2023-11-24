@@ -17,13 +17,13 @@
 
 stdenv.mkDerivation rec {
   pname = "gtkmm";
-  version = "4.6.1";
+  version = "4.12.0";
 
   outputs = [ "out" "dev" ];
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "DV7+yp7GT91TC7gibGMQrJlUmz3ZYE1uNnY5eRrz0eA=";
+    sha256 = "+8PnYYEjNFwBSO9xq7ZUjUIfUrsiT72jSHW2d9wDLJI=";
   };
 
   nativeBuildInputs = [
@@ -44,7 +44,7 @@ stdenv.mkDerivation rec {
     pangomm_2_48
   ];
 
-  checkInputs = [
+  nativeCheckInputs = lib.optionals (!stdenv.isDarwin)[
     xvfb-run
   ];
 
@@ -58,7 +58,7 @@ stdenv.mkDerivation rec {
   checkPhase = ''
     runHook preCheck
 
-    xvfb-run -s '-screen 0 800x600x24' \
+    ${lib.optionalString (!stdenv.isDarwin) "xvfb-run -s '-screen 0 800x600x24'"} \
       meson test --print-errorlogs
 
     runHook postCheck

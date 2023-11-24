@@ -5,28 +5,32 @@
 , cairo
 , fetchurl
 , flac
-, gcc11
-, gnome
+, gcc12
 , gssdp
 , gupnp
 , gupnp-av
 , lame
 , libgmpris
 , libusb-compat-0_1
-, llvmPackages_10
-, meson
+, llvmPackages_14
 , mpg123
-, ninja
 , rpmextract
 , wavpack
-}:
+
+, callPackage
+, rygel ? null
+}@inputs:
+let
+  # FIXME: Replace with gnome.rygel once hqplayerd releases a new version.
+  rygel-hqplayerd = inputs.rygel or (callPackage ./rygel.nix { });
+in
 stdenv.mkDerivation rec {
   pname = "hqplayerd";
-  version = "4.32.2-92";
+  version = "5.2.0-6";
 
   src = fetchurl {
-    url = "https://www.signalyst.eu/bins/${pname}/fc35/${pname}-${version}.fc35.x86_64.rpm";
-    hash = "sha256-chgzu5r35VTSc1xOVTPCWCRrjABOy+vs57SsKOSzvkM=";
+    url = "https://www.signalyst.eu/bins/${pname}/fc37/${pname}-${version}.fc37.x86_64.rpm";
+    hash = "sha256-AJKSj7t1yog3EXrzdods9Jk35ibEbegnXQzFcsr2N7I=";
   };
 
   unpackPhase = ''
@@ -39,15 +43,15 @@ stdenv.mkDerivation rec {
     alsa-lib
     cairo
     flac
-    gcc11.cc.lib
-    gnome.rygel
+    gcc12.cc.lib
+    rygel-hqplayerd
     gssdp
     gupnp
     gupnp-av
     lame
     libgmpris
     libusb-compat-0_1
-    llvmPackages_10.openmp
+    llvmPackages_14.openmp
     mpg123
     wavpack
   ];
@@ -69,14 +73,6 @@ stdenv.mkDerivation rec {
     # configuration
     mkdir -p $out/etc
     cp -rv ./etc/hqplayer $out/etc/
-
-    # udev rules
-    mkdir -p $out/etc/udev
-    cp -rv ./etc/udev/rules.d $out/etc/udev/
-
-    # kernel module cfgs
-    mkdir -p $out/etc
-    cp -rv ./etc/modules-load.d $out/etc/
 
     # systemd service file
     mkdir -p $out/lib/systemd
@@ -105,6 +101,10 @@ stdenv.mkDerivation rec {
     addOpenGLRunpath $out/bin/hqplayerd
     $out/bin/hqplayerd --version
   '';
+
+  passthru = {
+    rygel = rygel-hqplayerd;
+  };
 
   meta = with lib; {
     homepage = "https://www.signalyst.com/custom.html";

@@ -8,19 +8,19 @@ in
 {
   options = {
     services.jellyfin = {
-      enable = mkEnableOption "Jellyfin Media Server";
+      enable = mkEnableOption (lib.mdDoc "Jellyfin Media Server");
 
       user = mkOption {
         type = types.str;
         default = "jellyfin";
-        description = "User account under which Jellyfin runs.";
+        description = lib.mdDoc "User account under which Jellyfin runs.";
       };
 
       package = mkOption {
         type = types.package;
         default = pkgs.jellyfin;
         defaultText = literalExpression "pkgs.jellyfin";
-        description = ''
+        description = lib.mdDoc ''
           Jellyfin package to use.
         '';
       };
@@ -28,13 +28,13 @@ in
       group = mkOption {
         type = types.str;
         default = "jellyfin";
-        description = "Group under which jellyfin runs.";
+        description = lib.mdDoc "Group under which jellyfin runs.";
       };
 
       openFirewall = mkOption {
         type = types.bool;
         default = false;
-        description = ''
+        description = lib.mdDoc ''
           Open the default ports in the firewall for the media server. The
           HTTP/HTTPS ports can be changed in the Web UI, so this option should
           only be used if they are unchanged.
@@ -46,7 +46,8 @@ in
   config = mkIf cfg.enable {
     systemd.services.jellyfin = {
       description = "Jellyfin Media Server";
-      after = [ "network.target" ];
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
 
       # This is mostly follows: https://github.com/jellyfin/jellyfin/blob/master/fedora/jellyfin.service
@@ -81,7 +82,7 @@ in
         ProtectKernelTunables = !config.boot.isContainer;
         LockPersonality = true;
         PrivateTmp = !config.boot.isContainer;
-        # needed for hardware accelaration
+        # needed for hardware acceleration
         PrivateDevices = false;
         PrivateUsers = true;
         RemoveIPC = true;

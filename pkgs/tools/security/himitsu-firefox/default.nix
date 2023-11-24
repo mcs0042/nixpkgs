@@ -27,6 +27,10 @@ stdenv.mkDerivation rec {
     himitsu
   ];
 
+  preConfigure = ''
+    export HARECACHE=$(mktemp -d)
+  '';
+
   buildFlags = [ "LIBEXECDIR=$(out)/libexec" ];
 
   # Only install the native component; per the docs:
@@ -42,5 +46,6 @@ stdenv.mkDerivation rec {
     license = licenses.gpl3Only;
     maintainers = with maintainers; [ auchter ];
     inherit (hare.meta) platforms badPlatforms;
+    broken = true;
   };
 }

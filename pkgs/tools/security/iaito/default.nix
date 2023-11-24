@@ -1,61 +1,100 @@
 { lib
 , stdenv
 , fetchFromGitHub
+, meson
+, ninja
 , pkg-config
+, python3
 , qtbase
 , qttools
 , radare2
 , wrapQtAppsHook
-, zip
-, nix-update-script
 }:
 
-stdenv.mkDerivation rec {
+let
   pname = "iaito";
-  version = "5.7.0";
+  version = "5.8.8";
 
-  src = fetchFromGitHub {
+  main_src = fetchFromGitHub rec {
     owner = "radareorg";
     repo = pname;
     rev = version;
-    fetchSubmodules = true;
-    sha256 = "sha256-qEJTsS669eEwo2iiuybN72O5oopCaGEkju8+ekjw2zk=";
+    hash = "sha256-/sXdp6QpDxltesg5i2CD0K2r18CrbGZmmI7HqULvFfA=";
+    name = repo;
   };
 
-  nativeBuildInputs = [ pkg-config qttools wrapQtAppsHook zip ];
-  buildInputs = [ radare2 qtbase ];
+  translations_src = fetchFromGitHub rec {
+    owner = "radareorg";
+    repo = "iaito-translations";
+    rev = "e66b3a962a7fc7dfd730764180011ecffbb206bf";
+    hash = "sha256-6NRTZ/ydypsB5TwbivvwOH9TEMAff/LH69hCXTvMPp8=";
+    name = repo;
+  };
+in
 
-  postPatch = ''
-    substituteInPlace Makefile \
-      --replace "git submodule update --init" ""
+stdenv.mkDerivation rec {
+  inherit pname version;
+
+  srcs = [ main_src translations_src ];
+  sourceRoot = "${main_src.name}/src";
+
+  postUnpack = ''
+    chmod -R u+w ${translations_src.name}
   '';
 
-  NIX_CFLAGS_COMPILE = [ "-I${radare2}/include/libr" "-I${radare2}/include/libr/sdb" ];
+  postPatch = ''
+    substituteInPlace common/ResourcePaths.cpp \
+      --replace "/app/share/iaito/translations" "$out/share/iaito/translations"
+  '';
+
+  nativeBuildInputs = [
+    meson
+    ninja
+    pkg-config
+    python3
+    qttools
+    wrapQtAppsHook
+  ];
+
+  buildInputs = [
+    qtbase
+    radare2
+  ];
+
+  # the radare2 binary package seems to not install all necessary headers.
+  env.NIX_CFLAGS_COMPILE = toString [ "-I" "${radare2.src}/shlr/sdb/include/sdb" ];
+
+  postBuild = ''
+    pushd ../../../${translations_src.name}
+    make build -j$NIX_BUILD_CORES PREFIX=$out
+    popd
+  '';
 
   installPhase = ''
     runHook preInstall
 
-    install -Dm755 build/iaito $out/bin/iaito
-    install -Dm644 $src/src/org.radare.iaito.appdata.xml $out/share/metainfo/org.radare.iaito.appdata.xml
-    install -Dm644 $src/src/org.radare.iaito.desktop $out/share/applications/org.radare.iaito.desktop
-    install -Dm644 $src/src/img/iaito-o.svg $out/share/pixmaps/iaito-o.svg
+    install -m755 -Dt $out/bin iaito
+    install -m644 -Dt $out/share/metainfo ../org.radare.iaito.appdata.xml
+    install -m644 -Dt $out/share/applications ../org.radare.iaito.desktop
+    install -m644 -Dt $out/share/pixmaps ../img/iaito-o.svg
+
+    pushd ../../../${translations_src.name}
+    make install -j$NIX_BUILD_CORES PREFIX=$out
+    popd
 
     runHook postInstall
   '';
 
-  passthru.updateScript = nix-update-script {
-    attrPath = pname;
-  };
-
   meta = with lib; {
-    description = "Official frontend of radare2";
+    description = "An official graphical interface of radare2";
     longDescription = ''
-      The official graphical interface for radare2, a libre reverse engineering
-      framework.
+      iaito is the official graphical interface of radare2. It's the
+      continuation of Cutter for radare2 after the Rizin fork.
     '';
-    homepage = "https://github.com/radareorg/iaito";
-    changelog = "https://github.com/radareorg/iaito/releases/tag/${src.rev}";
+    homepage = "https://radare.org/n/iaito.html";
+    changelog = "https://github.com/radareorg/iaito/releases/tag/${version}";
     license = licenses.gpl3Plus;
     maintainers = with maintainers; [ azahi ];
+    platforms = platforms.linux;
   };
 }

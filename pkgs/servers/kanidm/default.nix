@@ -10,6 +10,8 @@
 , openssl
 , sqlite
 , pam
+, bashInteractive
+, rust-jemalloc-sys
 }:
 
 let
@@ -17,16 +19,23 @@ let
 in
 rustPlatform.buildRustPackage rec {
   pname = "kanidm";
-  version = "1.1.0-alpha.8";
+  version = "1.1.0-rc.15";
 
   src = fetchFromGitHub {
     owner = pname;
     repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-zMtbE6Y9wXFPBqhmiTMJ3m6bLVZl+c6lRY39DWDlJNo=";
+    # Latest 1.1.0-rc.15 tip
+    rev = "a5ca8018e3a636dbb0a79b3fd869db059d92979d";
+    hash = "sha256-PFGoeGn7a/lVR6rOmOKA3ydAoo3/+9RlkwBAKS22Psg=";
   };
 
-  cargoSha256 = "sha256:1l7xqp457zfd9gfjp6f4lzgadfp6112jbip4irazw4084qwj0z6x";
+  cargoLock = {
+    lockFile = ./Cargo.lock;
+    outputHashes = {
+      "base64urlsafedata-0.1.3" = "sha256-D+u4CIhx8BNyx+EH1efS4mrinjeSJopWCteSaMY1kh8=";
+      "sshkeys-0.3.2" = "sha256-CNG9HW8kSwezAdIYW+CR5rqFfmuso4R0+m4OpIyXbSM=";
+    };
+  };
 
   KANIDM_BUILD_PROFILE = "release_nixos_${arch}";
 
@@ -34,14 +43,17 @@ rustPlatform.buildRustPackage rec {
     let
       format = (formats.toml { }).generate "${KANIDM_BUILD_PROFILE}.toml";
       profile = {
+        admin_bind_path = "/run/kanidmd/sock";
+        cpu_flags = if stdenv.isx86_64 then "x86_64_legacy" else "none";
+        default_config_path = "/etc/kanidm/server.toml";
+        default_unix_shell_path = "${lib.getBin bashInteractive}/bin/bash";
         web_ui_pkg_path = "@web_ui_pkg_path@";
-        cpu_flags = if stdenv.isx86_64 then "x86_64_v1" else "none";
       };
     in
     ''
-      cp ${format profile} profiles/${KANIDM_BUILD_PROFILE}.toml
-      substituteInPlace profiles/${KANIDM_BUILD_PROFILE}.toml \
-        --replace '@web_ui_pkg_path@' "$out/ui"
+      cp ${format profile} libs/profiles/${KANIDM_BUILD_PROFILE}.toml
+      substituteInPlace libs/profiles/${KANIDM_BUILD_PROFILE}.toml \
+        --replace '@web_ui_pkg_path@' "${placeholder "out"}/ui"
     '';
 
   nativeBuildInputs = [
@@ -54,32 +66,31 @@ rustPlatform.buildRustPackage rec {
     openssl
     sqlite
     pam
+    rust-jemalloc-sys
   ];
 
-  # Failing tests, probably due to network issues
-  checkFlags = [
-    "--skip default_entries"
-    "--skip oauth2_openid_basic_flow"
-    "--skip test_server"
-    "--skip test_cache"
-  ];
+  # The UI needs to be in place before the tests are run.
+  postBuild = ''
+    # We don't compile the wasm-part form source, as there isn't a rustc for
+    # wasm32-unknown-unknown in nixpkgs yet.
+    mkdir $out
+    cp -r server/web_ui/pkg $out/ui
+  '';
 
   preFixup = ''
-    installShellCompletion --bash $releaseDir/build/completions/*.bash
-    installShellCompletion --zsh  $releaseDir/build/completions/_*
+    installShellCompletion \
+      --bash $releaseDir/build/completions/*.bash \
+      --zsh $releaseDir/build/completions/_*
 
     # PAM and NSS need fix library names
     mv $out/lib/libnss_kanidm.so $out/lib/libnss_kanidm.so.2
     mv $out/lib/libpam_kanidm.so $out/lib/pam_kanidm.so
-
-    # We don't compile the wasm-part form source, as there isn't a rustc for
-    # wasm32-unknown-unknown in nixpkgs yet.
-    cp -r kanidmd_web_ui/pkg $out/ui
   '';
 
   passthru.tests = { inherit (nixosTests) kanidm; };
 
   meta = with lib; {
+    changelog = "https://github.com/kanidm/kanidm/releases/tag/v${version}";
     description = "A simple, secure and fast identity management platform";
     homepage = "https://github.com/kanidm/kanidm";
     license = licenses.mpl20;

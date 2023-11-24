@@ -14,17 +14,17 @@
 }:
 
 let
-  char2underscore = char: str: lib.replaceChars [ char ] [ "_" ] str;
+  char2underscore = char: str: lib.replaceStrings [ char ] [ "_" ] str;
 in
 mkDerivation rec {
   pname = "mt32emu-qt";
-  version = "1.10.2";
+  version = "1.11.1";
 
   src = fetchFromGitHub {
     owner = "munt";
     repo = "munt";
     rev = "${char2underscore "-" pname}_${char2underscore "." version}";
-    sha256 = "1dh5xpnsgx367ch45mm5c2p26vnxf3shax2afg2cd2lrbrlii7l9";
+    sha256 = "sha256-PqYPYnKPlnU3PByxksBscl4GqDRllQdmD6RWpy/Ura0=";
   };
 
   postPatch = ''
@@ -63,7 +63,7 @@ mkDerivation rec {
   '';
 
   meta = with lib; {
-    homepage = "http://munt.sourceforge.net/";
+    homepage = "https://munt.sourceforge.net/";
     description = "A synthesizer application built on Qt and libmt32emu";
     longDescription = ''
       mt32emu-qt is a synthesiser application that facilitates both realtime

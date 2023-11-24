@@ -14,11 +14,6 @@ stdenv.mkDerivation rec {
   nativeBuildInputs = [ pkg-config meson ninja gobject-introspection libtool vala ];
   buildInputs = [ glib libcanberra ];
 
-  mesonFlags = [
-    "-Dintrospection=${lib.boolToString (stdenv.buildPlatform == stdenv.hostPlatform)}"
-    "-Denable_vala=${lib.boolToString (stdenv.buildPlatform == stdenv.hostPlatform)}"
-  ];
-
   passthru = {
     updateScript = gnome.updateScript {
       packageName = pname;
@@ -31,6 +26,6 @@ stdenv.mkDerivation rec {
     description = "Small library for playing system sounds";
     maintainers = teams.gnome.members;
     license = licenses.gpl2;
-    platforms = platforms.linux;
+    platforms = platforms.unix;
   };
 }

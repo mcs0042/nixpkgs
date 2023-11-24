@@ -14,24 +14,33 @@
 # instead of adding this to `services.udev.packages` on NixOS,
 python3Packages.buildPythonApplication rec {
   pname = "solaar";
-  version = "1.1.4";
+  version = "1.1.10";
 
   src = fetchFromGitHub {
     owner = "pwr-Solaar";
     repo = "Solaar";
-    rev = version;
-    hash = "sha256-nDfVF7g0M54DRpkH1rnZB8o+nCV4A6b1uKMOMRQ3GbI=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-cs1kj/spZtMUL9aUtBHINAH7uyjMSn9jRDF/hRPzIbo=";
   };
 
   outputs = [ "out" "udev" ];
 
-  nativeBuildInputs = [ wrapGAppsHook gdk-pixbuf ];
-  buildInputs = [ libappindicator librsvg ];
+  nativeBuildInputs = [
+    gdk-pixbuf
+    gobject-introspection
+    wrapGAppsHook
+  ];
+
+  buildInputs = [
+    libappindicator
+    librsvg
+  ];
 
   propagatedBuildInputs = with python3Packages; [
     evdev
-    gobject-introspection
+    dbus-python
     gtk3
+    hid-parser
     psutil
     pygobject3
     pyudev
@@ -46,6 +55,17 @@ python3Packages.buildPythonApplication rec {
 
     install -Dm444 -t $udev/etc/udev/rules.d rules.d-uinput/*.rules
   '';
+
+  dontWrapGApps = true;
+
+  preFixup = ''
+    makeWrapperArgs+=("''${gappsWrapperArgs[@]}")
+  '';
+
+  # no tests
+  doCheck = false;
+
+  pythonImportsCheck = [ "solaar" ];
 
   meta = with lib; {
     description = "Linux devices manager for the Logitech Unifying Receiver";

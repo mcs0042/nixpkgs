@@ -4,24 +4,24 @@ let
 in
 {
   options.services.openiscsi = with types; {
-    enable = mkEnableOption "the openiscsi iscsi daemon";
-    enableAutoLoginOut = mkEnableOption ''
+    enable = mkEnableOption (lib.mdDoc "the openiscsi iscsi daemon");
+    enableAutoLoginOut = mkEnableOption (lib.mdDoc ''
       automatic login and logout of all automatic targets.
-      You probably do not want this.
-    '';
+      You probably do not want this
+    '');
     discoverPortal = mkOption {
       type = nullOr str;
       default = null;
-      description = "Portal to discover targets on";
+      description = lib.mdDoc "Portal to discover targets on";
     };
     name = mkOption {
       type = str;
-      description = "Name of this iscsi initiator";
+      description = lib.mdDoc "Name of this iscsi initiator";
       example = "iqn.2020-08.org.linux-iscsi.initiatorhost:example";
     };
     package = mkOption {
       type = package;
-      description = "openiscsi package to use";
+      description = lib.mdDoc "openiscsi package to use";
       default = pkgs.openiscsi;
       defaultText = literalExpression "pkgs.openiscsi";
     };
@@ -29,11 +29,11 @@ in
     extraConfig = mkOption {
       type = str;
       default = "";
-      description = "Lines to append to default iscsid.conf";
+      description = lib.mdDoc "Lines to append to default iscsid.conf";
     };
 
     extraConfigFile = mkOption {
-      description = ''
+      description = lib.mdDoc ''
         Append an additional file's contents to /etc/iscsid.conf. Use a non-store path
         and store passwords in this file.
       '';
@@ -52,25 +52,27 @@ in
     '';
     environment.etc."iscsi/initiatorname.iscsi".text = "InitiatorName=${cfg.name}";
 
-    system.activationScripts.iscsid = let
-      extraCfgDumper = optionalString (cfg.extraConfigFile != null) ''
-        if [ -f "${cfg.extraConfigFile}" ]; then
-          printf "\n# The following is from ${cfg.extraConfigFile}:\n"
-          cat "${cfg.extraConfigFile}"
-        else
-          echo "Warning: services.openiscsi.extraConfigFile ${cfg.extraConfigFile} does not exist!" >&2
-        fi
-      '';
-    in ''
-      (
-        cat ${config.environment.etc."iscsi/iscsid.conf.fragment".source}
-        ${extraCfgDumper}
-      ) > /etc/iscsi/iscsid.conf
-    '';
-
     systemd.packages = [ cfg.package ];
 
-    systemd.services."iscsid".wantedBy = [ "multi-user.target" ];
+    systemd.services."iscsid" = {
+      wantedBy = [ "multi-user.target" ];
+      preStart =
+        let
+          extraCfgDumper = optionalString (cfg.extraConfigFile != null) ''
+            if [ -f "${cfg.extraConfigFile}" ]; then
+              printf "\n# The following is from ${cfg.extraConfigFile}:\n"
+              cat "${cfg.extraConfigFile}"
+            else
+              echo "Warning: services.openiscsi.extraConfigFile ${cfg.extraConfigFile} does not exist!" >&2
+            fi
+          '';
+        in ''
+          (
+            cat ${config.environment.etc."iscsi/iscsid.conf.fragment".source}
+            ${extraCfgDumper}
+          ) > /etc/iscsi/iscsid.conf
+        '';
+    };
     systemd.sockets."iscsid".wantedBy = [ "sockets.target" ];
 
     systemd.services."iscsi" = mkIf cfg.enableAutoLoginOut {

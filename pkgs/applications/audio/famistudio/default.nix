@@ -2,28 +2,36 @@
 , stdenv
 , fetchzip
 , autoPatchelfHook
+, dotnet-runtime
+, ffmpeg
+, libglvnd
 , makeWrapper
-, alsa-lib
-, gtk-sharp-2_0
-, glib
-, gtk2
-, mono
 , openal
 }:
 
 stdenv.mkDerivation rec {
   pname = "famistudio";
-  version = "3.3.1";
+  version = "4.1.3";
 
   src = fetchzip {
     url = "https://github.com/BleuBleu/FamiStudio/releases/download/${version}/FamiStudio${lib.strings.concatStrings (lib.splitVersion version)}-LinuxAMD64.zip";
     stripRoot = false;
-    sha256 = "sha256-Bgry+cRsmC+aBff6EaeHoGBygpiZS5SmgICPU32zO+c=";
+    hash = "sha256-eAdv0oObczbs8QLGYbxCrdFk/gN5DOCJ1dp/tg8JWIc=";
   };
 
-  nativeBuildInputs = [ autoPatchelfHook makeWrapper ];
+  strictDeps = true;
 
-  buildInputs = [ alsa-lib gtk-sharp-2_0 glib gtk2 mono openal ];
+  nativeBuildInputs = [
+    autoPatchelfHook
+    makeWrapper
+  ];
+
+  buildInputs = [
+    dotnet-runtime
+    ffmpeg
+    libglvnd
+    openal
+  ];
 
   dontConfigure = true;
   dontBuild = true;
@@ -34,18 +42,14 @@ stdenv.mkDerivation rec {
     mkdir -p $out/{bin,lib/famistudio}
     mv * $out/lib/famistudio
 
-    makeWrapper ${mono}/bin/mono $out/bin/famistudio \
-      --add-flags $out/lib/famistudio/FamiStudio.exe \
-      --prefix MONO_GAC_PREFIX : ${gtk-sharp-2_0} \
-      --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ glib gtk2 gtk-sharp-2_0 ]}
+    makeWrapper ${lib.getExe dotnet-runtime} $out/bin/famistudio \
+      --add-flags $out/lib/famistudio/FamiStudio.dll \
+      --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ libglvnd ]} \
+      --prefix PATH : ${lib.makeBinPath [ ffmpeg ]}
 
-    # Fails to find openal32.dll on its own, needs abit of help
+    # Bundled openal lib freezes the application
     rm $out/lib/famistudio/libopenal32.so
-    cat <<EOF >$out/lib/famistudio/OpenTK.dll.config
-    <configuration>
-      <dllmap dll="openal32.dll" target="${openal}/lib/libopenal.so"/>
-    </configuration>
-    EOF
+    ln -s ${openal}/lib/libopenal.so $out/lib/famistudio/libopenal32.so
 
     runHook postInstall
   '';

@@ -1,15 +1,15 @@
-{ stdenv, fetchurl, popt, ncurses, python39, readline, lib }:
+{ stdenv, fetchurl, popt, ncurses, python3, readline, lib }:
 
 stdenv.mkDerivation rec {
   pname = "OpenIPMI";
-  version = "2.0.32";
+  version = "2.0.34";
 
   src = fetchurl {
     url = "mirror://sourceforge/openipmi/OpenIPMI-${version}.tar.gz";
-    sha256 = "sha256-9tD9TAp0sF+AkHIp0LJw9UyiMpS8wRl5+LjRJ2Z4aUU=";
+    sha256 = "sha256-kyJ+Q8crXDvVlJMj4GaapVJ9GpcUc6OjZa8D+4KEqV8=";
   };
 
-  buildInputs = [ ncurses popt python39 readline ];
+  buildInputs = [ ncurses popt python3 readline ];
 
   outputs = [ "out" "lib" "dev" "man" ];
 

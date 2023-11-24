@@ -7,30 +7,57 @@ dotnetBuildHook() {
     runHook preBuild
 
     if [ "${enableParallelBuilding-}" ]; then
-        maxCpuFlag="$NIX_BUILD_CORES"
-        parallelBuildFlag="true"
+        local -r maxCpuFlag="$NIX_BUILD_CORES"
+        local -r parallelBuildFlag="true"
     else
-        maxCpuFlag="1"
-        parallelBuildFlag="false"
+        local -r maxCpuFlag="1"
+        local -r parallelBuildFlag="false"
     fi
 
+    if [ "${selfContainedBuild-}" ]; then
+        dotnetBuildFlags+=("-p:SelfContained=true")
+    else
+        dotnetBuildFlags+=("-p:SelfContained=false")
+    fi
+
+    if [ "${useAppHost-}" ]; then
+        dotnetBuildFlags+=("-p:UseAppHost=true")
+    fi
+
+    local versionFlags=()
     if [ "${version-}" ]; then
-        versionFlag="-p:Version=${version-}"
+        versionFlags+=("-p:InformationalVersion=${version-}")
     fi
 
-    for project in ${projectFile[@]} ${testProjectFile[@]}; do
-        env \
-            dotnet build "$project" \
-                -maxcpucount:$maxCpuFlag \
-                -p:BuildInParallel=$parallelBuildFlag \
-                -p:ContinuousIntegrationBuild=true \
-                -p:Deterministic=true \
-                -p:UseAppHost=true \
-                --configuration "@buildType@" \
-                --no-restore \
-                ${versionFlag-} \
-                ${dotnetBuildFlags[@]}  \
-                ${dotnetFlags[@]}
+    if [ "${versionForDotnet-}" ]; then
+        versionFlags+=("-p:Version=${versionForDotnet-}")
+    fi
+
+    dotnetBuild() {
+        local -r project="${1-}"
+
+        runtimeIdFlags=()
+        if [[ "$project" == *.csproj ]] || [ "${selfContainedBuild-}" ]; then
+            runtimeIdFlags+=("--runtime @runtimeId@")
+        fi
+
+        env dotnet build ${project-} \
+            -maxcpucount:$maxCpuFlag \
+            -p:BuildInParallel=$parallelBuildFlag \
+            -p:ContinuousIntegrationBuild=true \
+            -p:Deterministic=true \
+            --configuration "@buildType@" \
+            --no-restore \
+            ${versionFlags[@]} \
+            ${runtimeIdFlags[@]} \
+            ${dotnetBuildFlags[@]}  \
+            ${dotnetFlags[@]}
+    }
+
+    (( "${#projectFile[@]}" == 0 )) && dotnetBuild
+
+    for project in ${projectFile[@]} ${testProjectFile[@]-}; do
+        dotnetBuild "$project"
     done
 
     runHook postBuild

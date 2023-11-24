@@ -1,17 +1,16 @@
-{ lib, fetchurl, buildDunePackage, cppo, easy-format, biniou }:
+{ lib, fetchurl, buildDunePackage, cppo, seq }:
 
 buildDunePackage rec {
   pname = "yojson";
-  version = "1.7.0";
-  useDune2 = true;
+  version = "2.1.1";
 
   src = fetchurl {
     url = "https://github.com/ocaml-community/yojson/releases/download/${version}/yojson-${version}.tbz";
-    sha256 = "1iich6323npvvs8r50lkr4pxxqm9mf6w67cnid7jg1j1g5gwcvv5";
+    hash = "sha256-1YGDIHsZjcBlhmI5Bm4HTDT54TnA2cQXWjiAl5DogXM=";
   };
 
   nativeBuildInputs = [ cppo ];
-  propagatedBuildInputs = [ easy-format biniou ];
+  propagatedBuildInputs = [ seq ];
 
   meta = with lib; {
     description = "An optimized parsing and printing library for the JSON format";

@@ -2,16 +2,16 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "swayr";
-  version = "0.19.0";
+  version = "0.27.1";
 
   src = fetchFromSourcehut {
     owner = "~tsdh";
     repo = "swayr";
     rev = "swayr-${version}";
-    sha256 = "sha256-ubindhU3G1iHqf/yiXIJk87uI3o5y2lfs22tbIfiqv4=";
+    sha256 = "sha256-0qWrVf7Ou7psczg3vlFMh/QO95yPBUZ/fKQ7w0sE/4I=";
   };
 
-  cargoSha256 = "sha256-X6BYLD7YmlHCO+3b3Ubai222tvsZUmZrwm3vS2PeqDY=";
+  cargoHash = "sha256-r8QcLYBKOfUdzwmohUfg4ZrLqQudIfHB/DETO9byrB0=";
 
   patches = [
     ./icon-paths.patch
@@ -24,10 +24,12 @@ rustPlatform.buildRustPackage rec {
     export HOME=$TMPDIR
   '';
 
-  meta = with lib; {
+  meta = {
     description = "A window switcher (and more) for sway";
     homepage = "https://git.sr.ht/~tsdh/swayr";
-    license = with licenses; [ gpl3Plus ];
-    maintainers = with maintainers; [ artturin ];
+    license = lib.licenses.gpl3Plus;
+    mainProgram = "swayr";
+    maintainers = with lib.maintainers; [ artturin ];
+    platforms = lib.platforms.linux;
   };
 }

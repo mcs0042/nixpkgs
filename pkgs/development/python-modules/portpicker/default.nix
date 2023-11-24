@@ -1,21 +1,26 @@
 { lib
 , buildPythonPackage
 , fetchPypi
+, setuptools
 , psutil
 , pythonOlder
 }:
 
 buildPythonPackage rec {
   pname = "portpicker";
-  version = "1.5.0";
+  version = "1.6.0";
   format = "pyproject";
 
   disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-4TsUgAit6yeTz4tVvNIP3OxPdj8tO/PEX15eXR330ig=";
+    hash = "sha256-vVB/1vlvZe4CeB8uZ06dxsmbv6bjw5mS45FiBMnUMfo=";
   };
+
+  nativeBuildInputs = [
+    setuptools
+  ];
 
   propagatedBuildInputs = [
     psutil

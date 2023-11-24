@@ -1,17 +1,19 @@
-{ buildGoModule, fetchFromGitHub, lib, stdenv }:
+{ buildGoModule, fetchFromGitHub, lib, stdenv, gawk }:
 
 buildGoModule rec {
   pname = "goawk";
-  version = "1.18.0";
+  version = "1.25.0";
 
   src = fetchFromGitHub {
     owner = "benhoyt";
     repo = "goawk";
     rev = "v${version}";
-    sha256 = "sha256-kRakQo18qOzrlvsAKtKTHEacUxDfoWyMmtiM7d5WCvQ=";
+    hash = "sha256-vxDBtYrfSmYE2mCqhepeLr4u+zLfHxCrYSXGq05CEYQ=";
   };
 
-  vendorSha256 = "sha256-pQpattmS9VmO3ZIQUFn66az8GSmB4IvYhTTCFn6SUmo=";
+  vendorHash = null;
+
+  nativeCheckInputs = [ gawk ];
 
   postPatch = ''
     substituteInPlace goawk_test.go \
@@ -23,6 +25,11 @@ buildGoModule rec {
     substituteInPlace interp/interp_test.go \
       --replace "TestShellCommand" "SkipShellCommand"
   '';
+
+  checkFlags = [
+    "-awk"
+    "${gawk}/bin/gawk"
+  ];
 
   doCheck = (stdenv.system != "aarch64-darwin");
 

@@ -4,27 +4,25 @@
 , pythonOlder
 , azure-common
 , azure-mgmt-core
-, msrest
-, msrestazure
+, isodate
 }:
 
 buildPythonPackage rec {
   pname = "azure-mgmt-netapp";
-  version = "8.0.0";
+  version = "11.0.0";
+  format = "setuptools";
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-S0miYNV+mr3IiT5aLlDhiSpwpPMyWQ5m6/ZUrVfCNRM=";
-    extension = "zip";
+    hash = "sha256-00cDFHpaEciRQLHM+Kt3uOtw/geOn5+onrY7lav6EeU=";
   };
 
   propagatedBuildInputs = [
     azure-common
     azure-mgmt-core
-    msrest
-    msrestazure
+    isodate
   ];
 
   # no tests included
@@ -38,6 +36,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Microsoft Azure NetApp Files Management Client Library for Python";
     homepage = "https://github.com/Azure/azure-sdk-for-python";
+    changelog = "https://github.com/Azure/azure-sdk-for-python/blob/azure-mgmt-netapp_${version}/sdk/netapp/azure-mgmt-netapp/CHANGELOG.md";
     license = licenses.mit;
     maintainers = with maintainers; [ jonringer ];
   };

@@ -1,25 +1,28 @@
-{ lib, stdenv, fetchFromGitHub, nix, rustPlatform, CoreServices }:
+{ lib, stdenv, fetchFromGitHub, nix, rustPlatform, CoreServices, installShellFiles }:
 
 rustPlatform.buildRustPackage rec {
   pname = "mdbook";
-  version = "0.4.20";
+  version = "0.4.35";
 
   src = fetchFromGitHub {
     owner = "rust-lang";
     repo = "mdBook";
-    rev = "v${version}";
-    sha256 = "sha256-Cfi9qjY7+G7nGgxt4xNLIkGlpgr6TnvGlFrz3gMKCX8=";
+    rev = "refs/tags/v${version}";
+    sha256 = "sha256-oplR34M2PbcIwrfIkA4Ttk2zt3ve883TfXGIDnfJt/4=";
   };
 
-  cargoSha256 = "sha256-Ihs5aaruzj/8gbUhg4MmrYmpS9Hi/DohuEV2WtrxUXE=";
+  cargoHash = "sha256-D0XhrweO0A1+81Je4JZ0lmnbIHstNvefpmogCyB4FEE=";
+
+  nativeBuildInputs = [ installShellFiles ];
 
   buildInputs = lib.optionals stdenv.isDarwin [ CoreServices ];
 
-  # Tests rely on unset 'RUST_LOG' value to emit INFO messages.
-  # 'RUST_LOG=' nixpkgs default enables warnings only and breaks tests.
-  # Can be removed when https://github.com/rust-lang/mdBook/pull/1777
-  # is released.
-  logLevel = "info";
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+    installShellCompletion --cmd mdbook \
+      --bash <($out/bin/mdbook completions bash) \
+      --fish <($out/bin/mdbook completions fish) \
+      --zsh  <($out/bin/mdbook completions zsh )
+  '';
 
   passthru = {
     tests = {
@@ -30,7 +33,8 @@ rustPlatform.buildRustPackage rec {
   meta = with lib; {
     description = "Create books from MarkDown";
     homepage = "https://github.com/rust-lang/mdBook";
+    changelog = "https://github.com/rust-lang/mdBook/blob/v${version}/CHANGELOG.md";
     license = [ licenses.mpl20 ];
-    maintainers = [ maintainers.havvy ];
+    maintainers = with maintainers; [ havvy Frostman matthiasbeyer ];
   };
 }

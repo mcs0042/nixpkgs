@@ -1,26 +1,39 @@
-{ lib, buildPythonPackage, fetchPypi, nose }:
+{ lib
+, buildPythonPackage
+, fetchPypi
+, pytestCheckHook
+, pytest-asyncio
+, setuptools
+}:
 
 buildPythonPackage rec {
   pname = "blinker";
-  version = "1.4";
+  version = "1.6.2";
+  format = "pyproject";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "1dpq0vb01p36jjwbhhd08ylvrnyvcc82yxx3mwjx6awrycjyw6j7";
+    hash = "sha256-Sv095m7zqfgGdVn7ehy+VVwX3L4VlxsF0bYlw+er4hM=";
   };
 
-  checkInputs = [ nose ];
+  nativeBuildInputs = [
+    setuptools
+  ];
 
-  checkPhase = ''
-    nosetests
-  '';
+  pythonImportsCheck = [
+    "blinker"
+  ];
 
-  pythonImportsCheck = [ "blinker" ];
+  nativeCheckInputs = [
+    pytest-asyncio
+    pytestCheckHook
+  ];
 
   meta = with lib; {
-    homepage = "https://pythonhosted.org/blinker/";
-    description = "Fast, simple object-to-object and broadcast signaling";
+    changelog = "https://github.com/pallets-eco/blinker/releases/tag/${version}";
+    description = "Fast Python in-process signal/event dispatching system";
+    homepage = "https://github.com/pallets-eco/blinker/";
     license = licenses.mit;
-    maintainers = with maintainers; [ SuperSandro2000 ];
+    maintainers = with maintainers; [ ];
   };
 }

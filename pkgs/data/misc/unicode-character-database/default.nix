@@ -5,20 +5,18 @@
 
 stdenv.mkDerivation rec {
   pname = "unicode-character-database";
-  version = "14.0.0";
+  version = "15.1.0";
 
   src = fetchurl {
     url = "https://www.unicode.org/Public/zipped/${version}/UCD.zip";
-    sha256 = "sha256-AzpSdrXXr4hEWJ+ONILzl3qDhecdEH03UFVGUXjCNgA=";
+    sha256 = "sha256-yxxmPQU5JlAM1QEilzYEV1JxOgZr11gCCYWYt6cFYXc=";
   };
 
   nativeBuildInputs = [
     unzip
   ];
 
-  setSourceRoot = ''
-    sourceRoot=$PWD
-  '';
+  sourceRoot = ".";
 
   installPhase = ''
     runHook preInstall

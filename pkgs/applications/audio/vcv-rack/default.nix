@@ -1,4 +1,5 @@
 { alsa-lib
+, cmake
 , copyDesktopItems
 , curl
 , fetchFromBitbucket
@@ -23,9 +24,8 @@
 , makeDesktopItem
 , makeWrapper
 , pkg-config
-, rtaudio
 , rtmidi
-, speex
+, speexdsp
 , stdenv
 , wrapGAppsHook
 , zstd
@@ -39,14 +39,14 @@ let
   pffft-source = fetchFromBitbucket {
     owner = "jpommier";
     repo = "pffft";
-    rev = "988259a41d1522047a9420e6265a6ba8289c1654";
-    sha256 = "Oq5N02UNXsbhcPUfjMtD0cgqAZsGx9ke9A+ArrenzGE=";
+    rev = "38946c766c1afecfa4c5945af77913e38b3cec31";
+    sha256 = "1w6g9v9fy7bavqacb6qw1nxhcik2w36cvl2d7b0bh68w0pd70j5q";
   };
   fuzzysearchdatabase-source = fetchFromBitbucket {
     owner = "j_norberg";
     repo = "fuzzysearchdatabase";
-    rev = "fe62479811e503ef3c091f5a859d27bfcf0a44da";
-    sha256 = "zgeUzuuInHPeveBIjlivRGIz+NSb7cW/9hMndxm6qOA=";
+    rev = "23122d1ff60d936fd766361a30210c954e0c5449";
+    sha256 = "1s88blx1rn2racmb8n5g0kh1ym7v21573l5m42c4nz266vmrvrvz";
   };
   nanovg-source = fetchFromGitHub {
     owner = "VCVRack";
@@ -57,14 +57,14 @@ let
   nanosvg-source = fetchFromGitHub {
     owner = "memononen";
     repo = "nanosvg";
-    rev = "ccdb1995134d340a93fb20e3a3d323ccb3838dd0";
-    sha256 = "ymziU0NgGqxPOKHwGm0QyEdK/8jL/QYk5UdIQ3Tn8jw=";
+    rev = "9da543e8329fdd81b64eb48742d8ccb09377aed1";
+    sha256 = "1pkzv75kavkhrbdd2kvq755jyr0vamgrfr7lc33dq3ipkzmqvs2l";
   };
   osdialog-source = fetchFromGitHub {
     owner = "AndrewBelt";
     repo = "osdialog";
-    rev = "21b9dcc2a1bbdacb9b46da477ffd82a4ce9204b9";
-    sha256 = "+4VCBuQvfiuEUdjFu3IB2FwbHFrDJXTb4vcVg6ZFwSM=";
+    rev = "d0f64f0798c2e47f61d90a5505910ff2d63ca049";
+    sha256 = "1d3058x6wgzw7b0wai792flk7s6ffw0z4n9sl016v91yjwv7ds3a";
   };
   oui-blendish-source = fetchFromGitHub {
     owner = "AndrewBelt";
@@ -72,16 +72,50 @@ let
     rev = "2fc6405883f8451944ed080547d073c8f9f31898";
     sha256 = "/QZFZuI5kSsEvSfMJlcqB1HiZ9Vcf3vqLqWIMEgxQK8=";
   };
+  simde-source = fetchFromGitHub {
+    owner = "simd-everywhere";
+    repo = "simde";
+    rev = "b309d8951997201e493380a2fd09198c09ae1b4e";
+    sha256 = "1hz8mfbhbiafvim4qrkyvh1yndlhydqkxwhls7cfqa48wkpxfip8";
+  };
+  tinyexpr-source = fetchFromGitHub {
+    owner = "codeplea";
+    repo = "tinyexpr";
+    rev = "74804b8c5d296aad0866bbde6c27e2bc1d85e5f2";
+    sha256 = "0z3r7wfw7p2wwl6wls2nxacirppr2147yz29whxmjaxy89ic1744";
+  };
   fundamental-source = fetchFromGitHub {
     owner = "VCVRack";
     repo = "Fundamental";
-    rev = "533397cdcad5c6401ebd3937d6c1663de2473627"; # tip of branch v2
-    sha256 = "QnwOgrYxiCa/7t/u6F63Ks8C9E8k6T+hia4JZFhp1LI=";
+    rev = "962547d7651260fb6a04f4d8aafd7c27f0221bee"; # tip of branch v2
+    sha256 = "066gcjkni8ba98vv0di59x3f9piir0vyy5sb53cqrbrl51x853cg";
+  };
+  vcv-rtaudio = stdenv.mkDerivation rec {
+    pname = "vcv-rtaudio";
+    version = "unstable-2020-01-30";
+
+    src = fetchFromGitHub {
+      owner = "VCVRack";
+      repo = "rtaudio";
+      rev = "ece277bd839603648c80c8a5f145678e13bc23f3"; # tip of master branch
+      sha256 = "11gpl0ak757ilrq4fi0brj0chmlcr1hihc32yd7qza4fxjw2yx2v";
+    };
+
+    nativeBuildInputs = [ cmake pkg-config ];
+
+    buildInputs = [ alsa-lib libjack2 libpulseaudio ];
+
+    cmakeFlags = [
+      "-DRTAUDIO_API_ALSA=ON"
+      "-DRTAUDIO_API_PULSE=ON"
+      "-DRTAUDIO_API_JACK=ON"
+      "-DRTAUDIO_API_CORE=OFF"
+    ];
   };
 in
 stdenv.mkDerivation rec {
   pname = "VCV-Rack";
-  version = "2.0.6";
+  version = "2.4.0";
 
   desktopItems = [
     (makeDesktopItem {
@@ -101,7 +135,7 @@ stdenv.mkDerivation rec {
     owner = "VCVRack";
     repo = "Rack";
     rev = "v${version}";
-    sha256 = "vvGx8tnE7gMiboVUTywIzBB1q/IfiJ8TPnSHvmfHUQg=";
+    sha256 = "0azrqyx5as4jmk9dxb7cj7x9dha81i0mm9pkvdv944qyccqwg55i";
   };
 
   patches = [
@@ -119,6 +153,8 @@ stdenv.mkDerivation rec {
     cp -r ${nanosvg-source}/* dep/nanosvg
     cp -r ${osdialog-source}/* dep/osdialog
     cp -r ${oui-blendish-source}/* dep/oui-blendish
+    cp -r ${simde-source}/* dep/simde
+    cp -r ${tinyexpr-source}/* dep/tinyexpr
 
     cp dep/pffft/*.h dep/include
     cp dep/fuzzysearchdatabase/src/*.hpp dep/include
@@ -126,6 +162,8 @@ stdenv.mkDerivation rec {
     cp dep/nanovg/src/*.h dep/include
     cp dep/osdialog/*.h dep/include
     cp dep/oui-blendish/*.h dep/include
+    cp -r dep/simde/simde dep/include
+    cp dep/tinyexpr/tinyexpr.h dep/include
 
     # Build and dist the Fundamental plugins
     cp -r ${fundamental-source} plugins/Fundamental/
@@ -136,8 +174,6 @@ stdenv.mkDerivation rec {
     substituteInPlace dep/osdialog/osdialog_zenity.c \
       --replace 'zenityBin[] = "zenity"' 'zenityBin[] = "${gnome.zenity}/bin/zenity"'
   '';
-
-  enableParallelBuilding = true;
 
   nativeBuildInputs = [
     copyDesktopItems
@@ -161,13 +197,18 @@ stdenv.mkDerivation rec {
     libjack2
     libpulseaudio
     libsamplerate
-    rtaudio
     rtmidi
-    speex
+    speexdsp
+    vcv-rtaudio
     zstd
   ];
 
-  makeFlags = [ "all" "plugins" ];
+  makeFlags = lib.optionals (stdenv.buildPlatform != stdenv.hostPlatform) [
+    "CROSS_COMPILE=${stdenv.cc.targetPrefix}"
+  ] ++ [
+    "all"
+    "plugins"
+  ];
 
   installPhase = ''
     runHook preInstall

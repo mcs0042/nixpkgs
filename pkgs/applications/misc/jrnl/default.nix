@@ -1,18 +1,20 @@
 { lib
 , fetchFromGitHub
 , python3
+, testers
+, jrnl
 }:
 
 python3.pkgs.buildPythonApplication rec {
   pname = "jrnl";
-  version = "2.8.4";
+  version = "4.1";
   format = "pyproject";
 
   src = fetchFromGitHub {
     owner = "jrnl-org";
     repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-Edu+GW/D+R5r0R750Z1f8YUVPMYbm9PK4D73sTDzDEc=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-DtujXSDJWnOrHjVgJEJNKJMhSrNBHlR2hvHeHLSIF2o=";
   };
 
   nativeBuildInputs = with python3.pkgs; [
@@ -20,7 +22,6 @@ python3.pkgs.buildPythonApplication rec {
   ];
 
   propagatedBuildInputs = with python3.pkgs; [
-    ansiwrap
     asteval
     colorama
     cryptography
@@ -31,18 +32,17 @@ python3.pkgs.buildPythonApplication rec {
     pyxdg
     pyyaml
     tzlocal
+    ruamel-yaml
+    rich
   ];
 
-  checkInputs = with python3.pkgs; [
+  nativeCheckInputs = with python3.pkgs; [
     pytest-bdd
+    pytest-xdist
     pytestCheckHook
     toml
   ];
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace 'tzlocal = ">2.0, <3.0"' 'tzlocal = ">2.0, !=3.0"'
-  '';
 
   preCheck = ''
     export HOME=$(mktemp -d);
@@ -52,10 +52,17 @@ python3.pkgs.buildPythonApplication rec {
     "jrnl"
   ];
 
+  passthru.tests.version = testers.testVersion {
+    package = jrnl;
+    version = "v${version}";
+  };
+
   meta = with lib; {
+    changelog = "https://github.com/jrnl-org/jrnl/releases/tag/v${version}";
     description = "Simple command line journal application that stores your journal in a plain text file";
     homepage = "https://jrnl.sh/";
     license = licenses.gpl3Only;
-    maintainers = with maintainers; [ zalakain ];
+    maintainers = with maintainers; [ bryanasdev000 zalakain ];
+    mainProgram = "jrnl";
   };
 }

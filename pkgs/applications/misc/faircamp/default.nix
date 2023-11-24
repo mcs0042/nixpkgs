@@ -1,28 +1,51 @@
 { lib
+, stdenv
 , rustPlatform
-, fetchgit
+, fetchFromGitea
 , makeWrapper
+, pkg-config
+, glib
+, libopus
+, vips
 , ffmpeg
 , callPackage
-, unstableGitUpdater
+, darwin
+, testers
+, faircamp
 }:
 
-rustPlatform.buildRustPackage {
+rustPlatform.buildRustPackage rec {
   pname = "faircamp";
-  version = "unstable-2022-03-20";
+  version = "0.8.0";
 
-  # TODO when switching to a stable release, use fetchFromGitea and add a
-  # version test. Meanwhile, fetchgit is used to make unstableGitUpdater work.
-  src = fetchgit {
-    url = "https://codeberg.org/simonrepp/faircamp.git";
-    rev = "863cecb468a58a774bd2d1d93f99f3c8ecd8205c";
-    sha256 = "sha256-JodIo601BYesbiHarnBk4/GuFR/bpCswxQbaysRP+CI=";
+  src = fetchFromGitea {
+    domain = "codeberg.org";
+    owner = "simonrepp";
+    repo = "faircamp";
+    rev = version;
+    hash = "sha256-Rz/wMlVNjaGhk26QMnS4+W3oA/RSdB6FuigC84L8eDg=";
   };
 
-  cargoHash = "sha256-XqsUUc+s01t4KHtktbNhm52r0NeLbcBg5DVw3Xn0oZk=";
+  cargoLock = {
+    lockFile = ./Cargo.lock;
+    outputHashes = {
+      "enolib-0.2.1" = "sha256-ryB5Tk90BvsstdXgYw7F0BJymWWetAIijhVpLeVBOa8=";
+    };
+  };
+
+  buildFeatures = [ "libvips" ];
 
   nativeBuildInputs = [
     makeWrapper
+    pkg-config
+  ];
+
+  buildInputs = [
+    glib
+    libopus
+    vips
+  ] ++ lib.optionals stdenv.isDarwin [
+    darwin.apple_sdk.frameworks.CoreServices
   ];
 
   postInstall = ''
@@ -30,9 +53,10 @@ rustPlatform.buildRustPackage {
       --prefix PATH : ${lib.makeBinPath [ ffmpeg ]}
   '';
 
-  passthru.tests.wav = callPackage ./test-wav.nix { };
-
-  passthru.updateScript = unstableGitUpdater { };
+  passthru.tests = {
+    wav = callPackage ./test-wav.nix { };
+    version = testers.testVersion { package = faircamp; };
+  };
 
   meta = with lib; {
     description = "A self-hostable, statically generated bandcamp alternative";
@@ -48,7 +72,7 @@ rustPlatform.buildRustPackage {
       website for you automatically, otherwise you can use FTP or whichever
       means you prefer to do that manually.
     '';
-    homepage = "https://codeberg.org/simonrepp/faircamp";
+    homepage = "https://simonrepp.com/faircamp/";
     license = licenses.gpl3Plus;
     maintainers = with maintainers; [ fgaz ];
     platforms = platforms.all;

@@ -2,7 +2,6 @@
 , buildPythonPackage
 , fetchPypi
 , attrs
-, m2r
 , pytest-benchmark
 , pytestCheckHook
 , setuptools-scm
@@ -10,17 +9,16 @@
 }:
 
 let automat = buildPythonPackage rec {
-  version = "20.2.0";
+  version = "22.10.0";
   pname = "automat";
 
   src = fetchPypi {
     pname = "Automat";
     inherit version;
-    sha256 = "7979803c74610e11ef0c0d68a2942b152df52da55336e0c9d58daf1831cbdf33";
+    hash = "sha256-5WvrhO2tGdzBHTDo2biV913ute9elrhKRnBms7hLsE4=";
   };
 
   nativeBuildInputs = [
-    m2r
     setuptools-scm
   ];
 
@@ -29,7 +27,7 @@ let automat = buildPythonPackage rec {
     attrs
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytest-benchmark
     pytestCheckHook
   ];
@@ -45,6 +43,6 @@ let automat = buildPythonPackage rec {
     homepage = "https://github.com/glyph/Automat";
     description = "Self-service finite-state machines for the programmer on the go";
     license = licenses.mit;
-    maintainers = with maintainers; [ SuperSandro2000 ];
+    maintainers = with maintainers; [ ];
   };
 }; in automat

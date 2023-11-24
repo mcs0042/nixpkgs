@@ -1,5 +1,4 @@
 { fetchurl
-, fetchpatch
 , lib
 , stdenv
 , pkg-config
@@ -35,6 +34,8 @@ stdenv.mkDerivation rec {
 
   configureFlags = [ "--disable-lynx" ];
 
+  enableParallelBuilding = true;
+
   meta = with lib; {
     description = "PulseAudio Volume Control";
 
@@ -48,7 +49,8 @@ stdenv.mkDerivation rec {
 
     license = lib.licenses.gpl2Plus;
 
-    maintainers = with maintainers; [ abbradar globin ];
+    maintainers = with maintainers; [ abbradar ];
     platforms = platforms.linux;
+    mainProgram = "pavucontrol";
   };
 }

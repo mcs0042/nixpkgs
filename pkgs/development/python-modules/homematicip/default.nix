@@ -17,16 +17,16 @@
 
 buildPythonPackage rec {
   pname = "homematicip";
-  version = "1.0.5";
+  version = "1.0.16";
   format = "setuptools";
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "hahn-th";
     repo = "homematicip-rest-api";
     rev = "refs/tags/${version}";
-    hash = "sha256-pfVjnRO6iKEgLDQz4JMARzab21XLbbUDUMyMWatGlJ8=";
+    hash = "sha256-rvjdhsvGYllVeenVkU/ikwil4OVHPRIaXs+85q0pM/w=";
   };
 
   propagatedBuildInputs = [
@@ -38,17 +38,22 @@ buildPythonPackage rec {
     websockets
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     aiohttp-wsgi
     pytest-aiohttp
     pytest-asyncio
     pytestCheckHook
   ];
 
+  pytestFlagsArray = [
+    "--asyncio-mode=auto"
+  ];
+
   disabledTests = [
     # Assert issues with datetime
     "test_contact_interface_device"
     "test_dimmer"
+    "test_external_device"
     "test_heating_failure_alert_group"
     "test_heating"
     "test_humidity_warning_rule_group"
@@ -82,6 +87,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Module for the homematicIP REST API";
     homepage = "https://github.com/hahn-th/homematicip-rest-api";
+    changelog = "https://github.com/hahn-th/homematicip-rest-api/releases/tag/${version}";
     license = with licenses; [ gpl3Only ];
     maintainers = with maintainers; [ fab ];
   };

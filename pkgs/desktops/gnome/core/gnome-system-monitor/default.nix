@@ -23,12 +23,17 @@
 
 stdenv.mkDerivation rec {
   pname = "gnome-system-monitor";
-  version = "42.0";
+  version = "45.0.2";
 
   src = fetchurl {
     url = "mirror://gnome/sources/gnome-system-monitor/${lib.versions.major version}/${pname}-${version}.tar.xz";
-    sha256 = "EyOdIgMiAaIr0pgzxXW2hIFnANLeFooVMCI1d8XAddw=";
+    sha256 = "xeJy2Qv5mGo/hhPXbg0n+kLfrO5cAZLnOSG7lLGGii4=";
   };
+
+  patches = [
+    # Fix pkexec detection on NixOS.
+    ./fix-paths.patch
+  ];
 
   nativeBuildInputs = [
     pkg-config
@@ -37,6 +42,7 @@ stdenv.mkDerivation rec {
     wrapGAppsHook
     meson
     ninja
+    glib
   ];
 
   buildInputs = [

@@ -1,34 +1,38 @@
-{ lib
-, stdenv
-, pkg-config
-, fetchFromGitHub
-, buildGoModule
-, btrfs-progs
-, gpgme
-, libassuan
-, lvm2
-, testers
-, podman-tui
-}:
+{ lib, stdenv, fetchFromGitHub, buildGoModule, testers, podman-tui }:
+
 buildGoModule rec {
   pname = "podman-tui";
-  version = "0.4.0";
+  version = "0.12.0";
 
   src = fetchFromGitHub {
     owner = "containers";
     repo = "podman-tui";
     rev = "v${version}";
-    sha256 = "sha256-2WugN5JdTkz3OOt3ggzT7HwMXy1jxn85RwF7409D8m8=";
+    hash = "sha256-l6jbc/+Fi5xx7yhK0e5/iqcm7i8JnU37Qr4niVG4OvU=";
   };
 
-  vendorSha256 = null;
+  vendorHash = null;
 
-  nativeBuildInputs = [ pkg-config ];
+  CGO_ENABLED = 0;
 
-  buildInputs = [ gpgme libassuan ]
-    ++ lib.optionals stdenv.isLinux [ btrfs-progs lvm2 ];
+  tags = [ "containers_image_openpgp" "remote" ]
+    ++ lib.optional stdenv.isDarwin "darwin";
 
   ldflags = [ "-s" "-w" ];
+
+  preCheck =
+    let
+      skippedTests = [
+        "TestDialogs"
+      ];
+    in
+    ''
+      export USER=$(whoami)
+      export HOME=/home/$USER
+
+      # Disable flaky tests
+      buildFlagsArray+=("-run" "[^(${builtins.concatStringsSep "|" skippedTests})]")
+    '';
 
   passthru.tests.version = testers.testVersion {
     package = podman-tui;

@@ -1,64 +1,61 @@
-{ lib, buildPythonPackage, fetchFromGitHub, pythonOlder, isPy27
+{ lib
+, stdenv
+, buildPythonPackage
+, fetchFromGitHub
+, fetchpatch
+, pythonOlder
+, build
 , git
-, importlib-metadata
-, intreehooks
-, pathlib2
-, pep517
 , pytest-mock
 , pytestCheckHook
-, tomlkit
-, typing ? null
+, setuptools
+, tomli-w
 , virtualenv
 }:
 
 buildPythonPackage rec {
   pname = "poetry-core";
-  version = "1.0.8";
+  version = "1.7.0";
   format = "pyproject";
+
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "python-poetry";
     repo = pname;
     rev = version;
-    sha256 = "sha256-cs9SMGD9RdW8Wx/IAMq6gkOUBsney5r19hyGva98grk=";
+    hash = "sha256-OfY2zc+5CgOrgbiPVnvMdT4h1S7Aek8S7iThl6azmsk=";
   };
 
-  postPatch = lib.optionalString (pythonOlder "3.8") ''
-    # remove >1.0.3
-    substituteInPlace pyproject.toml \
-      --replace 'importlib-metadata = {version = "^1.7.0", python = "~2.7 || >=3.5, <3.8"}' \
-        'importlib-metadata = {version = ">=1.7.0", python = "~2.7 || >=3.5, <3.8"}'
-  '';
-
-  nativeBuildInputs = [
-    intreehooks
-  ];
-
-  propagatedBuildInputs = lib.optionals (pythonOlder "3.8") [
-    importlib-metadata
-  ] ++ lib.optionals isPy27 [
-    pathlib2
-    typing
-  ];
-
-  checkInputs = [
+  nativeCheckInputs = [
+    build
     git
-    pep517
     pytest-mock
     pytestCheckHook
-    tomlkit
+    setuptools
+    tomli-w
     virtualenv
   ];
 
-  # requires git history to work correctly
-  disabledTests = [ "default_with_excluded_data" "default_src_with_excluded_data" ];
+  # Requires git history to work correctly
+  disabledTests = [
+    "default_with_excluded_data"
+    "default_src_with_excluded_data"
+  ];
 
-  pythonImportsCheck = [ "poetry.core" ];
+  pythonImportsCheck = [
+    "poetry.core"
+  ];
 
-  # allow for package to use pep420's native namespaces
-  pythonNamespaces = [ "poetry" ];
+  # Allow for package to use pep420's native namespaces
+  pythonNamespaces = [
+    "poetry"
+  ];
+
+  env.NIX_CFLAGS_COMPILE = lib.optionalString stdenv.cc.isClang "-Wno-int-conversion";
 
   meta = with lib; {
+    changelog = "https://github.com/python-poetry/poetry-core/blob/${src.rev}/CHANGELOG.md";
     description = "Core utilities for Poetry";
     homepage = "https://github.com/python-poetry/poetry-core/";
     license = licenses.mit;

@@ -2,17 +2,17 @@
 
 buildGoModule rec {
   pname = "blackbox_exporter";
-  version = "0.21.1";
+  version = "0.24.0";
   rev = "v${version}";
 
   src = fetchFromGitHub {
     inherit rev;
     owner = "prometheus";
     repo = "blackbox_exporter";
-    sha256 = "sha256-57+bNoLUfB98WqDUe8ysRdoG87RhKXttmkA//ucSqbQ=";
+    sha256 = "sha256-eoXSBliHadRGPT6+K75p2tEjKHKXmLz4svE59yQAEuM=";
   };
 
-  vendorSha256 = "sha256-7V5WEEy/Rz1QjscPD2Kz+viGkKQsWjs+8QN/3W7D+Ik=";
+  vendorHash = "sha256-yhgmJaWdYR5w5A8MVnHQS1yF6sTIMd1TOiesV4mc0Gs=";
 
   # dns-lookup is performed for the tests
   doCheck = false;
@@ -34,6 +34,5 @@ buildGoModule rec {
     homepage = "https://github.com/prometheus/blackbox_exporter";
     license = licenses.asl20;
     maintainers = with maintainers; [ globin fpletz willibutz Frostman ma27 ];
-    platforms = platforms.unix;
   };
 }

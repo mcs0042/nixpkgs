@@ -1,13 +1,13 @@
-{ lib, stdenv, fetchurl, bundlerEnv, ruby, makeWrapper }:
+{ lib, stdenv, fetchurl, bundlerEnv, ruby, defaultGemConfig, makeWrapper, nixosTests }:
 
 let
-  version = "4.2.5";
+  version = "5.0.6";
   rubyEnv = bundlerEnv {
     name = "redmine-env-${version}";
 
     inherit ruby;
     gemdir = ./.;
-    groups = [ "development" "ldap" "markdown" "minimagick" "openid" "test" ];
+    groups = [ "development" "ldap" "markdown" "common_mark" "minimagick" "test" ];
   };
 in
   stdenv.mkDerivation rec {
@@ -16,7 +16,7 @@ in
 
     src = fetchurl {
       url = "https://www.redmine.org/releases/${pname}-${version}.tar.gz";
-      sha256 = "112rc2sjx6x7046fjz7np0ilszvkqapc180ld02ncwmdxaq88w6r";
+      hash = "sha256-SI/gjzeo6xARQVkiqOp0O3842Kel+IIpUKNKN13PCO4=";
     };
 
     nativeBuildInputs = [ makeWrapper ];
@@ -42,10 +42,12 @@ in
       makeWrapper ${rubyEnv.wrappedRuby}/bin/ruby $out/bin/rdm-mailhandler.rb --add-flags $out/share/redmine/extra/mail_handler/rdm-mailhandler.rb
     '';
 
+    passthru.tests.redmine = nixosTests.redmine;
+
     meta = with lib; {
       homepage = "https://www.redmine.org/";
       platforms = platforms.linux;
-      maintainers = with maintainers; [ aanderse felixsinger ];
+      maintainers = with maintainers; [ aanderse felixsinger megheaiulian ];
       license = licenses.gpl2;
     };
   }

@@ -1,17 +1,19 @@
-{ lib, stdenv, fetchFromGitHub }:
+{ lib, stdenv, fetchFromGitHub, unstableGitUpdater }:
 
 stdenv.mkDerivation rec {
   pname = "zuo";
-  version = "unstable-2022-04-23";
+  version = "unstable-2023-11-23";
 
   src = fetchFromGitHub {
     owner = "racket";
     repo = "zuo";
-    rev = "2f3e23bd374f9a6504de6000989ebf2adf67c80c";
-    sha256 = "sha256-TxX3iinfL1hXFlQlGQ7x52O6zvYoJYXrMfEfSL4Axig=";
+    rev = "4d85edb4f221de8a1748ee38dcc6963d8d2da33a";
+    hash = "sha256-pFEXkByZpVnQgXK1DeFSEnalvhCTwOy75WrRojBM78U=";
   };
 
   doCheck = true;
+
+  passthru.updateScript = unstableGitUpdater { };
 
   meta = with lib; {
     description = "A Tiny Racket for Scripting";

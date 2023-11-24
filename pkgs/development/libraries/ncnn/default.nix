@@ -11,18 +11,17 @@
 
 stdenv.mkDerivation rec {
   pname = "ncnn";
-  version = "20220216";
+  version = "20231027";
 
   src = fetchFromGitHub {
     owner = "Tencent";
     repo = pname;
     rev = version;
-    sha256 = "sha256-QHLD5NQZA7WR4mRQ0NIaXuAu59IV4SjXHOOlar5aOew=";
+    sha256 = "sha256-ak/5QTOptg5M2I+3olnrBK6JZ01haIE6oh+sagEboAc=";
   };
 
   patches = [
     ./cmakelists.patch
-    ./gpu-include.patch
   ];
 
   cmakeFlags = [
@@ -46,5 +45,6 @@ stdenv.mkDerivation rec {
     homepage = "https://github.com/Tencent/ncnn";
     license = licenses.bsd3;
     maintainers = with maintainers; [ tilcreator ];
+    platforms = platforms.all;
   };
 }

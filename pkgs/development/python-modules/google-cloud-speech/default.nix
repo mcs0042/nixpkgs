@@ -2,38 +2,38 @@
 , buildPythonPackage
 , fetchPypi
 , google-api-core
-, libcst
 , mock
 , proto-plus
-, pytestCheckHook
+, protobuf
 , pytest-asyncio
+, pytestCheckHook
 , pythonOlder
 , setuptools
 }:
 
 buildPythonPackage rec {
   pname = "google-cloud-speech";
-  version = "2.15.0";
+  version = "2.21.1";
   format = "setuptools";
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-/KQ8QM21L5aDy5NuNgrfTPTckU1d1AgdfzHY7/SPFdg=";
+    hash = "sha256-STU3XqrxhlblPiYxdwudV56Ay07Bs9Rt0jNG94mqAWo=";
   };
 
   propagatedBuildInputs = [
-    libcst
     google-api-core
     proto-plus
+    protobuf
     setuptools
-  ];
+  ] ++ google-api-core.optional-dependencies.grpc;
 
-  checkInputs = [
+  nativeCheckInputs = [
     mock
-    pytestCheckHook
     pytest-asyncio
+    pytestCheckHook
   ];
 
   disabledTestPaths = [
@@ -51,7 +51,8 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Google Cloud Speech API client library";
     homepage = "https://github.com/googleapis/python-speech";
+    changelog = "https://github.com/googleapis/python-speech/blob/v${version}/CHANGELOG.md";
     license = licenses.asl20;
-    maintainers = with maintainers; [ SuperSandro2000 ];
+    maintainers = with maintainers; [ ];
   };
 }

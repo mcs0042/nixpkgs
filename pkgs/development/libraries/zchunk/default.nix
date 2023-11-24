@@ -11,19 +11,14 @@
 
 stdenv.mkDerivation rec {
   pname = "zchunk";
-  version = "1.2.0";
+  version = "1.3.2";
 
   src = fetchFromGitHub {
     owner = "zchunk";
     repo = pname;
     rev = version;
-    hash = "sha256-7H1WF5VkpA65xCdEa0Sw4r4jj+kGhDVCMr5AeE+3Ii4=";
+    hash = "sha256-wmbnkxJHFyqntULxzXF16lt+TfwywLdZamQXvcfSFVM=";
   };
-
-  # unbreak on darwin by finding argp-standalone, based on the patch from
-  # buildroot:
-  #    https://github.com/buildroot/buildroot/raw/master/package/zchunk/0001-meson-fix-argp-standalone-wrap-and-find_library.patch
-  patches = lib.optional stdenv.isDarwin ./0001-meson-fix-argp-standalone.patch;
 
   nativeBuildInputs = [
     meson

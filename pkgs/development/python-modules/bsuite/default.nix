@@ -10,7 +10,7 @@
 , absl-py
 , dm-env
 , plotnine
-, scikitimage
+, scikit-image
 , dm-tree
 , patsy
 , tensorflow-probability
@@ -20,15 +20,18 @@
 , trfl
 , optax
 , pytestCheckHook
-, dm-sonnet }:
+, dm-sonnet
+, rlax
+, distrax
+}:
 
-buildPythonPackage rec {
+let bsuite = buildPythonPackage rec {
   pname = "bsuite";
   version = "0.3.5";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-ak9McvXl7Nz5toUaPaRaJek9lurxiQiIW209GnZEjX0=";
+    hash = "sha256-ak9McvXl7Nz5toUaPaRaJek9lurxiQiIW209GnZEjX0=";
   };
 
   buildInputs = [
@@ -42,32 +45,25 @@ buildPythonPackage rec {
     pandas
     patsy
     plotnine
-    scikitimage
+    scikit-image
     scipy
     statsmodels
     termcolor
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
+    distrax
     dm-haiku
     dm-sonnet
     optax
     pytestCheckHook
+    rlax
     tensorflow-probability
     trfl
   ];
 
   pythonImportsCheck = [
     "bsuite"
-  ];
-
-  disabledTestPaths = [
-    # Disabled because tests require module rlax but this results in infinite
-    # recursion error
-    "bsuite/baselines/jax/actor_critic/run_test.py"
-    "bsuite/baselines/jax/actor_critic_rnn/run_test.py"
-    "bsuite/baselines/jax/boot_dqn/run_test.py"
-    "bsuite/baselines/jax/dqn/run_test.py"
   ];
 
   disabledTests = [
@@ -89,6 +85,13 @@ buildPythonPackage rec {
     "test_episode_truncation"
   ];
 
+  # escape infinite recursion with rlax
+  doCheck = false;
+
+  passthru.tests = {
+    check = bsuite.overridePythonAttrs (_: { doCheck = true; });
+  };
+
   meta = with lib; {
     description = ''
       Core RL Behaviour Suite. A collection of reinforcement learning
@@ -98,4 +101,4 @@ buildPythonPackage rec {
     license = licenses.asl20;
     maintainers = with maintainers; [ onny ];
   };
-}
+}; in bsuite

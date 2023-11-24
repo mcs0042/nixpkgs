@@ -7,34 +7,34 @@
 , qtbase
 , qttools
 , qtx11extras
-, lxqtUpdateScript
+, gitUpdater
 , nixosTests
 }:
 
 mkDerivation rec {
   pname = "qterminal";
-  version = "1.1.0";
+  version = "1.4.0";
 
   src = fetchFromGitHub {
     owner = "lxqt";
     repo = pname;
     rev = version;
-    sha256 = "x+rgDrijDsMMdpU7afkn0dsSQbuBbEI9agoaLVsR/q8=";
+    hash = "sha256-nojNx351lYw0jVKEvzAIDP1WrZWcCAlfYMxNG95GcEo=";
   };
 
   nativeBuildInputs = [
     cmake
     lxqt-build-tools
+    qttools
   ];
 
   buildInputs = [
     qtbase
-    qttools
     qtx11extras
     qtermwidget
   ];
 
-  passthru.updateScript = lxqtUpdateScript { inherit pname version src; };
+  passthru.updateScript = gitUpdater { };
 
   passthru.tests.test = nixosTests.terminal-emulators.qterminal;
 
@@ -43,6 +43,6 @@ mkDerivation rec {
     description = "A lightweight Qt-based terminal emulator";
     license = licenses.gpl2Plus;
     platforms = with platforms; unix;
-    maintainers = with maintainers; [ globin ] ++ teams.lxqt.members;
+    maintainers = with maintainers; teams.lxqt.members;
   };
 }

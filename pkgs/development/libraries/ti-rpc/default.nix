@@ -2,29 +2,30 @@
 
 stdenv.mkDerivation rec {
   pname = "libtirpc";
-  version = "1.2.7-rc4";
+  version = "1.3.4";
 
   src = fetchurl {
-    url = "http://git.linux-nfs.org/?p=steved/libtirpc.git;a=snapshot;h=5ca4ca92f629d9d83e83544b9239abaaacf0a527;sf=tgz";
-    sha256 = "0w26yf9bwkpqj52sqd3n250dg9jlqnr8bjv0kc4fl5hkrv8akj8i";
+    url = "http://git.linux-nfs.org/?p=steved/libtirpc.git;a=snapshot;h=refs/tags/libtirpc-${lib.replaceStrings ["."] ["-"] version};sf=tgz";
+    sha256 = "sha256-fmZxpdyl98z+QBHpEccGB8A+YktuWONw6k0p06AImDw=";
     name = "${pname}-${version}.tar.gz";
   };
 
   outputs = [ "out" "dev" ];
 
-  postPatch = ''
-    sed '1i#include <stdint.h>' -i src/xdr_sizeof.c
-  '';
-
   KRB5_CONFIG = "${libkrb5.dev}/bin/krb5-config";
   nativeBuildInputs = [ autoreconfHook ];
   propagatedBuildInputs = [ libkrb5 ];
+  strictDeps = true;
 
   preConfigure = ''
     sed -es"|/etc/netconfig|$out/etc/netconfig|g" -i doc/Makefile.in tirpc/netconfig.h
   '';
 
-  preInstall = "mkdir -p $out/etc";
+  enableParallelBuilding = true;
+
+  preInstall = ''
+    mkdir -p $out/etc
+  '';
 
   doCheck = true;
 

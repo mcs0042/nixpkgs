@@ -15,14 +15,14 @@
 
 buildPythonPackage rec {
   pname = "pycognito";
-  version = "2022.02.1";
+  version = "2023.5.0";
   disabled = isPy27;
 
   src = fetchFromGitHub {
     owner = "pvizeli";
     repo = pname;
-    rev = version;
-    sha256 = "sha256-0PqeZ8yy2MzvIi1xQNosR7V2Ma3tMT0Q/v4OIv7f1Kg=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-2Aqid2bd5BAnWQ+Wtji0zXjLAmSpyJNGqJ0VroGi6lY=";
   };
 
   propagatedBuildInputs = [
@@ -32,7 +32,7 @@ buildPythonPackage rec {
     requests
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     freezegun
     mock
     moto
@@ -46,6 +46,11 @@ buildPythonPackage rec {
   '';
 
   pytestFlagsArray = [ "tests.py" ];
+
+  disabledTests = [
+    # requires network access
+    "test_srp_requests_http_auth"
+  ];
 
   pythonImportsCheck = [ "pycognito" ];
 

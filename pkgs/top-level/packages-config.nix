@@ -9,7 +9,6 @@
   packageOverrides = super: with super; lib.mapAttrs (_: set: recurseIntoAttrs set) {
     inherit (super)
       apacheHttpdPackages
-      atomPackages
       fdbPackages
       fusePackages
       gns3Packages
@@ -21,12 +20,12 @@
       quicklispPackagesSBCL
       rPackages
       roundcubePlugins
-      sconsPackages
       sourceHanPackages
       steamPackages
       ut2004Packages
       zabbix40
       zabbix50
+      zabbix60
       zeroadPackages
     ;
 
@@ -46,7 +45,10 @@
       compiler = recurseIntoAttrs super.haskell.compiler;
     };
 
-    # This is an alias which we disallow by default; explicitly allow it
-    emacs28Packages = emacs28.pkgs;
+    # minimal-bootstrap packages aren't used for anything but bootstrapping our
+    # stdenv. They should not be used for any other purpose and therefore not
+    # show up in search results or repository tracking services that consume our
+    # packages.json https://github.com/NixOS/nixpkgs/issues/244966
+    minimal-bootstrap = { };
   };
 }

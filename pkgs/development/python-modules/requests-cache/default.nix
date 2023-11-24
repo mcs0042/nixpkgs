@@ -1,35 +1,46 @@
 { lib
-, appdirs
 , attrs
 , buildPythonPackage
 , bson
+, boto3
+, botocore
 , cattrs
 , fetchFromGitHub
 , itsdangerous
+, platformdirs
 , poetry-core
+, psutil
+, pymongo
 , pytestCheckHook
+, pytest-rerunfailures
+, pytest-xdist
 , pythonOlder
 , pyyaml
+, redis
 , requests
 , requests-mock
+, responses
 , rich
+, tenacity
+, time-machine
 , timeout-decorator
 , ujson
+, urllib3
 , url-normalize
 }:
 
 buildPythonPackage rec {
   pname = "requests-cache";
-  version = "0.9.4";
+  version = "1.1.0";
   format = "pyproject";
 
   disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
-    owner = "reclosedev";
+    owner = "requests-cache";
     repo = "requests-cache";
-    rev = "v${version}";
-    hash = "sha256-9OlWMom/0OMlbPd3evjIaX75Gjlu+F8vKBJwX4Z58qQ=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-kJqy7aK67JFtmsrwMtze/wTM9qch9YYj2eUzGJRJreQ=";
   };
 
   nativeBuildInputs = [
@@ -37,23 +48,53 @@ buildPythonPackage rec {
   ];
 
   propagatedBuildInputs = [
-    appdirs
     attrs
-    bson
     cattrs
-    itsdangerous
-    pyyaml
+    platformdirs
     requests
-    ujson
+    urllib3
     url-normalize
   ];
 
-  checkInputs = [
+  passthru.optional-dependencies = {
+    dynamodb = [
+      boto3
+      botocore
+    ];
+    mongodbo = [
+      pymongo
+    ];
+    redis = [
+      redis
+    ];
+    bson = [
+      bson
+    ];
+    json = [
+      ujson
+    ];
+    security = [
+      itsdangerous
+    ];
+    yaml = [
+      pyyaml
+    ];
+  };
+
+  nativeCheckInputs = [
+    psutil
     pytestCheckHook
+    pytest-rerunfailures
+    pytest-xdist
     requests-mock
+    responses
     rich
+    tenacity
+    time-machine
     timeout-decorator
-  ];
+  ]
+  ++ passthru.optional-dependencies.json
+  ++ passthru.optional-dependencies.security;
 
   preCheck = ''
     export HOME=$(mktemp -d);
@@ -67,6 +108,9 @@ buildPythonPackage rec {
   disabledTests = [
     # Tests are flaky in the sandbox
     "test_remove_expired_responses"
+    # Tests that broke with urllib 2.0.5
+    "test_request_only_if_cached__stale_if_error__expired"
+    "test_stale_if_error__error_code"
   ];
 
   pythonImportsCheck = [
@@ -76,6 +120,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Persistent cache for requests library";
     homepage = "https://github.com/reclosedev/requests-cache";
+    changelog = "https://github.com/requests-cache/requests-cache/blob/v${version}/HISTORY.md";
     license = licenses.bsd3;
     maintainers = with maintainers; [ fab ];
   };

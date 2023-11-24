@@ -3,6 +3,7 @@
 , buildPythonPackage
 , dill
 , fetchFromGitHub
+, fetchpatch
 , fsspec
 , huggingface-hub
 , importlib-metadata
@@ -20,16 +21,16 @@
 
 buildPythonPackage rec {
   pname = "datasets";
-  version = "1.18.3";
+  version = "2.14.5";
   format = "setuptools";
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "huggingface";
     repo = pname;
-    rev = version;
-    hash = "sha256-2x6DpsDcVF2O5iJKeMEGw/aJwZPc7gSGaK2947c3B6s=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-oLB6laY/Si071mBKoWlZpd1fqr/wNtAnhRvBKLjeEuE=";
   };
 
   propagatedBuildInputs = [
@@ -50,10 +51,10 @@ buildPythonPackage rec {
     importlib-metadata
   ];
 
-  # Tests require pervasive internet access.
+  # Tests require pervasive internet access
   doCheck = false;
 
-  # Module import will attempt to create a cache directory.
+  # Module import will attempt to create a cache directory
   postFixup = "export HF_MODULES_CACHE=$TMPDIR";
 
   pythonImportsCheck = [

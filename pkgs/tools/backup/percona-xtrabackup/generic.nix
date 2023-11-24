@@ -1,8 +1,8 @@
 { lib, stdenv, fetchFromGitHub, bison, boost, cmake, makeWrapper, pkg-config
 , curl, cyrus_sasl, libaio, libedit, libev, libevent, libgcrypt, libgpg-error, lz4
-, ncurses, numactl, openssl, protobuf, valgrind, xxd, zlib
+, ncurses, numactl, openssl, procps, protobuf, valgrind, xxd, zlib
 , perlPackages
-, version, sha256, extraPatches ? [], extraPostInstall ? "", ...
+, version, hash, fetchSubmodules ? false, extraPatches ? [], extraPostInstall ? "", ...
 }:
 
 stdenv.mkDerivation rec {
@@ -13,22 +13,17 @@ stdenv.mkDerivation rec {
     owner = "percona";
     repo = "percona-xtrabackup";
     rev = "${pname}-${version}";
-    inherit sha256;
+    inherit hash fetchSubmodules;
   };
 
   nativeBuildInputs = [ bison boost cmake makeWrapper pkg-config ];
 
   buildInputs = [
-    curl cyrus_sasl libaio libedit libev libevent libgcrypt libgpg-error lz4
-    ncurses numactl openssl protobuf valgrind xxd zlib
+    (curl.override { inherit openssl; }) cyrus_sasl libaio libedit libevent libev libgcrypt libgpg-error lz4
+    ncurses numactl openssl procps protobuf valgrind xxd zlib
   ] ++ (with perlPackages; [ perl DBI DBDmysql ]);
 
   patches = extraPatches;
-
-  # Workaround build failure on -fno-common toolchains:
-  #   ld: xbstream.c.o:(.bss+0x0): multiple definition of
-  #      `datasink_buffer'; ds_buffer.c.o:(.data.rel.local+0x0): first defined here
-  NIX_CFLAGS_COMPILE = "-fcommon";
 
   cmakeFlags = [
     "-DMYSQL_UNIX_ADDR=/run/mysqld/mysqld.sock"
@@ -57,6 +52,6 @@ stdenv.mkDerivation rec {
     homepage = "http://www.percona.com/software/percona-xtrabackup";
     license = licenses.lgpl2;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ izorkin ];
+    maintainers = teams.flyingcircus.members ++ [ maintainers.izorkin ];
   };
 }

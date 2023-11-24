@@ -1,17 +1,19 @@
-{ lib, stdenv, fetchurl, ant, jdk, nettools, hdf4, hdf5, makeDesktopItem, copyDesktopItems }:
+{ lib, stdenv, fetchurl, ant, jdk, hdf4, hdf5, makeDesktopItem, copyDesktopItems }:
 
 stdenv.mkDerivation rec {
   pname = "hdfview";
-  version = "3.1.4";
+  version = "3.3.1";
 
   src = fetchurl {
     url = "https://support.hdfgroup.org/ftp/HDF5/releases/HDF-JAVA/${pname}-${version}/src/${pname}-${version}.tar.gz";
-    sha256 = "sha256-iY/NUifU57aX795eWpaUBflrclF/nfvb3OKZEpD9VqA=";
+    sha256 = "sha256-WcGYceMOB8gCycJSW4KdApy2gIBgTnE/d0PxGZClUqg=";
   };
 
   patches = [
     # Hardcode isUbuntu=false to avoid calling hostname to detect os
     ./0001-Hardcode-isUbuntu-false-to-avoid-hostname-dependency.patch
+    # Disable signing on macOS
+    ./disable-mac-signing.patch
   ];
 
   nativeBuildInputs = [

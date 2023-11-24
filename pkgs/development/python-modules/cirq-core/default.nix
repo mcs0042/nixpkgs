@@ -1,9 +1,9 @@
-{ stdenv
-, lib
+{ lib
+, stdenv
 , buildPythonPackage
+, pythonAtLeast
 , pythonOlder
 , fetchFromGitHub
-, fetchpatch
 , duet
 , matplotlib
 , networkx
@@ -31,26 +31,24 @@
 
 buildPythonPackage rec {
   pname = "cirq-core";
-  version = "0.15.0";
+  version = "1.2.0";
+  format = "setuptools";
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "quantumlib";
     repo = "cirq";
-    rev = "v${version}";
-    sha256 = "sha256-E36zXpv+9WBNYvv/shItS7Q34gYqUyADlqWd+m4Jpps=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-KEei5PJ0ammsduZVmMh2vaW3f58DYI4BCrFCl/SjUoo=";
   };
 
-  sourceRoot = "source/${pname}";
+  sourceRoot = "${src.name}/${pname}";
 
   postPatch = ''
     substituteInPlace requirements.txt \
-      --replace "matplotlib~=3.0" "matplotlib" \
-      --replace "networkx~=2.4" "networkx" \
-      --replace "numpy~=1.16" "numpy" \
-      --replace "sympy<1.10" "sympy"
-  '';
+      --replace "matplotlib~=3.0" "matplotlib"
+   '';
 
   propagatedBuildInputs = [
     duet
@@ -73,27 +71,38 @@ buildPythonPackage rec {
     quimb
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
     pytest-asyncio
     freezegun
   ];
 
   disabledTestPaths = lib.optionals (!withContribRequires) [
-    # requires external (unpackaged) libraries, so untested.
+    # Requires external (unpackaged) libraries, so untested
     "cirq/contrib/"
+    # No need to test the version number
+    "cirq/_version_test.py"
   ];
+
   disabledTests = [
-    "test_metadata_search_path" # tries to import flynt, which isn't in Nixpkgs
-    "test_benchmark_2q_xeb_fidelities" # fails due pandas MultiIndex. Maybe issue with pandas version in nix?
+    # Tries to import flynt, which isn't in Nixpkgs
+    "test_metadata_search_path"
+    # Fails due pandas MultiIndex. Maybe issue with pandas version in nix?
+    "test_benchmark_2q_xeb_fidelities"
+    # https://github.com/quantumlib/Cirq/pull/5991
+    "test_json_and_repr_data"
+    # Tests for some changed error handling behavior in SymPy 1.12
+    "test_custom_value_not_implemented"
+    # Calibration issue
+    "test_xeb_to_calibration_layer"
   ];
 
   meta = with lib; {
-    broken = (stdenv.isLinux && stdenv.isAarch64);
     description = "Framework for creating, editing, and invoking Noisy Intermediate Scale Quantum (NISQ) circuits";
     homepage = "https://github.com/quantumlib/cirq";
     changelog = "https://github.com/quantumlib/Cirq/releases/tag/v${version}";
     license = licenses.asl20;
     maintainers = with maintainers; [ drewrisinger fab ];
+    broken = (stdenv.isLinux && stdenv.isAarch64);
   };
 }

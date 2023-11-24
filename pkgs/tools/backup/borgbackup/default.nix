@@ -6,19 +6,22 @@
 , lz4
 , openssh
 , openssl
-, python3
+, python3Packages
+, xxHash
 , zstd
+, installShellFiles
 , nixosTests
+, fetchPypi
 }:
 
-python3.pkgs.buildPythonApplication rec {
+python3Packages.buildPythonApplication rec {
   pname = "borgbackup";
-  version = "1.2.1";
+  version = "1.2.6";
   format = "pyproject";
 
-  src = python3.pkgs.fetchPypi {
+  src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-n5zi0ZI8szoUfubQgXfYYJdFZ3IbEUL8pnkUoC5kxjM=";
+    hash = "sha256-t6b48IYDnu7HkHC5FPPGUe1/NhLJZTdK+RDSd8eiE50=";
   };
 
   postPatch = ''
@@ -27,61 +30,51 @@ python3.pkgs.buildPythonApplication rec {
       --replace "0o4755" "0o0755"
   '';
 
-  nativeBuildInputs = with python3.pkgs; [
+  nativeBuildInputs = with python3Packages; [
     cython
     setuptools-scm
-    # For building documentation:
-    sphinx
-    guzzle_sphinx_theme
+    pkgconfig
+
+    # docs
+    sphinxHook
+    guzzle-sphinx-theme
+
+    # shell completions
+    installShellFiles
   ];
+
+  sphinxBuilders = [ "singlehtml" "man" ];
 
   buildInputs = [
     libb2
     lz4
+    xxHash
     zstd
     openssl
   ] ++ lib.optionals stdenv.isLinux [
     acl
   ];
 
-  propagatedBuildInputs = with python3.pkgs; [
+  propagatedBuildInputs = with python3Packages; [
     msgpack
     packaging
     (if stdenv.isLinux then pyfuse3 else llfuse)
   ];
-
-  preConfigure = ''
-    export BORG_OPENSSL_PREFIX="${openssl.dev}"
-    export BORG_LZ4_PREFIX="${lz4.dev}"
-    export BORG_LIBB2_PREFIX="${libb2}"
-    export BORG_LIBZSTD_PREFIX="${zstd.dev}"
-  '';
 
   makeWrapperArgs = [
     ''--prefix PATH ':' "${openssh}/bin"''
   ];
 
   postInstall = ''
-    make -C docs singlehtml
-    mkdir -p $out/share/doc/borg
-    cp -R docs/_build/singlehtml $out/share/doc/borg/html
-
-    make -C docs man
-    mkdir -p $out/share/man
-    cp -R docs/_build/man $out/share/man/man1
-
-    mkdir -p $out/share/bash-completion/completions
-    cp scripts/shell_completions/bash/borg $out/share/bash-completion/completions/
-
-    mkdir -p $out/share/fish/vendor_completions.d
-    cp scripts/shell_completions/fish/borg.fish $out/share/fish/vendor_completions.d/
-
-    mkdir -p $out/share/zsh/site-functions
-    cp scripts/shell_completions/zsh/_borg $out/share/zsh/site-functions/
+    installShellCompletion --cmd borg \
+      --bash scripts/shell_completions/bash/borg \
+      --fish scripts/shell_completions/fish/borg.fish \
+      --zsh scripts/shell_completions/zsh/_borg
   '';
 
-  checkInputs = with python3.pkgs; [
+  nativeCheckInputs = with python3Packages; [
     e2fsprogs
+    py
     python-dateutil
     pytest-benchmark
     pytest-xdist
@@ -119,14 +112,15 @@ python3.pkgs.buildPythonApplication rec {
     inherit (nixosTests) borgbackup;
   };
 
-  outputs = [ "out" "doc" ];
+  outputs = [ "out" "doc" "man" ];
 
   meta = with lib; {
+    changelog = "https://github.com/borgbackup/borg/blob/${version}/docs/changes.rst";
     description = "Deduplicating archiver with compression and encryption";
     homepage = "https://www.borgbackup.org";
     license = licenses.bsd3;
     platforms = platforms.unix; # Darwin and FreeBSD mentioned on homepage
     mainProgram = "borg";
-    maintainers = with maintainers; [ flokli dotlambda globin ];
+    maintainers = with maintainers; [ dotlambda globin ];
   };
 }

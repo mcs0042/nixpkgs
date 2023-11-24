@@ -8,12 +8,12 @@ let
   settingsFormat = pkgs.formats.yaml {};
 in {
   options.services.tempo = {
-    enable = mkEnableOption "Grafana Tempo";
+    enable = mkEnableOption (lib.mdDoc "Grafana Tempo");
 
     settings = mkOption {
       type = settingsFormat.type;
       default = {};
-      description = ''
+      description = lib.mdDoc ''
         Specify the configuration for Tempo in Nix.
 
         See https://grafana.com/docs/tempo/latest/configuration/ for available options.
@@ -23,8 +23,20 @@ in {
     configFile = mkOption {
       type = types.nullOr types.path;
       default = null;
-      description = ''
+      description = lib.mdDoc ''
         Specify a path to a configuration file that Tempo should use.
+      '';
+    };
+
+    extraFlags = mkOption {
+      type = types.listOf types.str;
+      default = [];
+      example = lib.literalExpression
+        ''
+          [ "-config.expand-env=true" ]
+        '';
+      description = lib.mdDoc ''
+        Additional flags to pass to the `ExecStart=` in `tempo.service`.
       '';
     };
   };
@@ -54,7 +66,7 @@ in {
                else cfg.configFile;
       in
       {
-        ExecStart = "${pkgs.tempo}/bin/tempo --config.file=${conf}";
+        ExecStart = "${pkgs.tempo}/bin/tempo --config.file=${conf} ${lib.escapeShellArgs cfg.extraFlags}";
         DynamicUser = true;
         Restart = "always";
         ProtectSystem = "full";

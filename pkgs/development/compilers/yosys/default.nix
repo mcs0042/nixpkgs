@@ -8,7 +8,6 @@
 , libffi
 , makeWrapper
 , pkg-config
-, protobuf
 , python3
 , readline
 , symlinkJoin
@@ -56,7 +55,7 @@ let
     in lib.appendToName "with-plugins" ( symlinkJoin {
       inherit (yosys) name;
       paths = paths ++ [ yosys ] ;
-      buildInputs = [ makeWrapper ];
+      nativeBuildInputs = [ makeWrapper ];
       postBuild = ''
         wrapProgram $out/bin/yosys \
           --set NIX_YOSYS_PLUGIN_DIRS $out/share/yosys/plugins \
@@ -70,22 +69,30 @@ let
   } // (yosys-symbiflow);
 
 
-in stdenv.mkDerivation rec {
+in stdenv.mkDerivation (finalAttrs: {
   pname   = "yosys";
-  version = "0.18";
+  version = "0.35";
 
   src = fetchFromGitHub {
     owner = "YosysHQ";
     repo  = "yosys";
-    rev   = "${pname}-${version}";
-    hash  = "sha256-uvJYL7cUhf6gTvfeIVKWMB2DH5qcYzhB2WPeJf1rCTI=";
+    rev   = "refs/tags/${finalAttrs.pname}-${finalAttrs.version}";
+    hash  = "sha256-jB8y7XGDX9rVF6c4FSTLOyvsxPhdjU8Taj6MQeoU4KQ=";
   };
 
   enableParallelBuilding = true;
   nativeBuildInputs = [ pkg-config bison flex ];
-  buildInputs = [ tcl readline libffi python3 protobuf zlib ];
+  buildInputs = [
+    tcl
+    readline
+    libffi
+    zlib
+    (python3.withPackages (pp: with pp; [
+      click
+    ]))
+  ];
 
-  makeFlags = [ "ENABLE_PROTOBUF=1" "PREFIX=${placeholder "out"}"];
+  makeFlags = [ "PREFIX=${placeholder "out"}"];
 
   patches = [
     ./plugin-search-dirs.patch
@@ -94,7 +101,7 @@ in stdenv.mkDerivation rec {
 
   postPatch = ''
     substituteInPlace ./Makefile \
-      --replace 'echo UNKNOWN' 'echo ${builtins.substring 0 10 src.rev}'
+      --replace 'echo UNKNOWN' 'echo ${builtins.substring 0 10 finalAttrs.src.rev}'
 
     chmod +x ./misc/yosys-config.in
     patchShebangs tests ./misc/yosys-config.in
@@ -107,23 +114,20 @@ in stdenv.mkDerivation rec {
     make config-${if stdenv.cc.isClang or false then "clang" else "gcc"}
     echo 'ABCEXTERNAL = ${abc-verifier}/bin/abc' >> Makefile.conf
 
-    # we have to do this ourselves for some reason...
-    (cd misc && ${protobuf}/bin/protoc --cpp_out ../backends/protobuf/ ./yosys.proto)
-
     if ! grep -q "ABCREV = ${shortAbcRev}" Makefile; then
       echo "ERROR: yosys isn't compatible with the provided abc (${shortAbcRev}), failing."
       exit 1
     fi
 
     if ! grep -q "YOSYS_VER := $version" Makefile; then
-      echo "ERROR: yosys version in Makefile isn't equivalent to version of the nix package (allegedly ${version}), failing."
+      echo "ERROR: yosys version in Makefile isn't equivalent to version of the nix package (allegedly ${finalAttrs.version}), failing."
       exit 1
     fi
   '';
 
   checkTarget = "test";
   doCheck = true;
-  checkInputs = [ verilog ];
+  nativeCheckInputs = [ verilog ];
 
   # Internally, yosys knows to use the specified hardcoded ABCEXTERNAL binary.
   # But other tools (like mcy or symbiyosys) can't know how yosys was built, so
@@ -146,6 +150,6 @@ in stdenv.mkDerivation rec {
     homepage    = "https://yosyshq.net/yosys/";
     license     = licenses.isc;
     platforms   = platforms.all;
-    maintainers = with maintainers; [ shell thoughtpolice emily ];
+    maintainers = with maintainers; [ shell thoughtpolice emily Luflosi ];
   };
-}
+})

@@ -2,19 +2,20 @@
 , fetchFromGitLab
 , buildPythonPackage
 , pillow
-, setuptools-scm
-, setuptools-scm-git-archive
 , tesseract
 , cuneiform
 , isPy3k
 , substituteAll
 , pytestCheckHook
+, setuptools
+, setuptools-scm
 }:
 
 buildPythonPackage rec {
   pname = "pyocr";
-  version = "0.7.2";
+  version = "0.8.5";
   disabled = !isPy3k;
+  format = "pyproject";
 
   # Don't fetch from PYPI because it doesn't contain tests.
   src = fetchFromGitLab {
@@ -23,7 +24,7 @@ buildPythonPackage rec {
     owner = "OpenPaperwork";
     repo = "pyocr";
     rev = version;
-    sha256 = "09ab86bmizpv94w3mdvdqkjyyvk1vafw3jqhkiw5xx7p180xn3il";
+    hash = "sha256-gE0+qbHCwpDdxXFY+4rjVU2FbUSfSVrvrVMcWUk+9FU=";
   };
 
   patches = [
@@ -33,18 +34,19 @@ buildPythonPackage rec {
     })
   ];
 
-  SETUPTOOLS_SCM_PRETEND_VERSION = version;
-
-  buildInputs = [ setuptools-scm setuptools-scm-git-archive ];
+  env.SETUPTOOLS_SCM_PRETEND_VERSION = version;
 
   propagatedBuildInputs = [ pillow ];
 
-  checkInputs = [ pytestCheckHook ];
+  nativeBuildInputs = [ setuptools setuptools-scm ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
 
   meta = with lib; {
     inherit (src.meta) homepage;
+    changelog = "https://gitlab.gnome.org/World/OpenPaperwork/pyocr/-/blob/${version}/ChangeLog";
     description = "A Python wrapper for Tesseract and Cuneiform";
     license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ ];
+    maintainers = with maintainers; [ symphorien ];
   };
 }

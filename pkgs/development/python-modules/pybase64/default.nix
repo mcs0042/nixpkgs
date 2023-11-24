@@ -7,22 +7,28 @@
 
 buildPythonPackage rec {
   pname = "pybase64";
-  version = "1.2.2";
+  version = "1.3.1";
+  format = "setuptools";
 
   disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-vv2YOlp7ZVE1W2q+VnI/f58SxYDgLxJreIOwdb6/8lw=";
+    hash = "sha256-I0CC/dcDnLdQxkTi03/Ck+c0XqOl8nmrrC9PyWLZuZY=";
   };
 
-  checkInputs = [ pytestCheckHook ];
+  nativeCheckInputs = [
+    pytestCheckHook
+  ];
 
-  pythonImportsCheck = [ "pybase64" ];
+  pythonImportsCheck = [
+    "pybase64"
+  ];
 
   meta = with lib; {
     description = "Fast Base64 encoding/decoding";
     homepage = "https://github.com/mayeut/pybase64";
+    changelog = "https://github.com/mayeut/pybase64/releases/tag/v${version}";
     license = licenses.bsd2;
     maintainers = with maintainers; [ ];
   };

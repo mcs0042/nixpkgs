@@ -8,31 +8,32 @@
 , pyyaml
 , markdown
 , ansi2html
+, lxml
 , python
 , unzip
 }:
 let
-  version = "0.81.0";
+  version = "0.86.10";
 
   src = fetchFromSourcehut {
     owner = "~sircmpwn";
     repo = "builds.sr.ht";
     rev = version;
-    sha256 = "sha256-oUSzanRFZ2dQTgm/VuNhqUaUAPq7ffxR7OtBKtE61DE=";
+    hash = "sha256-frwJgwJst2/NWd8VR0KbsVwm8JfWuekkY2oIIAdh3Fw=";
   };
 
   buildsrht-api = buildGoModule ({
     inherit src version;
     pname = "buildsrht-api";
     modRoot = "api";
-    vendorSha256 = "sha256-roTwqtg4Y846PNtLdRN/LV3Jd0LVElqjFy3DJcrwoaI=";
-  } // import ./fix-gqlgen-trimpath.nix { inherit unzip; });
+    vendorHash = "sha256-2khk7j22KON4MsuvFUNKSUpouJtVIOxE0hkh63iaxZ4=";
+  } // import ./fix-gqlgen-trimpath.nix { inherit unzip; gqlgenVersion = "0.17.29"; });
 
   buildsrht-worker = buildGoModule {
     inherit src version;
-    sourceRoot = "source/worker";
+    sourceRoot = "${src.name}/worker";
     pname = "buildsrht-worker";
-    vendorSha256 = "sha256-Pf1M9a43eK4jr6QMi6kRHA8DodXQU0pqq9ua5VC3ER0=";
+    vendorHash = "sha256-obdaeRwMhuiCV2kVwDo1c+rU/hmsbiL1IgAf7AcIpoc=";
   };
 in
 buildPythonPackage rec {
@@ -44,15 +45,15 @@ buildPythonPackage rec {
       --replace "all: api worker" ""
   '';
 
-  nativeBuildInputs = srht.nativeBuildInputs;
-
   propagatedBuildInputs = [
     srht
     redis
     celery
     pyyaml
     markdown
+    # Unofficial dependencies
     ansi2html
+    lxml
   ];
 
   preBuild = ''

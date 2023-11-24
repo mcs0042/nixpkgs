@@ -1,15 +1,31 @@
-{ lib, stdenv, fetchFromGitHub, cmake, gettext, pkg-config, gpgme, libsolv, openssl, check
-, json_c, libmodulemd, libsmartcols, sqlite, librepo, libyaml, rpm, zchunk }:
+{ lib
+, stdenv
+, fetchFromGitHub
+, cmake
+, gettext
+, pkg-config
+, libsolv
+, openssl
+, check
+, json_c
+, libmodulemd
+, libsmartcols
+, sqlite
+, librepo
+, libyaml
+, rpm
+, zchunk
+}:
 
 stdenv.mkDerivation rec {
   pname = "libdnf";
-  version = "0.66.0";
+  version = "0.72.0";
 
   src = fetchFromGitHub {
     owner = "rpm-software-management";
     repo = pname;
-    rev = version;
-    sha256 = "sha256-fQyNm51roz6wn9QAE8/ZIrutyWP45xiKVHzn8n0LcwE=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-Ou7cXJz4g8cx2KjeX+IFRA2m158PGKcb9jCXFuAOKqU=";
   };
 
   nativeBuildInputs = [
@@ -20,7 +36,6 @@ stdenv.mkDerivation rec {
 
   buildInputs = [
     check
-    gpgme
     openssl
     json_c
     libsmartcols
@@ -41,11 +56,15 @@ stdenv.mkDerivation rec {
     cp ${libsolv}/share/cmake/Modules/FindLibSolv.cmake cmake/modules/
   '';
 
-  # See https://github.com/NixOS/nixpkgs/issues/107428
   postPatch = ''
+    # See https://github.com/NixOS/nixpkgs/issues/107428
     substituteInPlace CMakeLists.txt \
       --replace "enable_testing()" "" \
       --replace "add_subdirectory(tests)" ""
+
+    # https://github.com/rpm-software-management/libdnf/issues/1518
+    substituteInPlace libdnf/libdnf.pc.in \
+      --replace '$'{prefix}/@CMAKE_INSTALL_LIBDIR@ @CMAKE_INSTALL_FULL_LIBDIR@
   '';
 
   cmakeFlags = [
@@ -55,8 +74,9 @@ stdenv.mkDerivation rec {
   ];
 
   meta = with lib; {
-    description = "Package management library.";
+    description = "Package management library";
     homepage = "https://github.com/rpm-software-management/libdnf";
+    changelog = "https://github.com/rpm-software-management/libdnf/releases/tag/${version}";
     license = licenses.gpl2Plus;
     platforms = platforms.linux ++ platforms.darwin;
     maintainers = with maintainers; [ rb2k ];

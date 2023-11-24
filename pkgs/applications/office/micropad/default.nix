@@ -1,6 +1,7 @@
 { lib
 , stdenv
 , fetchFromGitHub
+, fetchYarnDeps
 , fetchzip
 , makeWrapper
 , makeDesktopItem
@@ -11,30 +12,29 @@
 }:
 let
   executableName = "micropad";
-  electron_exec =
-    if stdenv.isDarwin
-    then "${electron}/Applications/Electron.app/Contents/MacOS/Electron"
-    else "${electron}/bin/electron";
 in
   mkYarnPackage rec {
     pname = "micropad";
-    version = "3.30.6";
+    version = "4.4.0";
 
     src = fetchFromGitHub {
       owner = "MicroPad";
       repo = "Micropad-Electron";
       rev = "v${version}";
-      sha256 = "sha256-v3hnHG6FMW2xBU/DnenqjFizQv/OZ9cW99n/3SoENe8=";
+      hash = "sha256-VK3sSXYW/Dev7jCdkgrU9PXFbJ6+R2hy6QMRjj6bJ5M=";
     };
 
     micropad-core = fetchzip {
       url = "https://github.com/MicroPad/MicroPad-Core/releases/download/v${version}/micropad.tar.xz";
-      hash = "sha256-aqshYbVrQg6tYtTlO91FGiH7DuueOA0OU5KGCVc7XvI=";
+      hash = "sha256-KfS13p+mjIh7VShVCT6vFuQY0e/EO/sENOx4GPAORHU=";
     };
 
     packageJSON = ./package.json;
-    yarnLock = ./yarn.lock;
-    yarnNix = ./yarn.nix;
+
+    offlineCache = fetchYarnDeps {
+      yarnLock = "${src}/yarn.lock";
+      hash = "sha256-8M0VZI5I4fLoLLmXkIVeCqouww+CyiXbd+vJc8+2tIs=";
+    };
 
     nativeBuildInputs = [ copyDesktopItems makeWrapper ]
       ++ lib.optionals stdenv.isDarwin [ desktopToDarwinBundle ];
@@ -64,9 +64,9 @@ in
       done
 
       # executable wrapper
-      makeWrapper '${electron_exec}' "$out/bin/${executableName}" \
+      makeWrapper '${electron}/bin/electron' "$out/bin/${executableName}" \
         --add-flags "$out/share/micropad" \
-        --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--enable-features=UseOzonePlatform --ozone-platform=wayland}}"
+        --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations}}"
 
       runHook postInstall
     '';
@@ -87,6 +87,8 @@ in
         categories = ["Office"];
       })
     ];
+
+    passthru.updateScript = ./update.sh;
 
     meta = with lib; {
       description = "A powerful note-taking app that helps you organise + take notes without restrictions";

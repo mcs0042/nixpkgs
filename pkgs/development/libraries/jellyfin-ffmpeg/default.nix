@@ -1,21 +1,30 @@
-{ ffmpeg_5-full
-, nv-codec-headers-11
+{ ffmpeg_6-full
+, nv-codec-headers-12
+, chromaprint
 , fetchFromGitHub
 , lib
 }:
 
-(ffmpeg_5-full.override {
-  nv-codec-headers = nv-codec-headers-11;
+(ffmpeg_6-full.override {
+  nv-codec-headers-11 = nv-codec-headers-12;
 }).overrideAttrs (old: rec {
   pname = "jellyfin-ffmpeg";
-  version = "5.0.1-7";
+  version = "6.0-7";
 
   src = fetchFromGitHub {
     owner = "jellyfin";
     repo = "jellyfin-ffmpeg";
     rev = "v${version}";
-    sha256 = "sha256-jMd7tEEfiHqTp4q8c6EvbjL0KyJ6ucj4ZNrKOJLJ1Mc=";
+    sha256 = "sha256-Z4getn/mVYIRANkIOyt7jMpcqHBvq5GXLK/ST5zV1r4=";
   };
+
+  buildInputs = old.buildInputs ++ [ chromaprint ];
+
+  configureFlags = old.configureFlags ++ [
+    "--extra-version=Jellyfin"
+    "--disable-ptx-compression" # https://github.com/jellyfin/jellyfin/issues/7944#issuecomment-1156880067
+    "--enable-chromaprint"
+  ];
 
   postPatch = ''
     for file in $(cat debian/patches/series); do

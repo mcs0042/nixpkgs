@@ -1,24 +1,25 @@
 { lib
 , buildGoModule
 , fetchFromGitHub
+, nixosTests
 }:
 
 buildGoModule rec {
   pname = "endlessh-go";
-  version = "20220710";
+  version = "20230625-3";
 
   src = fetchFromGitHub {
     owner = "shizunge";
     repo = "endlessh-go";
     rev = version;
-    sha256 = "sha256-T8DLzHfITMLeHJtKuK4AjEzGGCIDJUPlqF2Lj56xPxY=";
+    sha256 = "sha256-ug01nwlUCKe7DkhSJJ9XUU4QHZeH0A2f/oH6wl2VzIc=";
   };
 
-  vendorSha256 = "sha256-hMCjYAqsI6h9B8iGVYQcNbKU5icalOHavvPKwOmvf/w=";
-
-  proxyVendor = true;
+  vendorHash = "sha256-n7lzSLtR3bUslT6Q1khsFeofSvwuSaBv3n33+HIdssU=";
 
   ldflags = [ "-s" "-w" ];
+
+  passthru.tests = nixosTests.endlessh-go;
 
   meta = with lib; {
     description = "An implementation of endlessh exporting Prometheus metrics";

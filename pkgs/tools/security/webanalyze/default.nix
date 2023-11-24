@@ -5,21 +5,23 @@
 
 buildGoModule rec {
   pname = "webanalyze";
-  version = "0.3.6";
+  version = "0.3.9";
 
   src = fetchFromGitHub {
     owner = "rverton";
     repo = pname;
-    rev = "v${version}";
-    hash = "sha256-r5HIXh0mKCZmzOOAKThNUPtJLsTYvnVE8FYA6vV5xjg=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-uDf0p4zw23+AVftMmrKfno+FbMZfGC1B5zvutj8qnPg=";
   };
 
-  vendorSha256 = "sha256-kXtWYGsZUUhBNvkTOah3Z+ta118k6PXfpBx6MLr/pq0=";
+  vendorHash = "sha256-XPOsC+HoLytgv1fhAaO5HYSvuOP6OhjLyOYTfiD64QI=";
 
   meta = with lib; {
     description = "Tool to uncover technologies used on websites";
     homepage = "https://github.com/rverton/webanalyze";
+    changelog = "https://github.com/rverton/webanalyze/releases/tag/v${version}";
     license = licenses.mit;
     maintainers = with maintainers; [ fab ];
+    mainProgram = "webanalyze";
   };
 }

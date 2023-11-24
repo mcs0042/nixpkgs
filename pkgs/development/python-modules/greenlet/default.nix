@@ -1,33 +1,62 @@
 { lib
 , buildPythonPackage
 , fetchPypi
-, isPyPy
+
+# build-system
+, setuptools
+
+# tests
+, objgraph
+, psutil
 , python
+, unittestCheckHook
 }:
 
-
-buildPythonPackage rec {
+let greenlet = buildPythonPackage rec {
   pname = "greenlet";
-  version = "1.1.2";
-  disabled = isPyPy;  # builtin for pypy
+  version = "3.0.1";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "e30f5ea4ae2346e62cedde8794a56858a67b878dd79f7df76a0767e356b1744a";
+    hash = "sha256-gWvZSIqUy6eNk+GrtYAA6CZvqcwqqczdbrBpasskAFs=";
   };
 
-  checkPhase = ''
-    runHook preCheck
-    ${python.interpreter} -m unittest discover -v greenlet.tests
-    runHook postCheck
+  nativeBuildInputs = [
+    setuptools
+  ];
+
+  # tests in passthru, infinite recursion via objgraph/graphviz
+  doCheck = false;
+
+  nativeCheckInputs = [
+    objgraph
+    psutil
+    unittestCheckHook
+  ];
+
+  preCheck = ''
+    pushd ${placeholder "out"}/${python.sitePackages}
   '';
 
+  unittestFlagsArray = [
+    "greenlet.tests"
+  ];
+
+  postCheck = ''
+    popd
+  '';
+
+  passthru.tests.pytest = greenlet.overridePythonAttrs (_: { doCheck = true; });
+
   meta = with lib; {
+    changelog = "https://github.com/python-greenlet/greenlet/blob/${version}/CHANGES.rst";
     homepage = "https://github.com/python-greenlet/greenlet";
     description = "Module for lightweight in-process concurrent programming";
     license = with licenses; [
-      psfl  # src/greenlet/slp_platformselect.h & files in src/greenlet/platform/ directory
+      psfl # src/greenlet/slp_platformselect.h & files in src/greenlet/platform/ directory
       mit
     ];
   };
-}
+};
+in greenlet

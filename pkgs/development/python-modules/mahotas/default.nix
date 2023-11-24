@@ -13,32 +13,35 @@
 
 buildPythonPackage rec {
   pname = "mahotas";
-  version = "1.4.12";
+  version = "1.4.13";
 
   src = fetchFromGitHub {
     owner = "luispedro";
     repo = "mahotas";
     rev = "v${version}";
-    sha256 = "1n19yha1cqyx7hnlici1wkl7n68dh0vbpsyydfhign2c0w9jvg42";
+    hash = "sha256-AmctF/9hLgHw6FUm0s61eCdcc12lBa1t0OkXclis//w=";
   };
 
-  patches = [
-    (fetchpatch {
-      name = "fix-freeimage-tests.patch";
-      url = "https://github.com/luispedro/mahotas/commit/08cc4aa0cbd5dbd4c37580d52b822810c03b2c69.patch";
-      sha256 = "0389sz7fyl8h42phw8sn4pxl4wc3brcrj9d05yga21gzil9bfi23";
-      excludes = [ "ChangeLog" ];
-    })
+  propagatedBuildInputs = [
+    freeimage
+    imread
+    numpy
+    pillow
+    scipy
   ];
 
-  propagatedBuildInputs = [ numpy imread pillow scipy freeimage ];
-  checkInputs = [ pytestCheckHook ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   postPatch = ''
     substituteInPlace mahotas/io/freeimage.py \
       --replace "ctypes.util.find_library('freeimage')" 'True' \
       --replace 'ctypes.CDLL(libname)' 'np.ctypeslib.load_library("libfreeimage", "${freeimage}/lib")'
   '';
+
+  # mahotas/_morph.cpp:864:10: error: no member named 'random_shuffle' in namespace 'std'
+  env = lib.optionalAttrs stdenv.cc.isClang {
+    NIX_CFLAGS_COMPILE = "-std=c++14";
+  };
 
   # tests must be run in the build directory
   preCheck = ''

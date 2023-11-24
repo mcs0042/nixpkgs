@@ -9,19 +9,19 @@
 
 buildPythonPackage rec {
   pname = "identify";
-  version = "2.5.2";
+  version = "2.5.32";
   format = "setuptools";
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "pre-commit";
     repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-EIr+u8tfvMFLc2A4dIsaMk3ZlpIU5c3FBqyv3mRRfac=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-fKcxK11IxC0wmpPdyGzYQViSW2rx1v9Bvc+uBvGT8kE=";
   };
 
-  checkInputs = [
+  nativeCheckInputs = [
     editdistance-s
     pytestCheckHook
     ukkonen

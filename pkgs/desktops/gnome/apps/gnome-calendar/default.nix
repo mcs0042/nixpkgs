@@ -7,14 +7,13 @@
 , wrapGAppsHook4
 , libgweather
 , geoclue2
-, geocode-glib
 , gettext
 , libxml2
 , gnome
 , gtk4
-, evolution-data-server
+, evolution-data-server-gtk4
 , libical
-, libsoup
+, libsoup_3
 , glib
 , gsettings-desktop-schemas
 , libadwaita
@@ -22,11 +21,11 @@
 
 stdenv.mkDerivation rec {
   pname = "gnome-calendar";
-  version = "42.2";
+  version = "45.1";
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.major version}/${pname}-${version}.tar.xz";
-    sha256 = "rnzGOq6WoCqlmbbWo0hYX0529ylTbznvt0QwKwW1+70=";
+    sha256 = "f6hQdUOGWqdDK7UxmDDIcVi1RHygnMpFtgfcZ5bHEAg=";
   };
 
   nativeBuildInputs = [
@@ -40,13 +39,12 @@ stdenv.mkDerivation rec {
 
   buildInputs = [
     gtk4
-    evolution-data-server # waiting for GTK4 port
+    evolution-data-server-gtk4
     libical
-    libsoup
+    libsoup_3
     glib
     libgweather
     geoclue2
-    geocode-glib
     gsettings-desktop-schemas
     libadwaita
   ];
@@ -63,6 +61,6 @@ stdenv.mkDerivation rec {
     description = "Simple and beautiful calendar application for GNOME";
     maintainers = teams.gnome.members;
     license = licenses.gpl3Plus;
-    platforms = platforms.linux;
+    platforms = platforms.unix;
   };
 }

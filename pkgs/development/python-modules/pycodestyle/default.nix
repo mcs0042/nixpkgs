@@ -1,31 +1,41 @@
 { buildPythonPackage
+, pythonOlder
 , fetchPypi
 , lib
 , python
+, pytestCheckHook
 }:
 
 buildPythonPackage rec {
   pname = "pycodestyle";
-  version = "2.8.0";
+  version = "2.11.0";
+
+  disabled = pythonOlder "3.6";
+
+  format = "setuptools";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "0zxyrg8029lzjhima6l5nk6y0z6lm5wfp9qchz3s33j3xx3mipgd";
+    hash = "sha256-JZvMF4V9ios7SiMnMkt55fAgoTwWB0Zw+cjI+HLqdtA=";
   };
 
-  dontUseSetuptoolsCheck = true;
+  pythonImportsCheck = [
+    "pycodestyle"
+  ];
 
-  # https://github.com/PyCQA/pycodestyle/blob/2.5.0/tox.ini#L14
-  checkPhase = ''
-    ${python.interpreter} pycodestyle.py --max-doc-length=72 --testsuite testsuite
-    ${python.interpreter} pycodestyle.py --statistics pycodestyle.py
-    ${python.interpreter} pycodestyle.py --max-doc-length=72 --doctest
-    ${python.interpreter} -m unittest discover testsuite -vv
+  nativCheckInputs = [
+    pytestCheckHook
+  ];
+
+  # https://github.com/PyCQA/pycodestyle/blob/2.11.0/tox.ini#L16
+  postCheck = ''
+    ${python.interpreter} -m pycodestyle --statistics pycodestyle.py
   '';
 
   meta = with lib; {
-    description = "Python style guide checker (formerly called pep8)";
-    homepage = "https://pycodestyle.readthedocs.io";
+    changelog = "https://github.com/PyCQA/pycodestyle/blob/${version}/CHANGES.txt";
+    description = "Python style guide checker";
+    homepage = "https://pycodestyle.pycqa.org/";
     license = licenses.mit;
     maintainers = with maintainers; [
       kamadorueda

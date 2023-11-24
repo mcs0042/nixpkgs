@@ -1,4 +1,4 @@
-{ stdenv, stdenvNoCC, gccStdenv, lib, recurseIntoAttrs, libsForQt5, newScope, texlive, perlPackages, jdk8, jre8 }:
+{ stdenv, stdenvNoCC, gccStdenv, lib, recurseIntoAttrs, libsForQt5, newScope, texliveBasic, perlPackages, jdk8, jre8 }:
 
 # To whomever it may concern:
 #
@@ -46,9 +46,7 @@ let
   versionToName = version: "dwarf-fortress_${lib.replaceStrings ["."] ["_"] version}";
 
   dwarf-therapist-original = libsForQt5.callPackage ./dwarf-therapist {
-    texlive = texlive.combine {
-      inherit (texlive) scheme-basic float caption wrapfig adjmulticol sidecap preprint enumitem;
-    };
+    texlive = texliveBasic.withPackages (ps: with ps; [ float caption wrapfig adjmulticol sidecap preprint enumitem ]);
   };
 
   # A map of names to each Dwarf Fortress package we know about.
@@ -63,16 +61,13 @@ let
             inherit dwarf-fortress-unfuck;
           };
 
-          # unfuck is linux-only right now, we will only use it there.
-          dwarf-fortress-unfuck =
-            if stdenv.isLinux then callPackage ./unfuck.nix { inherit dfVersion; }
-            else null;
+          dwarf-fortress-unfuck = callPackage ./unfuck.nix { inherit dfVersion; };
 
           twbt = callPackage ./twbt { inherit dfVersion; };
 
           dfhack = callPackage ./dfhack {
             inherit (perlPackages) XMLLibXML XMLLibXSLT;
-            inherit dfVersion twbt;
+            inherit dfVersion;
             stdenv = gccStdenv;
           };
 
@@ -83,11 +78,7 @@ let
         in
         callPackage ./wrapper {
           inherit (self) themes;
-
-          dwarf-fortress = dwarf-fortress;
-          twbt = twbt;
-          dfhack = dfhack;
-          dwarf-therapist = dwarf-therapist;
+          inherit dwarf-fortress twbt dfhack dwarf-therapist;
 
           jdk = jdk8; # TODO: remove override https://github.com/NixOS/nixpkgs/pull/89731
         };

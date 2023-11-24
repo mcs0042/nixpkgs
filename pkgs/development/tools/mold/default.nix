@@ -1,48 +1,119 @@
-{ stdenv
+{ lib
+, stdenv
 , fetchFromGitHub
-, lib
-, autoPatchelfHook
-, cmake
-, llvmPackages_latest
-, xxHash
-, zlib
-, openssl
 , nix-update-script
+
+, cmake
+, mimalloc
+, ninja
+, tbb
+, zlib
+, zstd
+
+, buildPackages
+, clangStdenv
+, gccStdenv
+, hello
+, mold
+, mold-wrapped
+, runCommandCC
+, testers
+, useMoldLinker
 }:
 
 stdenv.mkDerivation rec {
   pname = "mold";
-  version = "1.3.1";
+  version = "2.3.3";
 
   src = fetchFromGitHub {
     owner = "rui314";
-    repo = pname;
+    repo = "mold";
     rev = "v${version}";
-    sha256 = "sha256-KSIbMKaLcVUM2k+WQ5V+kU/TUQQFWpsCBVs8TQW+3g4=";
+    hash = "sha256-YXFfjJp4dSxzEyAtrEi/ONQZKD7QAU/MZ62l4QCcbwE=";
   };
 
-  buildInputs = [ zlib openssl ];
-  nativeBuildInputs = [ autoPatchelfHook cmake xxHash ];
+  nativeBuildInputs = [
+    cmake
+    ninja
+  ];
 
-  enableParallelBuilding = true;
-  dontUseCmakeConfigure = true;
-  EXTRA_LDFLAGS = "-fuse-ld=${llvmPackages_latest.lld}/bin/ld.lld";
-  LTO = 1;
-  makeFlags = [ "PREFIX=${placeholder "out"}" ];
+  buildInputs = [
+    tbb
+    zlib
+    zstd
+  ] ++ lib.optionals (!stdenv.isDarwin) [
+    mimalloc
+  ];
+
+  cmakeFlags = [
+    "-DMOLD_USE_SYSTEM_MIMALLOC:BOOL=ON"
+    "-DMOLD_USE_SYSTEM_TBB:BOOL=ON"
+  ];
+
+  env.NIX_CFLAGS_COMPILE = toString (lib.optionals stdenv.isDarwin [
+    "-faligned-allocation"
+  ]);
 
   passthru = {
-    updateScript = nix-update-script {
-      attrPath = pname;
-    };
+    updateScript = nix-update-script { };
+    tests =
+      let
+        helloTest = name: helloMold:
+          let
+            command = "$READELF -p .comment ${lib.getExe helloMold}";
+            emulator = stdenv.hostPlatform.emulator buildPackages;
+          in
+          runCommandCC "mold-${name}-test" { passthru = { inherit helloMold; }; }
+            ''
+              echo "Testing running the 'hello' binary which should be linked with 'mold'" >&2
+              ${emulator} ${lib.getExe helloMold}
+
+              echo "Checking for mold in the '.comment' section" >&2
+              if output=$(${command} 2>&1); then
+                if grep -Fw -- "mold" - <<< "$output"; then
+                  touch $out
+                else
+                  echo "No mention of 'mold' detected in the '.comment' section" >&2
+                  echo "The command was:" >&2
+                  echo "${command}" >&2
+                  echo "The output was:" >&2
+                  echo "$output" >&2
+                  exit 1
+                fi
+              else
+                echo -n "${command}" >&2
+                echo " returned a non-zero exit code." >&2
+                echo "$output" >&2
+                exit 1
+              fi
+            ''
+        ;
+      in
+      {
+        version = testers.testVersion { package = mold; };
+      } // lib.optionalAttrs stdenv.isLinux {
+        adapter-gcc = helloTest "adapter-gcc" (hello.override (old: { stdenv = useMoldLinker gccStdenv; }));
+        adapter-llvm = helloTest "adapter-llvm" (hello.override (old: { stdenv = useMoldLinker clangStdenv; }));
+        wrapped = helloTest "wrapped" (hello.overrideAttrs (previousAttrs: {
+          nativeBuildInputs = (previousAttrs.nativeBuildInputs or [ ]) ++ [ mold-wrapped ];
+          NIX_CFLAGS_LINK = toString (previousAttrs.NIX_CFLAGS_LINK or "") + " -fuse-ld=mold";
+        }));
+      };
   };
 
   meta = with lib; {
-    description = "A high performance drop-in replacement for existing unix linkers";
+    description = "A faster drop-in replacement for existing Unix linkers (unwrapped)";
+    longDescription = ''
+      mold is a faster drop-in replacement for existing Unix linkers. It is
+      several times faster than the LLVM lld linker. mold is designed to
+      increase developer productivity by reducing build time, especially in
+      rapid debug-edit-rebuild cycles.
+    '';
     homepage = "https://github.com/rui314/mold";
-    license = lib.licenses.agpl3Plus;
-    maintainers = with maintainers; [ nitsky ];
+    changelog = "https://github.com/rui314/mold/releases/tag/v${version}";
+    license = licenses.mit;
     platforms = platforms.unix;
-    # error: aligned deallocation function of type 'void (void *, std::align_val_t) noexcept' is only available on macOS 10.14 or newer
-    broken = stdenv.isAarch64 || stdenv.isDarwin;
+    mainProgram = "mold";
+    maintainers = with maintainers; [ azahi nitsky paveloom ];
   };
 }

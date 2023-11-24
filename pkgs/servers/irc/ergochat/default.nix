@@ -2,16 +2,16 @@
 
 buildGoModule rec {
   pname = "ergo";
-  version = "2.10.0";
+  version = "2.12.0";
 
   src = fetchFromGitHub {
     owner = "ergochat";
     repo = "ergo";
     rev = "v${version}";
-    sha256 = "sha256-SydseZSEuFhbaU4OMnT8zFLbRfmeKwXsZZeDh8mbZco=";
+    sha256 = "sha256-n7GJpR/zUsHxTeVmHfBTjMcMAN7ri3FDvJSkKMzPe2I=";
   };
 
-  vendorSha256 = null;
+  vendorHash = null;
 
   passthru.tests.ergochat = nixosTests.ergochat;
 

@@ -12,12 +12,108 @@ in
       type = types.listOf types.str;
       default = [];
       example = [ "d /tmp 1777 root root 10d" ];
-      description = ''
+      description = lib.mdDoc ''
         Rules for creation, deletion and cleaning of volatile and temporary files
         automatically. See
-        <citerefentry><refentrytitle>tmpfiles.d</refentrytitle><manvolnum>5</manvolnum></citerefentry>
+        {manpage}`tmpfiles.d(5)`
         for the exact format.
       '';
+    };
+
+    systemd.tmpfiles.settings = mkOption {
+      description = lib.mdDoc ''
+        Declare systemd-tmpfiles rules to create, delete, and clean up volatile
+        and temporary files and directories.
+
+        Even though the service is called `*tmp*files` you can also create
+        persistent files.
+      '';
+      example = {
+        "10-mypackage" = {
+          "/var/lib/my-service/statefolder".d = {
+            mode = "0755";
+            user = "root";
+            group = "root";
+          };
+        };
+      };
+      default = {};
+      type = types.attrsOf (types.attrsOf (types.attrsOf (types.submodule ({ name, config, ... }: {
+        options.type = mkOption {
+          type = types.str;
+          default = name;
+          example = "d";
+          description = lib.mdDoc ''
+            The type of operation to perform on the file.
+
+            The type consists of a single letter and optionally one or more
+            modifier characters.
+
+            Please see the upstream documentation for the available types and
+            more details:
+            <https://www.freedesktop.org/software/systemd/man/tmpfiles.d>
+          '';
+        };
+        options.mode = mkOption {
+          type = types.str;
+          default = "-";
+          example = "0755";
+          description = lib.mdDoc ''
+            The file access mode to use when creating this file or directory.
+          '';
+        };
+        options.user = mkOption {
+          type = types.str;
+          default = "-";
+          example = "root";
+          description = lib.mdDoc ''
+            The user of the file.
+
+            This may either be a numeric ID or a user/group name.
+
+            If omitted or when set to `"-"`, the user and group of the user who
+            invokes systemd-tmpfiles is used.
+          '';
+        };
+        options.group = mkOption {
+          type = types.str;
+          default = "-";
+          example = "root";
+          description = lib.mdDoc ''
+            The group of the file.
+
+            This may either be a numeric ID or a user/group name.
+
+            If omitted or when set to `"-"`, the user and group of the user who
+            invokes systemd-tmpfiles is used.
+          '';
+        };
+        options.age = mkOption {
+          type = types.str;
+          default = "-";
+          example = "10d";
+          description = lib.mdDoc ''
+            Delete a file when it reaches a certain age.
+
+            If a file or directory is older than the current time minus the age
+            field, it is deleted.
+
+            If set to `"-"` no automatic clean-up is done.
+          '';
+        };
+        options.argument = mkOption {
+          type = types.str;
+          default = "";
+          example = "";
+          description = lib.mdDoc ''
+            An argument whose meaning depends on the type of operation.
+
+            Please see the upstream documentation for the meaning of this
+            parameter in different situations:
+            <https://www.freedesktop.org/software/systemd/man/tmpfiles.d>
+          '';
+        };
+      }))));
     };
 
     systemd.tmpfiles.packages = mkOption {
@@ -25,16 +121,16 @@ in
       default = [];
       example = literalExpression "[ pkgs.lvm2 ]";
       apply = map getLib;
-      description = ''
-        List of packages containing <command>systemd-tmpfiles</command> rules.
+      description = lib.mdDoc ''
+        List of packages containing {command}`systemd-tmpfiles` rules.
 
         All files ending in .conf found in
-        <filename><replaceable>pkg</replaceable>/lib/tmpfiles.d</filename>
+        {file}`«pkg»/lib/tmpfiles.d`
         will be included.
         If this folder does not exist or does not contain any files an error will be returned instead.
 
-        If a <filename>lib</filename> output is available, rules are searched there and only there.
-        If there is no <filename>lib</filename> output it will fall back to <filename>out</filename>
+        If a {file}`lib` output is available, rules are searched there and only there.
+        If there is no {file}`lib` output it will fall back to {file}`out`
         and if that does not exist either, the default output will be used.
       '';
     };
@@ -79,6 +175,7 @@ in
 
         ln -s "${systemd}/example/tmpfiles.d/home.conf"
         ln -s "${systemd}/example/tmpfiles.d/journal-nocow.conf"
+        ln -s "${systemd}/example/tmpfiles.d/portables.conf"
         ln -s "${systemd}/example/tmpfiles.d/static-nodes-permissions.conf"
         ln -s "${systemd}/example/tmpfiles.d/systemd.conf"
         ln -s "${systemd}/example/tmpfiles.d/systemd-nologin.conf"
@@ -99,7 +196,13 @@ in
           ${concatStringsSep "\n" cfg.rules}
         '';
       })
-    ];
+    ] ++ (mapAttrsToList (name: paths:
+      pkgs.writeTextDir "lib/tmpfiles.d/${name}.conf" (concatStrings (mapAttrsToList (path: types:
+        concatStrings (mapAttrsToList (_type: entry: ''
+          '${entry.type}' '${path}' '${entry.mode}' '${entry.user}' '${entry.group}' '${entry.age}' ${entry.argument}
+        '') types)
+      ) paths ))
+    ) cfg.settings);
 
     systemd.tmpfiles.rules = [
       "d  /nix/var                           0755 root root - -"

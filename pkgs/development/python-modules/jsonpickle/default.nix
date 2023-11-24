@@ -9,14 +9,14 @@
 
 buildPythonPackage rec {
   pname = "jsonpickle";
-  version = "2.1.0";
+  version = "3.0.2";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-hGhM/FM4pTQXPI3WmAnkDyhl0L4fiit6+EZeW5aNz6k=";
+    hash = "sha256-43q7pL+zykpGR9KLufRwZDb3tGyKgzO0pxirr6jkazc=";
   };
 
-  checkInputs = [ pytest ];
+  nativeCheckInputs = [ pytest ];
 
   nativeBuildInputs = [
     setuptools-scm

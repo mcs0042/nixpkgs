@@ -3,7 +3,7 @@
 , fetchYarnDeps
 , nodejs
 , yarn
-, fixup_yarn_lock
+, prefetch-yarn-deps
 , writeText, jq, conf ? {}
 }:
 
@@ -39,16 +39,21 @@ in stdenv.mkDerivation rec {
     sha256 = pinData.reactSdkYarnHash;
   };
 
-  nativeBuildInputs = [ yarn fixup_yarn_lock jq nodejs ];
+  nativeBuildInputs = [ yarn prefetch-yarn-deps jq nodejs ];
 
   configurePhase = ''
     runHook preConfigure
 
     export HOME=$PWD/tmp
+    # with the update of openssl3, some key ciphers are not supported anymore
+    # this flag will allow those codecs again as a workaround
+    # see https://medium.com/the-node-js-collection/node-js-17-is-here-8dba1e14e382#5f07
+    # and https://github.com/vector-im/element-web/issues/21043
+    export NODE_OPTIONS=--openssl-legacy-provider
     mkdir -p $HOME
 
     pushd element-web
-    fixup_yarn_lock yarn.lock
+    fixup-yarn-lock yarn.lock
     yarn config --offline set yarn-offline-mirror $webOfflineCache
     yarn install --offline --frozen-lockfile --ignore-platform --ignore-scripts --no-progress --non-interactive
     patchShebangs node_modules
@@ -59,14 +64,14 @@ in stdenv.mkDerivation rec {
     popd
 
     pushd matrix-js-sdk
-    fixup_yarn_lock yarn.lock
+    fixup-yarn-lock yarn.lock
     yarn config --offline set yarn-offline-mirror $jsSdkOfflineCache
     yarn install --offline --frozen-lockfile --ignore-platform --ignore-scripts --no-progress --non-interactive
     patchShebangs node_modules
     popd
 
     pushd matrix-react-sdk
-    fixup_yarn_lock yarn.lock
+    fixup-yarn-lock yarn.lock
     yarn config --offline set yarn-offline-mirror $reactSdkOfflineCache
     yarn install --offline --frozen-lockfile --ignore-platform --ignore-scripts --no-progress --non-interactive
     patchShebangs node_modules scripts
@@ -79,8 +84,10 @@ in stdenv.mkDerivation rec {
     runHook preBuild
 
     pushd element-web
-    node scripts/copy-res.js
-    node_modules/.bin/webpack --progress --mode production
+    export VERSION=${version}
+    yarn build:res --offline
+    yarn build:module_system --offline
+    yarn build:bundle --offline
     popd
 
     runHook postBuild
@@ -95,12 +102,12 @@ in stdenv.mkDerivation rec {
     runHook postInstall
   '';
 
-  meta = {
+  meta = with lib; {
     description = "Matrix client / Element Web fork";
     homepage = "https://schildi.chat/";
     changelog = "https://github.com/SchildiChat/schildichat-desktop/releases";
-    maintainers = lib.teams.matrix.members ++ [ lib.maintainers.kloenk ];
-    license = lib.licenses.asl20;
-    platforms = lib.platforms.all;
+    maintainers = teams.matrix.members ++ (with maintainers; [ kloenk yuka ]);
+    license = licenses.asl20;
+    platforms = platforms.all;
   };
 }

@@ -1,4 +1,4 @@
-{ lib, stdenv, fetchFromGitHub, autoconf, automake, libtool, popt, alsaLib }:
+{ lib, stdenv, fetchFromGitHub, autoconf, automake, libtool, popt, alsa-lib, alsa-plugins, makeWrapper }:
 
 stdenv.mkDerivation {
   pname = "nano-tts";
@@ -12,8 +12,8 @@ stdenv.mkDerivation {
   };
 
   strictDeps = true;
-  nativeBuildInputs = [ autoconf automake libtool ];
-  buildInputs = [ popt alsaLib ];
+  nativeBuildInputs = [ autoconf automake libtool makeWrapper ];
+  buildInputs = [ popt alsa-lib ];
 
   patchPhase = ''
     substituteInPlace "src/main.cpp" --replace "/usr/share/pico/lang" "$out/share/lang"
@@ -23,6 +23,8 @@ stdenv.mkDerivation {
   installPhase = ''
     install -Dm755 -t $out/bin nanotts
     install -Dm644 -t $out/share/lang $src/lang/*
+    wrapProgram $out/bin/nanotts \
+      --set ALSA_PLUGIN_DIR ${alsa-plugins}/lib/alsa-lib
   '';
 
   meta = {

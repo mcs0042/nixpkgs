@@ -9,30 +9,25 @@ let
 in {
   options = {
     services.jenkins.jobBuilder = {
-      enable = mkOption {
-        type = types.bool;
-        default = false;
-        description = ''
-          Whether or not to enable the Jenkins Job Builder (JJB) service. It
-          allows defining jobs for Jenkins in a declarative manner.
+      enable = mkEnableOption (mdDoc ''
+        the Jenkins Job Builder (JJB) service. It
+        allows defining jobs for Jenkins in a declarative manner.
 
-          Jobs managed through the Jenkins WebUI (or by other means) are left
-          unchanged.
+        Jobs managed through the Jenkins WebUI (or by other means) are left
+        unchanged.
 
-          Note that it really is declarative configuration; if you remove a
-          previously defined job, the corresponding job directory will be
-          deleted.
+        Note that it really is declarative configuration; if you remove a
+        previously defined job, the corresponding job directory will be
+        deleted.
 
-          Please see the Jenkins Job Builder documentation for more info:
-          <link xlink:href="http://docs.openstack.org/infra/jenkins-job-builder/">
-          http://docs.openstack.org/infra/jenkins-job-builder/</link>
-        '';
-      };
+        Please see the Jenkins Job Builder documentation for more info:
+        <https://jenkins-job-builder.readthedocs.io/>
+      '');
 
       accessUser = mkOption {
-        default = "";
+        default = "admin";
         type = types.str;
-        description = ''
+        description = lib.mdDoc ''
           User id in Jenkins used to reload config.
         '';
       };
@@ -40,19 +35,20 @@ in {
       accessToken = mkOption {
         default = "";
         type = types.str;
-        description = ''
+        description = lib.mdDoc ''
           User token in Jenkins used to reload config.
           WARNING: This token will be world readable in the Nix store. To keep
-          it secret, use the <option>accessTokenFile</option> option instead.
+          it secret, use the {option}`accessTokenFile` option instead.
         '';
       };
 
       accessTokenFile = mkOption {
-        default = "";
+        default = "${config.services.jenkins.home}/secrets/initialAdminPassword";
+        defaultText = literalExpression ''"''${config.services.jenkins.home}/secrets/initialAdminPassword"'';
         type = types.str;
         example = "/run/keys/jenkins-job-builder-access-token";
-        description = ''
-          File containing the API token for the <option>accessUser</option>
+        description = lib.mdDoc ''
+          File containing the API token for the {option}`accessUser`
           user.
         '';
       };
@@ -66,7 +62,7 @@ in {
               builders:
                 - shell: echo 'Hello world!'
         '';
-        description = ''
+        description = lib.mdDoc ''
           Job descriptions for Jenkins Job Builder in YAML format.
         '';
       };
@@ -86,7 +82,7 @@ in {
             '''
           ]
         '';
-        description = ''
+        description = lib.mdDoc ''
           Job descriptions for Jenkins Job Builder in JSON format.
         '';
       };
@@ -104,7 +100,7 @@ in {
             }
           ]
         '';
-        description = ''
+        description = lib.mdDoc ''
           Job descriptions for Jenkins Job Builder in Nix format.
 
           This is a trivial wrapper around jsonJobs, using builtins.toJSON
@@ -241,8 +237,9 @@ in {
                 jobdir="${jenkinsCfg.home}/$jenkinsjobname"
                 rm -rf "$jobdir"
             done
-          '' + (if cfg.accessUser != "" then reloadScript else "");
+          '' + (optionalString (cfg.accessUser != "") reloadScript);
       serviceConfig = {
+        Type = "oneshot";
         User = jenkinsCfg.user;
         RuntimeDirectory = "jenkins-job-builder";
       };

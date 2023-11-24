@@ -2,37 +2,33 @@
 , fetchFromSourcehut
 , buildPythonPackage
 , buildGoModule
-, pgpy
-, srht
-, redis
-, bcrypt
-, qrcode
-, stripe
-, zxcvbn
 , alembic
-, pystache
+, bcrypt
 , dnspython
-, sshpubkeys
-, weasyprint
+, qrcode
+, redis
+, srht
+, stripe
 , prometheus-client
+, zxcvbn
 , python
 , unzip
 }:
 let
-  version = "0.58.18";
+  version = "0.64.8";
 
   src = fetchFromSourcehut {
     owner = "~sircmpwn";
     repo = "meta.sr.ht";
     rev = version;
-    sha256 = "sha256-OjbQHAzG2nZwpJUIvhKaCJWZbhZDC2R6C+SkbKUpk8o=";
+    hash = "sha256-eiNvoy68PvjZ3iwdeNPjsXJjxAXb2PMF1/HvJquWa/U=";
   };
 
   metasrht-api = buildGoModule ({
     inherit src version;
     pname = "metasrht-api";
     modRoot = "api";
-    vendorSha256 = "sha256-kiEuEYZFbwJ6SbKFtxH4SiRaZmqYriRHPoHdTX28+d0=";
+    vendorHash = "sha256-D3stDSb99uXze49kKZgGrAq5Zmg6hkIzIpsQKlnKVtE=";
   } // import ./fix-gqlgen-trimpath.nix { inherit unzip; });
 
 in
@@ -45,22 +41,16 @@ buildPythonPackage rec {
       --replace "all: api" ""
   '';
 
-  nativeBuildInputs = srht.nativeBuildInputs;
-
   propagatedBuildInputs = [
-    pgpy
-    srht
-    redis
-    bcrypt
-    qrcode
-    stripe
-    zxcvbn
     alembic
-    pystache
-    sshpubkeys
-    weasyprint
-    prometheus-client
+    bcrypt
     dnspython
+    qrcode
+    redis
+    srht
+    stripe
+    prometheus-client
+    zxcvbn
   ];
 
   preBuild = ''

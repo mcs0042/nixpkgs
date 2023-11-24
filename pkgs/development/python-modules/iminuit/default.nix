@@ -1,27 +1,43 @@
 { lib
 , buildPythonPackage
 , fetchPypi
-, cmake
-, numpy
-, pytestCheckHook
 , pythonOlder
+
+# build-system
+, cmake
+, scikit-build-core
+, pybind11
+, pathspec
+, ninja
+, pyproject-metadata
+
+# dependencies
+, numpy
+
+# tests
+, pytestCheckHook
 }:
 
 buildPythonPackage rec {
   pname = "iminuit";
-  version = "2.13.0";
-  format = "setuptools";
+  version = "2.24.0";
+  format = "pyproject";
 
   disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-40eFwqLArqb/hmcv6BuAoErJ1Cp57YJJYw8lKaj2oPo=";
+    hash = "sha256-JatjHDyOAksbzHyW9mM4yqxUpKIyTVXx47pWF4FuRP0=";
   };
 
   nativeBuildInputs = [
     cmake
-  ];
+    scikit-build-core
+    pybind11
+    pathspec
+    ninja
+    pyproject-metadata
+  ] ++ scikit-build-core.optional-dependencies.pyproject;
 
   propagatedBuildInputs = [
     numpy
@@ -29,7 +45,7 @@ buildPythonPackage rec {
 
   dontUseCmakeConfigure = true;
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
   ];
 

@@ -1,15 +1,16 @@
 { lib
 , stdenv
 , fetchurl
+, withJitSealloc ? true
 }:
 
 stdenv.mkDerivation rec {
   pname = "pcre2";
-  version = "10.40";
+  version = "10.42";
 
   src = fetchurl {
     url = "https://github.com/PhilipHazel/pcre2/releases/download/pcre2-${version}/pcre2-${version}.tar.bz2";
-    hash = "sha256-FOS4PEeDkz3BfpZDGOYyT3yuG8ddjzx5vGlp8AwVnWg=";
+    hash = "sha256-jTbNjLbqKkwrs1j/ZBGwx4hjOipF2rvxrrS3AdG16EA=";
   };
 
   configureFlags = [
@@ -17,9 +18,9 @@ stdenv.mkDerivation rec {
     "--enable-pcre2-32"
     # only enable jit on supported platforms which excludes Apple Silicon, see https://github.com/zherczeg/sljit/issues/51
     "--enable-jit=auto"
-    # fix pcre jit in systemd units that set MemoryDenyWriteExecute=true like gitea
-    "--enable-jit-sealloc"
-  ];
+  ]
+  # fix pcre jit in systemd units that set MemoryDenyWriteExecute=true like gitea
+  ++ lib.optional withJitSealloc "--enable-jit-sealloc";
 
   outputs = [ "bin" "dev" "out" "doc" "man" "devdoc" ];
 
@@ -33,5 +34,11 @@ stdenv.mkDerivation rec {
     license = licenses.bsd3;
     maintainers = with maintainers; [ ttuegel ];
     platforms = platforms.all;
+    pkgConfigModules = [
+      "libpcre2-posix"
+      "libpcre2-8"
+      "libpcre2-16"
+      "libpcre2-32"
+    ];
   };
 }

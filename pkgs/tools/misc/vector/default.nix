@@ -3,12 +3,12 @@
 , fetchFromGitHub
 , rustPlatform
 , pkg-config
-, llvmPackages
 , openssl
 , protobuf
 , rdkafka
 , oniguruma
 , zstd
+, rust-jemalloc-sys
 , Security
 , libiconv
 , coreutils
@@ -16,21 +16,25 @@
 , tzdata
 , cmake
 , perl
-  # kafka is optional but one of the most used features
-, enableKafka ? true
-  # TODO investigate adding "api" "api-client" "vrl-cli" and various "vendor-*"
+, git
+  # nix has a problem with the `?` in the feature list
+  # enabling kafka will produce a vector with no features at all
+, enableKafka ? false
+  # TODO investigate adding various "vendor-*"
   # "disk-buffer" is using leveldb TODO: investigate how useful
   # it would be, perhaps only for massive scale?
-, features ? ([ "sinks" "sources" "transforms" "vrl-cli" ]
+, features ? ([ "api" "api-client" "enrichment-tables" "sinks" "sources" "sources-dnstap" "transforms" "component-validation-runner" ]
     # the second feature flag is passed to the rdkafka dependency
     # building on linux fails without this feature flag (both x86_64 and AArch64)
-    ++ lib.optionals enableKafka [ "rdkafka/gssapi-vendored" ]
-    ++ lib.optional stdenv.targetPlatform.isUnix "unix")
+    ++ lib.optionals enableKafka [ "rdkafka?/gssapi-vendored" ]
+    ++ lib.optional stdenv.hostPlatform.isUnix "unix")
+, nixosTests
+, nix-update-script
 }:
 
 let
   pname = "vector";
-  version = "0.22.3";
+  version = "0.34.1";
 in
 rustPlatform.buildRustPackage {
   inherit pname version;
@@ -39,19 +43,32 @@ rustPlatform.buildRustPackage {
     owner = "vectordotdev";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-62oPttkdahTeMsd9lpd9/tc95kluVJuWxzP94i+gWhA=";
+    hash = "sha256-vK+k+VbUVgJ8idlvuod5ExAkkeTYDk/135dyLRct0zs=";
   };
 
-  cargoSha256 = "sha256-WWX47pbva7ZmPR6hBstJ5VqOwu3mkhhsHK3LHHqQjDE=";
-  nativeBuildInputs = [ pkg-config cmake perl ];
-  buildInputs = [ oniguruma openssl protobuf rdkafka zstd ]
+  patches = [ ./vector-pr19075.patch ];
+
+  cargoLock = {
+    lockFile = ./Cargo.lock;
+    outputHashes = {
+      "aws-config-0.54.1" = "sha256-AVumLhybVbMnEah9/JqiQOQ4R0e2OsbB8WAJ422R6uk=";
+      "greptime-proto-0.1.0" = "sha256-kSOy/0s8ZJ1RfqOb469oaVlreABtHxesNaMzFH6H+aE=";
+      "greptimedb-client-0.1.0" = "sha256-mGgbxp/h55snowS2BV+QRwrhnE5vywfRF9Gc+8MoAdY=";
+      "heim-0.1.0-rc.1" = "sha256-ODKEQ1udt7FlxI5fvoFMG7C2zmM45eeEYDUEaLTsdYo=";
+      "nix-0.26.2" = "sha256-uquYvRT56lhupkrESpxwKEimRFhmYvri10n3dj0f2yg=";
+      "ntapi-0.3.7" = "sha256-G6ZCsa3GWiI/FeGKiK9TWkmTxen7nwpXvm5FtjNtjWU=";
+      "tokio-util-0.7.8" = "sha256-HCvtfohOoa1ZjD4s7QLDbIV4fe/MVBKtgM1QQX7gGKQ=";
+      "tracing-0.2.0" = "sha256-YAxeEofFA43PX2hafh3RY+C81a2v6n1fGzYz2FycC3M=";
+    };
+  };
+  nativeBuildInputs = [ pkg-config cmake perl git rustPlatform.bindgenHook ];
+  buildInputs = [ oniguruma openssl protobuf rdkafka zstd rust-jemalloc-sys ]
     ++ lib.optionals stdenv.isDarwin [ Security libiconv coreutils CoreServices ];
 
   # needed for internal protobuf c wrapper library
   PROTOC = "${protobuf}/bin/protoc";
   PROTOC_INCLUDE = "${protobuf}/include";
   RUSTONIG_SYSTEM_LIBONIG = true;
-  LIBCLANG_PATH = "${llvmPackages.libclang.lib}/lib";
 
   TZDIR = "${tzdata}/share/zoneinfo";
 
@@ -94,19 +111,20 @@ rustPlatform.buildRustPackage {
   postPatch = ''
     substituteInPlace ./src/dns.rs \
       --replace "#[tokio::test]" ""
-
-    ${lib.optionalString (!builtins.elem "transforms-geoip" features) ''
-        substituteInPlace ./Cargo.toml --replace '"transforms-geoip",' ""
-    ''}
   '';
 
-  passthru = { inherit features; };
+  passthru = {
+    inherit features;
+    tests = { inherit (nixosTests) vector; };
+    updateScript = nix-update-script { };
+  };
 
   meta = with lib; {
-    description = "A high-performance logs, metrics, and events router";
-    homepage = "https://github.com/timberio/vector";
-    license = with licenses; [ asl20 ];
+    description = "A high-performance observability data pipeline";
+    homepage = "https://github.com/vectordotdev/vector";
+    license = licenses.mpl20;
     maintainers = with maintainers; [ thoughtpolice happysalada ];
-    platforms = with platforms; linux;
+    platforms = with platforms; all;
+    mainProgram = "vector";
   };
 }

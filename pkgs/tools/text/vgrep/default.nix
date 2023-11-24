@@ -2,16 +2,16 @@
 
 buildGoModule rec {
   pname = "vgrep";
-  version = "2.6.0";
+  version = "2.7.0";
 
   src = fetchFromGitHub {
     owner = "vrothberg";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-RLyEOvNhb1oXPYYxVZKc+xN2uCgUaWMxh8dPEOUfAFA=";
+    hash = "sha256-+KZNNkTuZyF02YDZX3u1KdhOcZ3+Ud6aDGL/sGUN1hI=";
   };
 
-  vendorSha256 = null;
+  vendorHash = null;
 
   ldflags = [ "-s" "-w" "-X main.version=${version}" ];
 

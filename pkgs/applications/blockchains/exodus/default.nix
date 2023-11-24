@@ -1,24 +1,45 @@
-{ stdenv, lib, fetchurl, unzip, glib, systemd, nss, nspr, gtk3-x11, pango,
-atk, cairo, gdk-pixbuf, xorg, xorg_sys_opengl, util-linux, alsa-lib, dbus, at-spi2-atk,
-cups, vivaldi-ffmpeg-codecs, libpulseaudio, at-spi2-core, libxkbcommon, mesa }:
+{ stdenv
+, lib
+, fetchurl
+, unzip
+, glib
+, systemd
+, nss
+, nspr
+, gtk3-x11
+, pango
+, atk
+, cairo
+, gdk-pixbuf
+, xorg
+, xorg_sys_opengl
+, util-linux
+, alsa-lib
+, dbus
+, at-spi2-atk
+, cups
+, vivaldi-ffmpeg-codecs
+, libpulseaudio
+, at-spi2-core
+, libxkbcommon
+, mesa
+}:
 
 stdenv.mkDerivation rec {
   pname = "exodus";
-  version = "22.6.17";
+  version = "23.10.24";
 
   src = fetchurl {
-    url = "https://downloads.exodus.io/releases/${pname}-linux-x64-${version}.zip";
-    sha256 = "1gllmrmc1gylw54yrgy1ggpn3kvkyxf7ydjvd5n5kvd8d9xh78ng";
+    name = "exodus-linux-x64-${version}.zip";
+    url = "https://downloads.exodus.com/releases/${pname}-linux-x64-${version}.zip";
+    curlOptsList = [ "--user-agent" "Mozilla/5.0" ];
+    sha256 = "sha256-g28jSQaqjnM34sCpyYLSipUoU3pqAcXQIyWhlrR4xz4=";
   };
 
-  sourceRoot = ".";
-  unpackCmd = ''
-      ${unzip}/bin/unzip "$src" -x "Exodus*/lib*so"
-  '';
+  nativeBuildInputs = [ unzip ];
 
   installPhase = ''
     mkdir -p $out/bin $out/share/applications
-    cd Exodus-linux-x64
     cp -r . $out
     ln -s $out/Exodus $out/bin/Exodus
     ln -s $out/bin/Exodus $out/bin/exodus
@@ -30,48 +51,50 @@ stdenv.mkDerivation rec {
   dontPatchELF = true;
   dontBuild = true;
 
-  preFixup = let
-    libPath = lib.makeLibraryPath [
-      glib
-      nss
-      nspr
-      gtk3-x11
-      pango
-      atk
-      cairo
-      gdk-pixbuf
-      xorg.libX11
-      xorg.libxcb
-      xorg.libXcomposite
-      xorg.libXcursor
-      xorg.libXdamage
-      xorg.libXext
-      xorg.libXfixes
-      xorg.libXi
-      xorg.libXrender
-      xorg.libxshmfence
-      xorg.libXtst
-      xorg_sys_opengl
-      util-linux
-      xorg.libXrandr
-      xorg.libXScrnSaver
-      alsa-lib
-      dbus.lib
-      at-spi2-atk
-      at-spi2-core
-      cups.lib
-      libpulseaudio
-      systemd
-      vivaldi-ffmpeg-codecs
-      libxkbcommon
-      mesa
-    ];
-  in ''
-    patchelf \
-      --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" \
-      --set-rpath "${libPath}" \
-      $out/Exodus
-  '';
+  preFixup =
+    let
+      libPath = lib.makeLibraryPath [
+        glib
+        nss
+        nspr
+        gtk3-x11
+        pango
+        atk
+        cairo
+        gdk-pixbuf
+        xorg.libX11
+        xorg.libxcb
+        xorg.libXcomposite
+        xorg.libXcursor
+        xorg.libXdamage
+        xorg.libXext
+        xorg.libXfixes
+        xorg.libXi
+        xorg.libXrender
+        xorg.libxshmfence
+        xorg.libXtst
+        xorg_sys_opengl
+        util-linux
+        xorg.libXrandr
+        xorg.libXScrnSaver
+        alsa-lib
+        dbus.lib
+        at-spi2-atk
+        at-spi2-core
+        cups.lib
+        libpulseaudio
+        systemd
+        vivaldi-ffmpeg-codecs
+        libxkbcommon
+        mesa
+      ];
+    in
+    ''
+      patchelf \
+        --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" \
+        --set-rpath "${libPath}" \
+        $out/Exodus
+    '';
 
   meta = with lib; {
     homepage = "https://www.exodus.io/";
@@ -79,6 +102,6 @@ stdenv.mkDerivation rec {
     sourceProvenance = with sourceTypes; [ binaryNativeCode ];
     license = licenses.unfree;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ mmahut rople380 ];
+    maintainers = with maintainers; [ mmahut rople380 Crafter ];
   };
 }

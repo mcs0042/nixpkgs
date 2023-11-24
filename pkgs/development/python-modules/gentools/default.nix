@@ -4,21 +4,21 @@
 
 buildPythonPackage rec {
   pname = "gentools";
-  version = "1.1.0";
+  version = "1.2.1";
 
   # Pypi doesn't ship the tests, so we fetch directly from GitHub
   src = fetchFromGitHub {
     owner = "ariebovenberg";
     repo = pname;
-    rev = "v${version}";
-    sha256 = "1sm6cqi7fv2k3pc68r7wvvjjz8y6cjmz8bvxgqfa4v4wxibwnwrl";
+    rev = "refs/tags/v${version}";
+    sha256 = "sha256-RBUIji3FOIRjfp4t7zBAVSeiWaYufz4ID8nTWmhDkf8=";
   };
 
   propagatedBuildInputs =
     lib.optionals (pythonOlder "3.5") [ typing ] ++
     lib.optionals (pythonOlder "3.4") [ funcsigs ];
 
-  checkInputs = [ pytest ];
+  nativeCheckInputs = [ pytest ];
   checkPhase = "pytest";
 
   meta = with lib; {

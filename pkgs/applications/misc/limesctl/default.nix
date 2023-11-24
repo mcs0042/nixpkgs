@@ -2,16 +2,16 @@
 
 buildGoModule rec {
   pname = "limesctl";
-  version = "3.0.0";
+  version = "3.3.1";
 
   src = fetchFromGitHub {
     owner = "sapcc";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-52Tq6gKozM/IFUyAy8N+YDqlbcFNQw6b2tc268Zco6g=";
+    hash = "sha256-osXwVZuMB9cMj0tEMBOQ8hrKWAmfXui4ELoi0dm9yB4=";
   };
 
-  vendorSha256 = "sha256-7QEb5J5IaxisKjbulyHq5PGVeKAX022Pz+5OV5qD7Uo=";
+  vendorHash = null;
 
   subPackages = [ "." ];
 

@@ -1,5 +1,17 @@
-{ lib, stdenv, fetchFromGitHub, autoconf, automake, boost
-, zlib, libpng, libjpeg, libtiff, xlibsWrapper, SDL
+{ lib
+, stdenv
+, fetchFromGitHub
+, autoconf
+, automake
+, boost
+, zlib
+, libX11
+, libICE
+, libSM
+, libpng
+, libjpeg
+, libtiff
+, SDL
 }:
 
 stdenv.mkDerivation rec {
@@ -14,7 +26,7 @@ stdenv.mkDerivation rec {
   };
 
   nativeBuildInputs = [ automake autoconf ];
-  buildInputs = [ boost zlib libpng libjpeg libtiff xlibsWrapper SDL ];
+  buildInputs = [ boost zlib libX11 libICE libSM libpng libjpeg libtiff SDL ];
 
   # the installPhase wants to put files into $HOME. I let it put the files
   # to $TMPDIR, so they don't get into the $out
@@ -45,5 +57,6 @@ stdenv.mkDerivation rec {
     description = "Persistence of Vision Raytracer";
     license = licenses.free;
     platforms = platforms.linux;
+    mainProgram = "povray";
   };
 }

@@ -7,6 +7,7 @@
 , gettext
 , libxml2
 , appstream
+, desktop-file-utils
 , glib
 , gtk3
 , pango
@@ -27,11 +28,9 @@
 , gobject-introspection
 , yelp-tools
 , gspell
-, adwaita-icon-theme
 , gsettings-desktop-schemas
 , gnome-desktop
 , dbus
-, python3
 , texlive
 , gst_all_1
 , gi-docgen
@@ -43,22 +42,22 @@
 
 stdenv.mkDerivation rec {
   pname = "evince";
-  version = "42.3";
+  version = "45.0";
 
   outputs = [ "out" "dev" "devdoc" ];
 
   src = fetchurl {
     url = "mirror://gnome/sources/evince/${lib.versions.major version}/${pname}-${version}.tar.xz";
-    sha256 = "Sa7PhFyUbJbbF7qJ11yAAsWuiWP1BKmwYm0SZ1kUZF4=";
+    sha256 = "0YZH1Cdcvd8NMoF7HQTjBzQqhb6RTsTa0tgIKq+KpKg=";
   };
 
-  postPatch = ''
-    chmod +x meson_post_install.py
-    patchShebangs meson_post_install.py
-  '';
+  depsBuildBuild = [
+    pkg-config
+  ];
 
   nativeBuildInputs = [
     appstream
+    desktop-file-utils
     gettext
     gobject-introspection
     gi-docgen
@@ -66,13 +65,11 @@ stdenv.mkDerivation rec {
     meson
     ninja
     pkg-config
-    python3
     wrapGAppsHook
     yelp-tools
   ];
 
   buildInputs = [
-    adwaita-icon-theme
     atk
     dbus # only needed to find the service directory
     djvulibre
@@ -113,7 +110,7 @@ stdenv.mkDerivation rec {
     "-Dmultimedia=disabled"
   ];
 
-  NIX_CFLAGS_COMPILE = "-I${glib.dev}/include/gio-unix-2.0";
+  env.NIX_CFLAGS_COMPILE = "-I${glib.dev}/include/gio-unix-2.0";
 
   preFixup = ''
     gappsWrapperArgs+=(--prefix XDG_DATA_DIRS : "${shared-mime-info}/share")
@@ -142,7 +139,7 @@ stdenv.mkDerivation rec {
     '';
 
     license = licenses.gpl2Plus;
-    platforms = platforms.linux;
+    platforms = platforms.unix;
     maintainers = teams.gnome.members ++ teams.pantheon.members;
   };
 }

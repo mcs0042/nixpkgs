@@ -4,26 +4,32 @@
 , installShellFiles
 , rustPlatform
 , libiconv
+, AppKit
 , Security
 , SystemConfiguration
+, nixosTests
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "atuin";
-  version = "0.10.0";
+  version = "17.0.1";
 
   src = fetchFromGitHub {
-    owner = "ellie";
-    repo = pname;
+    owner = "atuinsh";
+    repo = "atuin";
     rev = "v${version}";
-    sha256 = "sha256-tBOJkAQCL2YGEJ3gJPxBC0swMuwOQENnhLXyms8WW6g";
+    hash = "sha256-HJRlZwvBra2D7TzVKvMWJ0Hf17QgIEcBDQEHhxdVLIM=";
   };
 
-  cargoSha256 = "sha256-P4jcJ6pl3ZGjiwNYfEjEiNVnE6mTDRUGl6gZW65Jn0I";
+  # TODO: unify this to one hash because updater do not support this
+  cargoHash =
+    if stdenv.isLinux
+    then "sha256-AhoXmEjXsi/OgFX3htOA6A/lWegUFlsywdotX3PDwcs="
+    else "sha256-/nCnZ64pM8oWVX9a4JCeCZRyuo7aVc8YaBVEMbiRsqE=";
 
   nativeBuildInputs = [ installShellFiles ];
 
-  buildInputs = lib.optionals stdenv.isDarwin [ libiconv Security SystemConfiguration ];
+  buildInputs = lib.optionals stdenv.isDarwin [ libiconv AppKit Security SystemConfiguration ];
 
   postInstall = ''
     installShellCompletion --cmd atuin \
@@ -32,10 +38,21 @@ rustPlatform.buildRustPackage rec {
       --zsh <($out/bin/atuin gen-completions -s zsh)
   '';
 
+  passthru.tests = {
+    inherit (nixosTests) atuin;
+  };
+
+  checkFlags = [
+    # tries to make a network access
+    "--skip=registration"
+    # No such file or directory (os error 2)
+    "--skip=sync"
+  ];
+
   meta = with lib; {
     description = "Replacement for a shell history which records additional commands context with optional encrypted synchronization between machines";
-    homepage = "https://github.com/ellie/atuin";
+    homepage = "https://github.com/atuinsh/atuin";
     license = licenses.mit;
-    maintainers = with maintainers; [ onsails SuperSandro2000 sciencentistguy ];
+    maintainers = with maintainers; [ SuperSandro2000 sciencentistguy _0x4A6F ];
   };
 }

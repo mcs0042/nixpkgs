@@ -1,17 +1,28 @@
-{ buildGoModule, fetchFromGitHub, lib }:
+{ lib, buildGoModule, fetchFromGitHub, installShellFiles }:
 
 buildGoModule rec {
   pname = "wander";
-  version = "0.5.1";
+  version = "0.11.2";
 
   src = fetchFromGitHub {
     owner = "robinovitch61";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-B+mMC5XGUTNTcxwKhvSSc7QbsLkg8qu7/jJf5U/q6s8=";
+    sha256 = "sha256-zAvPtTUrSHeIMy9MgJviyMvMJ0Ny5Nkx6oLwWPSc9bE=";
   };
 
-  vendorSha256 = "sha256-gWQ8GbtghhCRq6tOU6qmWBuponmfUkUDAk3+dPtmMiE=";
+  vendorHash = "sha256-SqDGXV8MpvEQFAkcE1NWvWjdzYsvbO5vA6k+hpY0js0=";
+
+  ldflags = [ "-s" "-w" ];
+
+  nativeBuildInputs = [ installShellFiles ];
+
+  postInstall = ''
+    installShellCompletion --cmd wander \
+      --fish <($out/bin/wander completion fish) \
+      --bash <($out/bin/wander completion bash) \
+      --zsh <($out/bin/wander completion zsh)
+  '';
 
   meta = with lib; {
     description = "Terminal app/TUI for HashiCorp Nomad";

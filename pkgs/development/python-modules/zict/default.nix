@@ -1,19 +1,36 @@
-{ lib, buildPythonPackage, fetchPypi
-, pytest, heapdict, pythonOlder }:
+{ lib
+, buildPythonPackage
+, fetchPypi
+, pytestCheckHook
+, pytest-asyncio
+, pytest-repeat
+, pytest-timeout
+, pythonOlder
+, setuptools
+}:
 
 buildPythonPackage rec {
   pname = "zict";
-  version = "2.1.0";
-
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "sha256-FbLMFflaR2++BiP9j3ceHncTEL96AflUEqC2BbbkdRA=";
-  };
+  version = "3.0.0";
+  format = "pyproject";
 
   disabled = pythonOlder "3.6";
 
-  buildInputs = [ pytest ];
-  propagatedBuildInputs = [ heapdict ];
+  src = fetchPypi {
+    inherit pname version;
+    hash = "sha256-4yHiY7apeq/AeQw8+zwEZWtwZuZzjDf//MqV2APJ+6U=";
+  };
+
+  nativeBuildInputs = [
+    setuptools
+  ];
+
+  nativeCheckInputs = [
+    pytest-asyncio
+    pytestCheckHook
+    pytest-repeat
+    pytest-timeout
+  ];
 
   meta = with lib; {
     description = "Mutable mapping tools.";

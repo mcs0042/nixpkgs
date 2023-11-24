@@ -4,7 +4,6 @@
 , pythonOlder
 , fetchFromGitHub
 , substituteAll
-, fetchpatch
 , gdb
 , django
 , flask
@@ -14,29 +13,24 @@
 , pytest-xdist
 , pytestCheckHook
 , requests
+, llvmPackages
 }:
 
 buildPythonPackage rec {
   pname = "debugpy";
-  version = "1.6.2";
+  version = "1.8.0";
   format = "setuptools";
 
   disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
-    owner = "Microsoft";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-jcokiAZ2WwyIvsXNIUzvMIrRttR76RwDSE7gk0xHExc=";
+    owner = "microsoft";
+    repo = "debugpy";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-FW1RDmj4sDBS0q08C82ErUd16ofxJxgVaxfykn/wVBA=";
   };
 
   patches = [
-    # Hard code GDB path (used to attach to process)
-    (substituteAll {
-      src = ./hardcode-gdb.patch;
-      inherit gdb;
-    })
-
     # Use nixpkgs version instead of versioneer
     (substituteAll {
       src = ./hardcode-version.patch;
@@ -52,12 +46,17 @@ buildPythonPackage rec {
     # To avoid this issue, debugpy should be installed using python.withPackages:
     # python.withPackages (ps: with ps; [ debugpy ])
     ./fix-test-pythonpath.patch
-
-    # Fix compiling attach library from source
-    # https://github.com/microsoft/debugpy/pull/978
-    (fetchpatch {
-      url = "https://github.com/microsoft/debugpy/commit/08b3b13cba9035f4ab3308153aef26e3cc9275f9.patch";
-      sha256 = "sha256-8E+Y40mYQou9T1ozWslEK2XNQtuy5+MBvPvDLt4eQak=";
+  ] ++ lib.optionals stdenv.isLinux [
+    # Hard code GDB path (used to attach to process)
+    (substituteAll {
+      src = ./hardcode-gdb.patch;
+      inherit gdb;
+    })
+  ] ++ lib.optionals stdenv.isDarwin [
+    # Hard code LLDB path (used to attach to process)
+    (substituteAll {
+      src = ./hardcode-lldb.patch;
+      inherit (llvmPackages) lldb;
     })
   ];
 
@@ -77,7 +76,7 @@ buildPythonPackage rec {
     }.${stdenv.hostPlatform.system} or (throw "Unsupported system: ${stdenv.hostPlatform.system}")}
   )'';
 
-  checkInputs = [
+  nativeCheckInputs = [
     django
     flask
     gevent
@@ -88,6 +87,18 @@ buildPythonPackage rec {
     requests
   ];
 
+  preCheck = ''
+    export DEBUGPY_PROCESS_SPAWN_TIMEOUT=0
+    export DEBUGPY_PROCESS_EXIT_TIMEOUT=0
+  '' + lib.optionalString (stdenv.isDarwin && stdenv.isAarch64) ''
+    # https://github.com/python/cpython/issues/74570#issuecomment-1093748531
+    export no_proxy='*';
+  '';
+
+  postCheck = lib.optionalString (stdenv.isDarwin && stdenv.isAarch64) ''
+    unset no_proxy
+  '';
+
   # Override default arguments in pytest.ini
   pytestFlagsArray = [
     "--timeout=0"
@@ -96,6 +107,11 @@ buildPythonPackage rec {
   # Fixes hanging tests on Darwin
   __darwinAllowLocalNetworking = true;
 
+  disabledTests = [
+    # testsuite gets stuck at this one
+    "test_attach_pid_client"
+  ];
+
   pythonImportsCheck = [
     "debugpy"
   ];
@@ -103,6 +119,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "An implementation of the Debug Adapter Protocol for Python";
     homepage = "https://github.com/microsoft/debugpy";
+    changelog = "https://github.com/microsoft/debugpy/releases/tag/v${version}";
     license = licenses.mit;
     maintainers = with maintainers; [ kira-bruneau ];
     platforms = [ "x86_64-linux" "i686-linux" "aarch64-linux" "x86_64-darwin" "i686-darwin" "aarch64-darwin" ];

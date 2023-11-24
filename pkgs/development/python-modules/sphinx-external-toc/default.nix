@@ -10,16 +10,16 @@
 
 buildPythonPackage rec {
   pname = "sphinx-external-toc";
-  version = "0.3.0";
+  version = "1.0.0";
 
-  format = "flit";
+  format = "pyproject";
 
   disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit version;
     pname = "sphinx_external_toc";
-    sha256 = "73198636ada4b4f72f69c7bab09f0e4ce84978056dc5afa9ee51d287bec0a8ef";
+    sha256 = "sha256-990JX/OrD7dKMQ1BCwo2GPwd3G8s5DWJfWWayqSj6yQ=";
   };
 
   nativeBuildInputs = [ flit-core ];
@@ -35,6 +35,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "A sphinx extension that allows the site-map to be defined in a single YAML file";
     homepage = "https://github.com/executablebooks/sphinx-external-toc";
+    changelog = "https://github.com/executablebooks/sphinx-external-toc/raw/v${version}/CHANGELOG.md";
     license = licenses.mit;
     maintainers = with maintainers; [ marsam ];
   };

@@ -18,13 +18,13 @@
 
 stdenv.mkDerivation rec {
   pname = "switchboard-plug-network";
-  version = "2.4.3";
+  version = "unstable-2023-09-05"; # 2.4.4 does not support networkmanager 1.44
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = pname;
-    rev = version;
-    sha256 = "sha256-g0EvdYwgs+5l3wFKhQbf9o8iUr6NOvBqv+VM6xYThPA=";
+    rev = "3b69132788ff8734a481d498b49207e05a4f7d70";
+    hash = "sha256-XWiihU/FK6oeWQWRYsc/IxqafuvwA89ZE3o/WzaxudE=";
   };
 
   patches = [
@@ -51,9 +51,7 @@ stdenv.mkDerivation rec {
   ];
 
   passthru = {
-    updateScript = nix-update-script {
-      attrPath = "pantheon.${pname}";
-    };
+    updateScript = nix-update-script { };
   };
 
   meta = with lib; {

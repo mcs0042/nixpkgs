@@ -1,15 +1,19 @@
 { lib, stdenv, fetchzip, yasm, perl, cmake, pkg-config, python3
 , enableButteraugli ? true, libjxl
 , enableVmaf ? true, libvmaf
+, gitUpdater
 }:
 
+let
+  isCross = stdenv.buildPlatform != stdenv.hostPlatform;
+in
 stdenv.mkDerivation rec {
   pname = "libaom";
-  version = "3.4.0";
+  version = "3.7.0";
 
   src = fetchzip {
     url = "https://aomedia.googlesource.com/aom/+archive/v${version}.tar.gz";
-    sha256 = "sha256-NgzpVxQmsgOPzKkGpJIJrLiNQcruhpEoCi/CYJx5b3A=";
+    hash = "sha256-Zf0g/CMI73O9Dkn9o7aIvwZ/8wh3lCmVY8nZaPwBp68=";
     stripRoot = false;
   };
 
@@ -45,8 +49,8 @@ stdenv.mkDerivation rec {
   ] ++ lib.optionals (stdenv.isDarwin && stdenv.isAarch64) [
     # CPU detection isn't supported on Darwin and breaks the aarch64-darwin build:
     "-DCONFIG_RUNTIME_CPU_DETECT=0"
-  ] ++ lib.optionals (stdenv.buildPlatform != stdenv.hostPlatform) [
-    "-DAS_EXECUTABLE=${stdenv.cc.targetPrefix}as"
+  ] ++ lib.optionals (isCross && !stdenv.hostPlatform.isx86) [
+    "-DCMAKE_ASM_COMPILER=${stdenv.cc.targetPrefix}as"
   ] ++ lib.optionals stdenv.isAarch32 [
     # armv7l-hf-multiplatform does not support NEON
     # see lib/systems/platform.nix
@@ -55,9 +59,19 @@ stdenv.mkDerivation rec {
 
   postFixup = ''
     moveToOutput lib/libaom.a "$static"
+  '' + lib.optionalString stdenv.hostPlatform.isStatic ''
+    ln -s $static $out
   '';
 
   outputs = [ "out" "bin" "dev" "static" ];
+
+  passthru = {
+    updateScript = gitUpdater {
+      url = "https://aomedia.googlesource.com/aom";
+      rev-prefix = "v";
+      ignoredVersions = "(alpha|beta|rc).*";
+    };
+  };
 
   meta = with lib; {
     description = "Alliance for Open Media AV1 codec library";
@@ -70,6 +84,7 @@ stdenv.mkDerivation rec {
     changelog   = "https://aomedia.googlesource.com/aom/+/refs/tags/v${version}/CHANGELOG";
     maintainers = with maintainers; [ primeos kiloreux dandellion ];
     platforms   = platforms.all;
+    outputsToInstall = [ "bin" ];
     license = licenses.bsd2;
   };
 }

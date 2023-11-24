@@ -179,7 +179,7 @@ rec {
      they take effect as soon as the oldest release reaches end of life. */
   oldestSupportedRelease =
     # Update on master only. Do not backport.
-    2205;
+    2305;
 
   /* Whether a feature is supported in all supported releases (at the time of
      release branch-off, if applicable). See `oldestSupportedRelease`. */
@@ -195,7 +195,7 @@ rec {
      On each release the first letter is bumped and a new animal is chosen
      starting with that new letter.
   */
-  codeName = "Raccoon";
+  codeName = "Uakari";
 
   /* Returns the current nixpkgs version suffix as string. */
   versionSuffix =
@@ -307,14 +307,14 @@ rec {
 
   /* Reads a JSON file.
 
-     Type :: path -> any
+     Type: importJSON :: path -> any
   */
   importJSON = path:
     builtins.fromJSON (builtins.readFile path);
 
   /* Reads a TOML file.
 
-     Type :: path -> any
+     Type: importTOML :: path -> any
   */
   importTOML = path:
     builtins.fromTOML (builtins.readFile path);
@@ -449,6 +449,40 @@ rec {
     (f ? __functor && isFunction (f.__functor f));
 
   /*
+    `mirrorFunctionArgs f g` creates a new function `g'` with the same behavior as `g` (`g' x == g x`)
+    but its function arguments mirroring `f` (`lib.functionArgs g' == lib.functionArgs f`).
+
+    Type:
+      mirrorFunctionArgs :: (a -> b) -> (a -> c) -> (a -> c)
+
+    Example:
+      addab = {a, b}: a + b
+      addab { a = 2; b = 4; }
+      => 6
+      lib.functionArgs addab
+      => { a = false; b = false; }
+      addab1 = attrs: addab attrs + 1
+      addab1 { a = 2; b = 4; }
+      => 7
+      lib.functionArgs addab1
+      => { }
+      addab1' = lib.mirrorFunctionArgs addab addab1
+      addab1' { a = 2; b = 4; }
+      => 7
+      lib.functionArgs addab1'
+      => { a = false; b = false; }
+  */
+  mirrorFunctionArgs =
+    # Function to provide the argument metadata
+    f:
+    let
+      fArgs = functionArgs f;
+    in
+    # Function to set the argument metadata to
+    g:
+    setFunctionArgs g fArgs;
+
+  /*
     Turns any non-callable values into constant functions.
     Returns callable values as is.
 
@@ -514,6 +548,8 @@ rec {
           in
             [r] ++ go q;
     in
+      assert (isInt base);
+      assert (isInt i);
       assert (base >= 2);
       assert (i >= 0);
       lib.reverseList (go i);

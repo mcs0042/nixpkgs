@@ -6,18 +6,18 @@
 , systemd
 , check
 , subunit
-, withSystemd ? stdenv.isLinux
+, withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd
 }:
 
 stdenv.mkDerivation rec {
   pname = "yder";
-  version = "1.4.15";
+  version = "1.4.19";
 
   src = fetchFromGitHub {
     owner = "babelouest";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-hPAL1UngodNbQCCdKulaF5faI0JOjmWdz3q8oyPH7C4=";
+    sha256 = "sha256-KP79i1yYJ6jrsdtS85fHOmJV+oAL/MNgc9On4RfOTwo=";
   };
 
   patches = [
@@ -31,7 +31,7 @@ stdenv.mkDerivation rec {
   buildInputs = [ orcania ]
     ++ lib.optional withSystemd systemd;
 
-  checkInputs = [ check subunit ];
+  nativeCheckInputs = [ check subunit ];
 
   cmakeFlags = [
     "-DBUILD_YDER_TESTING=on"

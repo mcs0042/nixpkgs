@@ -1,14 +1,14 @@
 { lib, stdenv, fetchFromGitHub, kernel, bc }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   pname = "rtl88x2bu";
-  version = "${kernel.version}-unstable-2022-05-23";
+  version = "${kernel.version}-unstable-2023-09-24";
 
   src = fetchFromGitHub {
     owner = "morrownr";
     repo = "88x2bu-20210702";
-    rev = "3fbe980a9a8cee223e4671449128212cf7514b3c";
-    sha256 = "1p4bp8g94ny385nl3m2ca824dbm6lhjvh7s5rqyzk220il2sa0nd";
+    rev = "888ba1b309e6258a736ef5c37a68836cd0ea5517";
+    sha256 = "sha256-oLRGRKUNTmIw+Zn23TArGumo24AIH2YEMpnStyXBNw8=";
   };
 
   hardeningDisable = [ "pic" ];
@@ -19,7 +19,6 @@ stdenv.mkDerivation rec {
   prePatch = ''
     substituteInPlace ./Makefile \
       --replace /lib/modules/ "${kernel.dev}/lib/modules/" \
-      --replace '$(shell uname -r)' "${kernel.modDirVersion}" \
       --replace /sbin/depmod \# \
       --replace '$(MODDESTDIR)' "$out/lib/modules/${kernel.modDirVersion}/kernel/net/wireless/"
   '';
@@ -35,6 +34,6 @@ stdenv.mkDerivation rec {
     homepage = "https://github.com/morrownr/88x2bu-20210702";
     license = licenses.gpl2Only;
     platforms = platforms.linux;
-    maintainers = [ maintainers.ralith ];
+    maintainers = with maintainers; [ otavio ];
   };
 }

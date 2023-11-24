@@ -9,7 +9,7 @@
 
 buildPythonPackage rec {
   pname = "pysigma-pipeline-windows";
-  version = "0.1.1";
+  version = "1.1.1";
   format = "pyproject";
 
   disabled = pythonOlder "3.8";
@@ -18,7 +18,7 @@ buildPythonPackage rec {
     owner = "SigmaHQ";
     repo = "pySigma-pipeline-windows";
     rev = "refs/tags/v${version}";
-    hash = "sha256-ATDWhHY9tjuQbfIFgoGhz8qsluH9hTSI9zdPmP8GPWE=";
+    hash = "sha256-279+nP5IeZiIjKNhJ2adbcJSDzcu7yqIB5JNFK5CPF0=";
   };
 
   nativeBuildInputs = [
@@ -29,12 +29,7 @@ buildPythonPackage rec {
     pysigma
   ];
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace 'pysigma = "^0.5.0"' 'pysigma = "^0.6.0"'
-  '';
-
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
   ];
 
@@ -45,6 +40,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Library to support Windows service pipeline for pySigma";
     homepage = "https://github.com/SigmaHQ/pySigma-pipeline-windows";
+    changelog = "https://github.com/SigmaHQ/pySigma-pipeline-windows/releases/tag/v${version}";
     license = with licenses; [ lgpl21Only ];
     maintainers = with maintainers; [ fab ];
   };

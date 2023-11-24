@@ -6,6 +6,7 @@
 , cmake
 , python3
 , libffi
+, enableGoldPlugin ? libbfd.hasPluginAPI
 , libbfd
 , libpfm
 , libxml2
@@ -16,14 +17,15 @@
 , which
 , buildLlvmTools
 , debugVersion ? false
+, doCheck ? stdenv.isLinux && (!stdenv.isx86_32) && (!stdenv.hostPlatform.isMusl)
+  && (stdenv.hostPlatform == stdenv.buildPlatform)
 , enableManpages ? false
 , enableSharedLibraries ? !stdenv.hostPlatform.isStatic
-, enablePFM ? !(stdenv.isDarwin
-  || stdenv.isAarch64 # broken for Ampere eMAG 8180 (c2.large.arm on Packet) #56245
-  || stdenv.isAarch32 # broken for the armv7l builder
-)
-, enablePolly ? false
-} @args:
+# broken for Ampere eMAG 8180 (c2.large.arm on Packet) #56245
+# broken for the armv7l builder
+, enablePFM ? stdenv.isLinux && !stdenv.hostPlatform.isAarch
+, enablePolly ? true
+}:
 
 let
   inherit (lib) optional optionals optionalString;
@@ -31,6 +33,29 @@ let
   # Used when creating a version-suffixed symlink of libLLVM.dylib
   shortVersion = with lib;
     concatStringsSep "." (take 1 (splitString "." release_version));
+
+  # Ordinarily we would just the `doCheck` and `checkDeps` functionality
+  # `mkDerivation` gives us to manage our test dependencies (instead of breaking
+  # out `doCheck` as a package level attribute).
+  #
+  # Unfortunately `lit` does not forward `$PYTHONPATH` to children processes, in
+  # particular the children it uses to do feature detection.
+  #
+  # This means that python deps we add to `checkDeps` (which the python
+  # interpreter is made aware of via `$PYTHONPATH` – populated by the python
+  # setup hook) are not picked up by `lit` which causes it to skip tests.
+  #
+  # Adding `python3.withPackages (ps: [ ... ])` to `checkDeps` also doesn't work
+  # because this package is shadowed in `$PATH` by the regular `python3`
+  # package.
+  #
+  # So, we "manually" assemble one python derivation for the package to depend
+  # on, taking into account whether checks are enabled or not:
+  python = if doCheck then
+    let
+      checkDeps = ps: with ps; [ psutil ];
+    in python3.withPackages checkDeps
+  else python3;
 
 in stdenv.mkDerivation (rec {
   pname = "llvm";
@@ -42,14 +67,15 @@ in stdenv.mkDerivation (rec {
     cp -r ${monorepoSrc}/${pname} "$out"
     cp -r ${monorepoSrc}/third-party "$out"
   '' + lib.optionalString enablePolly ''
-    cp -r ${monorepoSrc}/polly "$out/llvm/tools"
+    chmod u+w "$out/${pname}/tools"
+    cp -r ${monorepoSrc}/polly "$out/${pname}/tools"
   '');
 
   sourceRoot = "${src.name}/${pname}";
 
   outputs = [ "out" "lib" "dev" "python" ];
 
-  nativeBuildInputs = [ cmake python3 ]
+  nativeBuildInputs = [ cmake python ]
     ++ optionals enableManpages [ python3.pkgs.sphinx python3.pkgs.recommonmark ];
 
   buildInputs = [ libxml2 libffi ]
@@ -57,10 +83,17 @@ in stdenv.mkDerivation (rec {
 
   propagatedBuildInputs = [ ncurses zlib ];
 
-  checkInputs = [ which ];
+  nativeCheckInputs = [ which ];
 
   patches = [
     ./gnu-install-dirs.patch
+
+    # Fix musl build.
+    (fetchpatch {
+      url = "https://github.com/llvm/llvm-project/commit/5cd554303ead0f8891eee3cd6d25cb07f5a7bf67.patch";
+      relative = "llvm";
+      hash = "sha256-XPbvNJ45SzjMGlNUgt/IgEvM2dHQpDOe6woUJY+nUYA=";
+    })
   ] ++ lib.optional enablePolly ./gnu-install-dirs-polly.patch;
 
   postPatch = optionalString stdenv.isDarwin ''
@@ -95,8 +128,29 @@ in stdenv.mkDerivation (rec {
   '' + optionalString (stdenv.hostPlatform.system == "armv6l-linux") ''
     # Seems to require certain floating point hardware (NEON?)
     rm test/ExecutionEngine/frem.ll
+  '' + optionalString stdenv.hostPlatform.isRiscV ''
+    rm test/ExecutionEngine/frem.ll
+    rm test/ExecutionEngine/mov64zext32.ll
+    rm test/ExecutionEngine/test-interp-vec-arithm_float.ll
+    rm test/ExecutionEngine/test-interp-vec-arithm_int.ll
+    rm test/ExecutionEngine/test-interp-vec-logical.ll
+    rm test/ExecutionEngine/test-interp-vec-setcond-fp.ll
+    rm test/ExecutionEngine/test-interp-vec-setcond-int.ll
+    substituteInPlace unittests/Support/CMakeLists.txt \
+      --replace "CrashRecoveryTest.cpp" ""
+    rm unittests/Support/CrashRecoveryTest.cpp
+    substituteInPlace unittests/ExecutionEngine/Orc/CMakeLists.txt \
+      --replace "OrcCAPITest.cpp" ""
+    rm unittests/ExecutionEngine/Orc/OrcCAPITest.cpp
   '' + ''
     patchShebangs test/BugPoint/compile-custom.ll.py
+  '';
+
+  preConfigure = ''
+    # Workaround for configure flags that need to have spaces
+    cmakeFlagsArray+=(
+      -DLLVM_LIT_ARGS='-svj''${NIX_BUILD_CORES} --no-progress-bar'
+    )
   '';
 
   # hacky fix: created binaries need to be run before installation
@@ -107,6 +161,8 @@ in stdenv.mkDerivation (rec {
 
   # E.g. mesa.drivers use the build-id as a cache key (see #93946):
   LDFLAGS = optionalString (enableSharedLibraries && !stdenv.isDarwin) "-Wl,--build-id=sha1";
+
+  cmakeBuildType = if debugVersion then "Debug" else "Release";
 
   cmakeFlags = with stdenv; let
     # These flags influence llvm-config's BuildVariables.inc in addition to the
@@ -123,7 +179,6 @@ in stdenv.mkDerivation (rec {
       "-DLLVM_LINK_LLVM_DYLIB=ON"
     ];
   in flagsForLlvmConfig ++ [
-    "-DCMAKE_BUILD_TYPE=${if debugVersion then "Debug" else "Release"}"
     "-DLLVM_INSTALL_UTILS=ON"  # Needed by rustc
     "-DLLVM_BUILD_TESTS=${if doCheck then "ON" else "OFF"}"
     "-DLLVM_ENABLE_FFI=ON"
@@ -134,6 +189,7 @@ in stdenv.mkDerivation (rec {
     # Disables building of shared libs, -fPIC is still injected by cc-wrapper
     "-DLLVM_ENABLE_PIC=OFF"
     "-DLLVM_BUILD_STATIC=ON"
+    "-DLLVM_LINK_LLVM_DYLIB=off"
     # libxml2 needs to be disabled because the LLVM build system ignores its .la
     # file and doesn't link zlib as well.
     # https://github.com/ClangBuiltLinux/tc-build/issues/150#issuecomment-845418812
@@ -144,7 +200,7 @@ in stdenv.mkDerivation (rec {
     "-DSPHINX_OUTPUT_MAN=ON"
     "-DSPHINX_OUTPUT_HTML=OFF"
     "-DSPHINX_WARNINGS_AS_ERRORS=OFF"
-  ] ++ optionals (!isDarwin) [
+  ] ++ optionals (enableGoldPlugin) [
     "-DLLVM_BINUTILS_INCDIR=${libbfd.dev}/include"
   ] ++ optionals isDarwin [
     "-DLLVM_ENABLE_LIBCXX=ON"
@@ -207,8 +263,7 @@ in stdenv.mkDerivation (rec {
     cp NATIVE/bin/llvm-config $dev/bin/llvm-config-native
   '';
 
-  doCheck = stdenv.isLinux && (!stdenv.isx86_32) && (!stdenv.hostPlatform.isMusl)
-    && (stdenv.hostPlatform == stdenv.buildPlatform);
+  inherit doCheck;
 
   checkTarget = "check-all";
 

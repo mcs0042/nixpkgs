@@ -1,21 +1,29 @@
-{ lib, buildGoModule, fetchFromGitHub }:
+{ lib, buildGoModule, fetchFromGitHub, testers, spicetify-cli }:
 
 buildGoModule rec {
   pname = "spicetify-cli";
-  version = "2.10.2";
+  version = "2.27.1";
 
   src = fetchFromGitHub {
     owner = "spicetify";
-    repo = pname;
+    repo = "spicetify-cli";
     rev = "v${version}";
-    sha256 = "sha256-chaCz4+RXPUP/MZymxA0h1ATuWYRgru3JMELiWPEBcE=";
+    hash = "sha256-Z+paJAuzUnCdCSx2UHg1HV14vDo3jWsyUrcbEnvqTm0=";
   };
 
-  vendorSha256 = "sha256-zYIbtcDM9iYSRHagvI9D284Y7w0ZxG4Ba1p4jqmQyng=";
+  vendorHash = "sha256-H2kSTsYiD9HResHes+7YxUyNcjtM0SLpDPUC0Y518VM=";
+
+  ldflags = [
+    "-s -w"
+    "-X 'main.version=${version}'"
+  ];
 
   # used at runtime, but not installed by default
   postInstall = ''
     cp -r ${src}/jsHelper $out/bin/jsHelper
+    cp -r ${src}/CustomApps $out/bin/CustomApps
+    cp -r ${src}/Extensions $out/bin/Extensions
+    cp -r ${src}/Themes $out/bin/Themes
   '';
 
   doInstallCheck = true;
@@ -23,10 +31,16 @@ buildGoModule rec {
     $out/bin/spicetify-cli --help > /dev/null
   '';
 
+  passthru.tests.version = testers.testVersion {
+    package = spicetify-cli;
+    command = "spicetify-cli -v";
+  };
+
   meta = with lib; {
     description = "Command-line tool to customize Spotify client";
     homepage = "https://github.com/spicetify/spicetify-cli/";
     license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ jonringer ];
+    maintainers = with maintainers; [ jonringer mdarocha ];
+    mainProgram = "spicetify-cli";
   };
 }

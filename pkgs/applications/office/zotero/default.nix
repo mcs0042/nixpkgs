@@ -41,12 +41,12 @@
 
 stdenv.mkDerivation rec {
   pname = "zotero";
-  version = "6.0.9";
+  version = "6.0.30";
 
   src = fetchurl {
     url =
       "https://download.zotero.org/client/release/${version}/Zotero-${version}_linux-x86_64.tar.bz2";
-    sha256 = "sha256-yzMppbvdw7ShYtWdmE5HkqutgivwuJKPkAOGq6WkyuQ=";
+    hash = "sha256-4XQZ1xw9Qtk3SzHMsEUk+HuIYtHDAOMgpwzbAd5QQpU=";
   };
 
   nativeBuildInputs = [ wrapGAppsHook ];
@@ -97,7 +97,7 @@ stdenv.mkDerivation rec {
   '';
 
   desktopItem = makeDesktopItem {
-    name = "zotero-${version}";
+    name = "zotero";
     exec = "zotero -url %U";
     icon = "zotero";
     comment = meta.description;

@@ -7,13 +7,13 @@ let
 in {
   options = {
     programs.feedbackd = {
-      enable = mkEnableOption ''
-        Whether to enable the feedbackd D-BUS service and udev rules.
+      enable = mkEnableOption (lib.mdDoc ''
+        the feedbackd D-BUS service and udev rules.
 
-        Your user needs to be in the `feedbackd` group to trigger effects.
-      '';
+        Your user needs to be in the `feedbackd` group to trigger effects
+      '');
       package = mkOption {
-        description = ''
+        description = lib.mdDoc ''
           Which feedbackd package to use.
         '';
         type = types.package;

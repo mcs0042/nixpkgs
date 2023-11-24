@@ -10,28 +10,28 @@
 , liblxqt
 , libqtxdg
 , qtx11extras
-, lxqtUpdateScript
+, gitUpdater
 }:
 
 mkDerivation rec {
   pname = "lxqt-notificationd";
-  version = "1.1.0";
+  version = "1.4.0";
 
   src = fetchFromGitHub {
     owner = "lxqt";
     repo = pname;
     rev = version;
-    sha256 = "YXwWqab6OW1KE7Zct92xdK/f/QaDVqEMVM+Cb9kNe7E=";
+    hash = "sha256-Y3+ShGb1DKJw4zv3SCwEq2unJesI1q5OaTlSO8fP76A=";
   };
 
   nativeBuildInputs = [
     cmake
     lxqt-build-tools
+    qttools
   ];
 
   buildInputs = [
     qtbase
-    qttools
     qtsvg
     kwindowsystem
     liblxqt
@@ -39,7 +39,7 @@ mkDerivation rec {
     qtx11extras
   ];
 
-  passthru.updateScript = lxqtUpdateScript { inherit pname version src; };
+  passthru.updateScript = gitUpdater { };
 
   meta = with lib; {
     homepage = "https://github.com/lxqt/lxqt-notificationd";

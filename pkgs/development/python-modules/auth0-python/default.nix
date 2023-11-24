@@ -1,7 +1,12 @@
 { lib
+, aiohttp
+, aioresponses
 , buildPythonPackage
-, fetchPypi
+, callee
+, fetchFromGitHub
 , mock
+, poetry-core
+, poetry-dynamic-versioning
 , pyjwt
 , pytestCheckHook
 , pythonOlder
@@ -10,28 +15,38 @@
 
 buildPythonPackage rec {
   pname = "auth0-python";
-  version = "3.22.0";
-  format = "setuptools";
+  version = "4.6.0";
+  format = "pyproject";
 
   disabled = pythonOlder "3.7";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "sha256-05yJbF6eXz+vJx+plY5gqzRRYL2SjDnF7gSfX6WIS4E=";
+  src = fetchFromGitHub {
+    owner = "auth0";
+    repo = "auth0-python";
+    rev = "refs/tags/${version}";
+    hash = "sha256-KNhuonqFt+KrRYctQ426FcnzxISp5sBRs28hFL/Du0Q=";
   };
+
+  nativeBuildInputs = [
+    poetry-core
+    poetry-dynamic-versioning
+  ];
 
   propagatedBuildInputs = [
     requests
     pyjwt
-  ];
+  ] ++ pyjwt.optional-dependencies.crypto;
 
-  checkInputs = [
+  nativeCheckInputs = [
+    aiohttp
+    aioresponses
+    callee
     mock
     pytestCheckHook
   ];
 
   disabledTests = [
-    # tries to ping websites (e.g. google.com)
+    # Tries to ping websites (e.g. google.com)
     "can_timeout"
     "test_options_are_created_by_default"
     "test_options_are_used_and_override"
@@ -44,7 +59,8 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Auth0 Python SDK";
     homepage = "https://github.com/auth0/auth0-python";
+    changelog = "https://github.com/auth0/auth0-python/blob/${version}/CHANGELOG.md";
     license = licenses.mit;
-    maintainers = with maintainers; [ costrouc ];
+    maintainers = with maintainers; [ ];
   };
 }

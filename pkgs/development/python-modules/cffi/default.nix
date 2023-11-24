@@ -1,23 +1,45 @@
-{ lib, stdenv, buildPythonPackage, isPyPy, fetchPypi, pytestCheckHook,
-  libffi, pkg-config, pycparser
+{ lib
+, stdenv
+, buildPythonPackage
+, isPyPy
+, fetchPypi
+, setuptools
+, pytestCheckHook
+, libffi
+, pkg-config
+, pycparser
+, pythonAtLeast
 }:
 
 if isPyPy then null else buildPythonPackage rec {
   pname = "cffi";
-  version = "1.15.0";
+  version = "1.16.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "920f0d66a896c2d99f0adbb391f990a84091179542c205fa53ce5787aff87954";
+    hash = "sha256-vLPvQ+WGZbvaL7GYaY/K5ndkg+DEpjGqVkeAbCXgLMA=";
   };
 
-  outputs = [ "out" "dev" ];
-
-  buildInputs = [ libffi ];
-
-  nativeBuildInputs = [ pkg-config ];
-
-  propagatedBuildInputs = [ pycparser ];
+  patches = [
+    #
+    # Trusts the libffi library inside of nixpkgs on Apple devices.
+    #
+    # Based on some analysis I did:
+    #
+    #   https://groups.google.com/g/python-cffi/c/xU0Usa8dvhk
+    #
+    # I believe that libffi already contains the code from Apple's fork that is
+    # deemed safe to trust in cffi.
+    #
+    ./darwin-use-libffi-closures.diff
+  ] ++ lib.optionals (stdenv.cc.isClang && lib.versionAtLeast (lib.getVersion stdenv.cc) "13") [
+    # -Wnull-pointer-subtraction is enabled with -Wextra. Suppress it to allow the following tests
+    # to run and pass when cffi is built with newer versions of clang:
+    # - testing/cffi1/test_verify1.py::test_enum_usage
+    # - testing/cffi1/test_verify1.py::test_named_pointer_as_argument
+    ./clang-pointer-substraction-warning.diff
+  ];
 
   postPatch = lib.optionalString stdenv.isDarwin ''
     # Remove setup.py impurities
@@ -27,20 +49,35 @@ if isPyPy then null else buildPythonPackage rec {
       --replace '/usr/include/libffi' '${lib.getDev libffi}/include'
   '';
 
+  nativeBuildInputs = [
+    pkg-config
+    setuptools
+  ];
+
+  buildInputs = [
+    libffi
+  ];
+
+  propagatedBuildInputs = [
+    pycparser
+  ];
+
   # The tests use -Werror but with python3.6 clang detects some unreachable code.
-  NIX_CFLAGS_COMPILE = lib.optionalString stdenv.cc.isClang
+  env.NIX_CFLAGS_COMPILE = lib.optionalString stdenv.cc.isClang
     "-Wno-unused-command-line-argument -Wno-unreachable-code -Wno-c++11-narrowing";
 
-  # Lots of tests fail on aarch64-darwin due to "Cannot allocate write+execute memory":
-  # * https://cffi.readthedocs.io/en/latest/using.html#callbacks
-  doCheck = !stdenv.hostPlatform.isMusl && !(stdenv.isDarwin && stdenv.isAarch64);
+  doCheck = !stdenv.hostPlatform.isMusl;
 
-  checkInputs = [ pytestCheckHook ];
+  nativeCheckInputs = [
+    pytestCheckHook
+  ];
 
   meta = with lib; {
-    maintainers = with maintainers; [ domenkozar lnl7 ];
+    changelog = "https://github.com/python-cffi/cffi/releases/tag/v${version}";
+    description = "Foreign Function Interface for Python calling C code";
+    downloadPage = "https://github.com/python-cffi/cffi";
     homepage = "https://cffi.readthedocs.org/";
     license = licenses.mit;
-    description = "Foreign Function Interface for Python calling C code";
+    maintainers = teams.python.members;
   };
 }

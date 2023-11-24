@@ -1,35 +1,40 @@
 { lib, stdenv, fetchFromGitHub, cmake
-, sqlite, wxGTK30-gtk3, libusb1, soapysdr
+, sqlite, wxGTK32, libusb1, soapysdr
 , mesa_glu, libX11, gnuplot, fltk
-} :
+, GLUT
+, withGui ? !stdenv.isDarwin # withGui transitively depends on mesa, which is broken on darwin
+}:
 
 stdenv.mkDerivation rec {
   pname = "limesuite";
-  version = "20.10.0";
+  version = "23.10.0";
 
   src = fetchFromGitHub {
     owner = "myriadrf";
     repo = "LimeSuite";
     rev = "v${version}";
-    sha256 = "04wzfhzqmxjsa6bgcr4zd518fln9rbwnbabf48kha84d70vzkdlx";
+    sha256 = "sha256-o58UNc4r+MQbH00727YTV17M7D29BbH8CgUXCORKk7E=";
   };
 
   nativeBuildInputs = [ cmake ];
 
   cmakeFlags = [
     "-DOpenGL_GL_PREFERENCE=GLVND"
-  ];
+  ] ++ lib.optional (!withGui) "-DENABLE_GUI=OFF";
 
   buildInputs = [
     libusb1
     sqlite
-    wxGTK30-gtk3
-    fltk
     gnuplot
     libusb1
     soapysdr
-    mesa_glu
+  ] ++ lib.optionals stdenv.isDarwin [
+    GLUT
+  ] ++ lib.optionals withGui [
+    fltk
     libX11
+    mesa_glu
+    wxGTK32
   ];
 
   postInstall = ''
@@ -42,7 +47,7 @@ stdenv.mkDerivation rec {
     homepage = "https://github.com/myriadrf/LimeSuite";
     license = licenses.asl20;
     maintainers = with maintainers; [ markuskowa ];
-    platforms = platforms.linux;
+    platforms = platforms.unix;
   };
 }
 

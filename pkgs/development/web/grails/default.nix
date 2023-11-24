@@ -11,11 +11,11 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "grails";
-  version = "5.1.7";
+  version = "6.1.0";
 
   src = fetchurl {
     url = "https://github.com/grails/grails-core/releases/download/v${version}/grails-${version}.zip";
-    sha256 = "sha256-Sk+VvuEyzZ9sSeI9fOuHgmgSu89WjriiK/6UU/eWqag=";
+    sha256 = "sha256-v+AAIDWRAgBXmhX2BecEio4s5dVA77K+YycZY1k9uvg=";
   };
 
   nativeBuildInputs = [ unzip ];
@@ -46,6 +46,7 @@ stdenv.mkDerivation rec {
     '';
     homepage = "https://grails.org/";
     license = licenses.asl20;
+    sourceProvenance = with sourceTypes; [ binaryBytecode ];
     platforms = platforms.linux;
     maintainers = [ maintainers.bjornfor ];
   };

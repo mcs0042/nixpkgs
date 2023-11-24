@@ -8,6 +8,7 @@
 , qttools
 , lxqt
 , libconfig
+, gitUpdater
 }:
 
 mkDerivation rec {
@@ -18,18 +19,18 @@ mkDerivation rec {
     owner = "lxqt";
     repo = pname;
     rev = version;
-    sha256 = "0gcvyn7aabdz5yj0jzv14hlgjgbm8d9ib5r73i842f0hv4cv9m0q";
+    hash = "sha256-GNS0GdkQOEFQHCeXFVNDdT35KCRhfwmkL78tpY71mz0=";
   };
 
   nativeBuildInputs = [
     cmake
     pkg-config
     lxqt.lxqt-build-tools
+    qttools
   ];
 
   buildInputs = [
     qtbase
-    qttools
     libconfig
   ];
 
@@ -38,7 +39,7 @@ mkDerivation rec {
       --replace "DESTINATION \"\''${LXQT_ETC_XDG_DIR}" "DESTINATION \"etc/xdg" \
   '';
 
-  passthru.updateScript = lxqt.lxqtUpdateScript { inherit pname version src; };
+  passthru.updateScript = gitUpdater { };
 
   meta = with lib; {
     broken = stdenv.isDarwin;

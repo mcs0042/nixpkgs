@@ -24,15 +24,16 @@
 
 buildPythonPackage rec {
   pname = "fonttools";
-  version = "4.33.3";
+  version = "4.42.1";
+  format = "setuptools";
 
   disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner  = pname;
     repo   = pname;
-    rev    = version;
-    sha256 = "MUIZGnYwlfTat9655AOYgK5r6AvHj/xXghUvOZR8HIM=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-fcFFJi9Hr0m74LwFIhhhm/bMfxepAvg4/ymU53MmsPg=";
   };
 
   nativeBuildInputs = [ setuptools-scm ];
@@ -55,11 +56,12 @@ buildPythonPackage rec {
     all = lib.concatLists (lib.attrValues extras);
   };
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
   ] ++ lib.concatLists (lib.attrVals ([
     "woff"
     "interpolatable"
+    "ufo"
   ] ++ lib.optionals (!skia-pathops.meta.broken) [
     "pathops" # broken
   ] ++ [

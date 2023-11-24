@@ -2,16 +2,16 @@
 
 buildGoModule rec {
   pname = "mongo-tools";
-  version = "100.5.3";
+  version = "100.9.1";
 
   src = fetchFromGitHub {
     owner = "mongodb";
     repo = "mongo-tools";
     rev = version;
-    sha256 = "sha256-8RkpBCFVxKVsu4h2z+rhlwvYfbSDHZUg8erO4+2GRbw=";
+    sha256 = "sha256-c+pzpDUDx6xqpELLM32z0T5mGlF0qk6wqyS1OU9NkRs=";
   };
 
-  vendorSha256 = null;
+  vendorHash = null;
 
   nativeBuildInputs = [ pkg-config ];
   buildInputs = [ openssl libpcap ];

@@ -1,33 +1,53 @@
 { lib
 , buildPythonPackage
 , fetchPypi
-, jupyterlab_server
-, notebook
+, hatch-jupyter-builder
+, hatchling
+, async-lru
+, packaging
+, tornado
+, ipykernel
+, jupyter-core
+, jupyter-lsp
+, jupyterlab-server
+, jupyter-server
+, notebook-shim
+, jinja2
+, tomli
 , pythonOlder
 , jupyter-packaging
-, nbclassic
 }:
 
 buildPythonPackage rec {
   pname = "jupyterlab";
-  version = "3.4.4";
-  format = "setuptools";
+  version = "4.0.6";
+  format = "pyproject";
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-WioP3SK9hiitRbYY41IDh8MqSBjjrxEtutH2STBN/CA=";
+    hash = "sha256-bEOuWmof0v36/LNFQASVi95tp2Mxq7RM/8b55Daxm6E=";
   };
 
   nativeBuildInputs = [
-    jupyter-packaging
+    hatch-jupyter-builder
+    hatchling
   ];
 
   propagatedBuildInputs = [
-    jupyterlab_server
-    notebook
-    nbclassic
+    async-lru
+    packaging
+    tornado
+    ipykernel
+    jupyter-core
+    jupyter-lsp
+    jupyterlab-server
+    jupyter-server
+    notebook-shim
+    jinja2
+  ] ++ lib.optionals (pythonOlder "3.11") [
+    tomli
   ];
 
   makeWrapperArgs = [
@@ -44,9 +64,11 @@ buildPythonPackage rec {
   ];
 
   meta = with lib; {
+    changelog = "https://github.com/jupyterlab/jupyterlab/blob/v${version}/CHANGELOG.md";
     description = "Jupyter lab environment notebook server extension";
-    license = with licenses; [ bsd3 ];
+    license = licenses.bsd3;
     homepage = "https://jupyter.org/";
-    maintainers = with maintainers; [ zimbatm costrouc ];
+    maintainers = lib.teams.jupyter.members;
+    mainProgram = "jupyter-lab";
   };
 }

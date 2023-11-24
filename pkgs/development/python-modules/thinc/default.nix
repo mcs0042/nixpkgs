@@ -1,27 +1,27 @@
 { lib
 , stdenv
-, buildPythonPackage
-, python
-, fetchPypi
-, pytestCheckHook
-, blis
-, catalogue
-, cymem
-, cython
-, contextvars
-, dataclasses
 , Accelerate
+, blis
+, buildPythonPackage
+, catalogue
+, confection
 , CoreFoundation
 , CoreGraphics
 , CoreVideo
+, cymem
+, cython
+, fetchPypi
 , hypothesis
 , mock
 , murmurhash
 , numpy
 , plac
-, pythonOlder
 , preshed
 , pydantic
+, pytestCheckHook
+, python
+, pythonOlder
+, setuptools
 , srsly
 , tqdm
 , typing-extensions
@@ -30,20 +30,24 @@
 
 buildPythonPackage rec {
   pname = "thinc";
-  version = "8.0.17";
+  version = "8.2.1";
   format = "setuptools";
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-BCxRiqeZo4vsIqegvyjfgM5hfrfeMrwEl5hwfAo2Fn8=";
+    hash = "sha256-zX/bPYg6FeaQYlTn+wFi9ph46czdH4UZ22/7/ka/b0k=";
   };
 
   postPatch = ''
     substituteInPlace setup.cfg \
-      --replace "pydantic>=1.7.4,!=1.8,!=1.8.1,<1.9.0" "pydantic"
+      --replace "preshed>=3.0.2,<3.1.0" "preshed"
   '';
+
+  nativeBuildInputs = [
+    setuptools
+  ];
 
   buildInputs = [
     cython
@@ -57,23 +61,21 @@ buildPythonPackage rec {
   propagatedBuildInputs = [
     blis
     catalogue
+    confection
     cymem
     murmurhash
     numpy
     plac
     preshed
+    pydantic
     srsly
     tqdm
-    pydantic
     wasabi
-  ] ++ lib.optional (pythonOlder "3.8") [
+  ] ++ lib.optionals (pythonOlder "3.8") [
     typing-extensions
-  ] ++ lib.optional (pythonOlder "3.7") [
-    contextvars
-    dataclasses
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     hypothesis
     mock
     pytestCheckHook
@@ -93,8 +95,9 @@ buildPythonPackage rec {
   ];
 
   meta = with lib; {
-    description = "Practical Machine Learning for NLP in Python";
+    description = "Library for NLP machine learning";
     homepage = "https://github.com/explosion/thinc";
+    changelog = "https://github.com/explosion/thinc/releases/tag/v${version}";
     license = licenses.mit;
     maintainers = with maintainers; [ aborsu ];
   };

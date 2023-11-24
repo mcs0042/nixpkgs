@@ -1,15 +1,27 @@
-{ lib, mkDerivation, fetchurl, cmake, gettext
-, pkg-config, libdigidocpp, opensc, openldap, openssl, pcsclite, qtbase
-, qttranslations, qtsvg }:
+{ lib
+, mkDerivation
+, fetchurl
+, cmake
+, gettext
+, pkg-config
+, libdigidocpp
+, opensc
+, openldap
+, openssl
+, pcsclite
+, qtbase
+, qtsvg
+, qttools
+}:
 
 mkDerivation rec {
   pname = "qdigidoc";
-  version = "4.2.11";
+  version = "4.2.12";
 
   src = fetchurl {
     url =
-      "https://github.com/open-eid/DigiDoc4-Client/releases/download/v${version}/qdigidoc4_${version}.110-1804.tar.xz";
-    sha256 = "sha256-Sg6lFZeIJn3T/suDc5Z/kNqBf/sIV9c6EJJ0Nr0dwTM=";
+      "https://github.com/open-eid/DigiDoc4-Client/releases/download/v${version}/qdigidoc4-${version}.tar.gz";
+    hash = "sha256-6bso1qvhVhbBfrcTq4S+aHtHli7X2A926N4r45ztq4E=";
   };
 
   tsl = fetchurl {
@@ -17,7 +29,7 @@ mkDerivation rec {
     sha256 = "1cikz36w9phgczcqnwk4k3mx3kk919wy2327jksmfa4cjfjq4a8d";
   };
 
-  nativeBuildInputs = [ cmake gettext pkg-config ];
+  nativeBuildInputs = [ cmake gettext pkg-config qttools ];
 
   postPatch = ''
     substituteInPlace client/CMakeLists.txt \
@@ -32,7 +44,6 @@ mkDerivation rec {
     pcsclite
     qtbase
     qtsvg
-    qttranslations
   ];
 
   # qdigidoc4's `QPKCS11::reload()` dlopen()s "opensc-pkcs11.so" in QLibrary,

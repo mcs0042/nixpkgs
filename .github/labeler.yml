@@ -7,6 +7,8 @@
 
 "6.topic: cinnamon":
   - pkgs/desktops/cinnamon/**/*
+  - nixos/modules/services/x11/desktop-managers/cinnamon.nix
+  - nixos/tests/cinnamon.nix
 
 "6.topic: emacs":
   - nixos/modules/services/editors/emacs.nix
@@ -16,6 +18,11 @@
   - pkgs/applications/editors/emacs/**/*
   - pkgs/build-support/emacs/**/*
   - pkgs/top-level/emacs-packages.nix
+
+"6.topic: Enlightenment DE":
+  - nixos/modules/services/x11/desktop-managers/enlightenment.nix
+  - pkgs/desktops/enlightenment/**/*
+  - pkgs/development/python-modules/python-efl/*
 
 "6.topic: erlang":
   - doc/languages-frameworks/beam.section.md
@@ -30,6 +37,11 @@
 "6.topic: fetch":
   - pkgs/build-support/fetch*/**/*
 
+"6.topic: flakes":
+  - '**/flake.nix'
+  - lib/systems/flake-systems.nix
+  - nixos/modules/config/nix-flakes.nix
+
 "6.topic: GNOME":
   - doc/languages-frameworks/gnome.section.md
   - nixos/modules/services/desktops/gnome/**/*
@@ -40,9 +52,8 @@
 
 "6.topic: golang":
   - doc/languages-frameworks/go.section.md
+  - pkgs/build-support/go/**/*
   - pkgs/development/compilers/go/**/*
-  - pkgs/development/go-modules/**/*
-  - pkgs/development/go-packages/**/*
 
 "6.topic: haskell":
   - doc/languages-frameworks/haskell.section.md
@@ -54,15 +65,45 @@
   - pkgs/top-level/haskell-packages.nix
   - pkgs/top-level/release-haskell.nix
 
+"6.topic: jupyter":
+  - pkgs/development/python-modules/jupyter*/**/*
+  - pkgs/development/python-modules/mkdocs-jupyter/*
+  - nixos/modules/services/development/jupyter/**/*
+  - pkgs/applications/editors/jupyter-kernels/**/*
+  - pkgs/applications/editors/jupyter/**/*
+
 "6.topic: kernel":
   - pkgs/build-support/kernel/**/*
   - pkgs/os-specific/linux/kernel/**/*
+
+"6.topic: lib":
+  - lib/**
 
 "6.topic: lua":
   - pkgs/development/interpreters/lua-5/**/*
   - pkgs/development/interpreters/luajit/**/*
   - pkgs/development/lua-modules/**/*
   - pkgs/top-level/lua-packages.nix
+
+"6.topic: Lumina DE":
+  - nixos/modules/services/x11/desktop-managers/lumina.nix
+  - pkgs/desktops/lumina/**/*
+
+"6.topic: LXQt":
+  - nixos/modules/services/x11/desktop-managers/lxqt.nix
+  - pkgs/desktops/lxqt/**/*
+
+"6.topic: mate":
+  - nixos/modules/services/x11/desktop-managers/mate.nix
+  - nixos/tests/mate.nix
+  - pkgs/desktops/mate/**/*
+
+"6.topic: module system":
+  - lib/modules.nix
+  - lib/types.nix
+  - lib/options.nix
+  - lib/tests/modules.sh
+  - lib/tests/modules/**
 
 "6.topic: nixos":
   - nixos/**/*
@@ -73,6 +114,14 @@
   - pkgs/development/compilers/nim/*
   - pkgs/development/nim-packages/**/*
   - pkgs/top-level/nim-packages.nix
+
+"6.topic: nodejs":
+  - doc/languages-frameworks/javascript.section.md
+  - pkgs/build-support/node/**/*
+  - pkgs/development/node-packages/**/*
+  - pkgs/development/tools/yarn/*
+  - pkgs/development/tools/yarn2nix-moretea/**/*
+  - pkgs/development/web/nodejs/*
 
 "6.topic: ocaml":
   - doc/languages-frameworks/ocaml.section.md
@@ -133,6 +182,7 @@
 
 "6.topic: TeX":
   - doc/languages-frameworks/texlive.section.md
+  - pkgs/test/texlive/**
   - pkgs/tools/typesetting/tex/**/*
 
 "6.topic: vim":
@@ -142,11 +192,18 @@
   - nixos/modules/programs/neovim.nix
   - pkgs/applications/editors/neovim/**/*
 
+"6.topic: vscode":
+  - pkgs/applications/editors/vscode/**/*
+
 "6.topic: xfce":
   - nixos/doc/manual/configuration/xfce.xml
   - nixos/modules/services/x11/desktop-managers/xfce.nix
   - nixos/tests/xfce.nix
   - pkgs/desktops/xfce/**/*
+
+"6.topic: zig":
+  - pkgs/development/compilers/zig/**/*
+  - doc/hooks/zig.section.md
 
 "8.has: changelog":
   - nixos/doc/manual/release-notes/**/*

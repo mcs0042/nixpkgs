@@ -1,68 +1,87 @@
-{ stdenv
-, lib
+{ lib
+, stdenv
 , anyio
 , buildPythonPackage
+, cargo
 , fetchFromGitHub
 , rustPlatform
-, setuptools-rust
+, rustc
 , pythonOlder
 , dirty-equals
 , pytest-mock
 , pytest-timeout
 , pytestCheckHook
-, python
+, CoreServices
+, libiconv
 }:
 
 buildPythonPackage rec {
   pname = "watchfiles";
-  version = "0.14.1";
-  format = "setuptools";
+  version = "0.21.0";
+  format = "pyproject";
 
   disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "samuelcolvin";
     repo = pname;
-    rev = "v${version}";
-    hash = "sha256-XjmmyL7ZRqkYwGGk6/KkxL7e/JA43tQN4W3knTtc7t0=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-/qNgkPF5N8jzSV3M0YFWvQngZ4Hf4WM/GBS1LtgFbWM=";
   };
 
   cargoDeps = rustPlatform.fetchCargoTarball {
     inherit src;
     name = "${pname}-${version}";
-    sha256 = "sha256-sZMj1HQ37gAG3WM+qBMhcCQ2MuUGom23lF8c4L0RQzM=";
+    hash = "sha256-sqHTW1+E7Fp33KW6IYlNa77AYc2iCfaSoBRXzrhEKr8=";
   };
 
+  buildInputs = lib.optionals stdenv.isDarwin [
+    CoreServices
+    libiconv
+  ];
+
   nativeBuildInputs = [
-    setuptools-rust
-  ] ++ (with rustPlatform; [
-    cargoSetupHook
-    rust.cargo
-    rust.rustc
-  ]);
+    rustPlatform.cargoSetupHook
+    rustPlatform.maturinBuildHook
+    cargo
+    rustc
+  ];
 
   propagatedBuildInputs = [
     anyio
   ];
 
-  checkInputs = [
+  # Tests need these permissions in order to use the FSEvents API on macOS.
+  sandboxProfile = ''
+    (allow mach-lookup (global-name "com.apple.FSEvents"))
+  '';
+
+  nativeCheckInputs = [
     dirty-equals
     pytest-mock
     pytest-timeout
     pytestCheckHook
   ];
 
+  postPatch = ''
+    sed -i "/^requires-python =.*/a version = '${version}'" pyproject.toml
+  '';
+
+  preCheck = ''
+    rm -rf watchfiles
+  '';
+
+  disabledTests = [
+    #  BaseExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    "test_awatch_interrupt_raise"
+  ];
+
   pythonImportsCheck = [
     "watchfiles"
   ];
 
-  preCheck = ''
-    cd tests
-  '';
-
   meta = with lib; {
-    broken = stdenv.isDarwin;
-    description = "Simple, modern file watching and code reload";
+    description = "File watching and code reload";
     homepage = "https://watchfiles.helpmanual.io/";
     license = licenses.mit;
     maintainers = with maintainers; [ fab ];

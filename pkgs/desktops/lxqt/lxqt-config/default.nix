@@ -5,6 +5,7 @@
 , pkg-config
 , glib
 , lxqt-build-tools
+, lxqt-menu-data
 , qtbase
 , qtx11extras
 , qttools
@@ -15,36 +16,37 @@
 , libqtxdg
 , xkeyboard_config
 , xorg
-, lxqtUpdateScript
+, gitUpdater
 }:
 
 mkDerivation rec {
   pname = "lxqt-config";
-  version = "1.1.0";
+  version = "1.4.0";
 
   src = fetchFromGitHub {
     owner = "lxqt";
     repo = pname;
     rev = version;
-    sha256 = "ncoJLpKzE1tqOV+KuUiGLDWiDvzJg0le4m4BMKFw6Mg=";
+    hash = "sha256-ypHjUYRtrWx1Cp9KGSqsWpRHg7zoV0YDW6P4amJKapI=";
   };
 
   nativeBuildInputs = [
     cmake
     pkg-config
     lxqt-build-tools
+    qttools
   ];
 
   buildInputs = [
     glib.bin
     qtbase
     qtx11extras
-    qttools
     qtsvg
     kwindowsystem
     libkscreen
     liblxqt
     libqtxdg
+    lxqt-menu-data
     xorg.libpthreadstubs
     xorg.libXdmcp
     xorg.libXScrnSaver
@@ -64,7 +66,7 @@ mkDerivation rec {
                 '${xkeyboard_config}/share/X11/xkb/rules/base.lst'
   '';
 
-  passthru.updateScript = lxqtUpdateScript { inherit pname version src; };
+  passthru.updateScript = gitUpdater { };
 
   meta = with lib; {
     homepage = "https://github.com/lxqt/lxqt-config";

@@ -1,5 +1,5 @@
 { lib
-, buildPythonApplication
+, buildPythonPackage
 , fetchFromGitHub
 , jinja2
 , markdown
@@ -8,13 +8,13 @@
 , mkdocs-autorefs
 , pymdown-extensions
 , pytestCheckHook
-, pdm-pep517
+, pdm-backend
 , pythonOlder
 }:
 
-buildPythonApplication rec {
+buildPythonPackage rec {
   pname = "mkdocstrings";
-  version = "0.19.0";
+  version = "0.23.0";
   format = "pyproject";
 
   disabled = pythonOlder "3.7";
@@ -22,12 +22,18 @@ buildPythonApplication rec {
   src = fetchFromGitHub {
     owner = "mkdocstrings";
     repo = pname;
-    rev = version;
-    sha256 = "sha256-7OF1CrRnE4MYHuYD/pasnZpLe9lrbieGp4agnWAaKVo=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-t7wxm600XgYl1jsqjOpZdWcmqR9qafdKTaz/xDPdDPY=";
   };
 
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace 'dynamic = ["version"]' 'version = "${version}"' \
+      --replace 'license = "ISC"' 'license = {text = "ISC"}'
+  '';
+
   nativeBuildInputs = [
-    pdm-pep517
+    pdm-backend
   ];
 
   propagatedBuildInputs = [
@@ -39,14 +45,9 @@ buildPythonApplication rec {
     pymdown-extensions
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
   ];
-
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace 'dynamic = ["version"]' 'version = "${version}"'
-  '';
 
   pythonImportsCheck = [
     "mkdocstrings"
@@ -57,9 +58,17 @@ buildPythonApplication rec {
     "tests/test_extension.py"
   ];
 
+  disabledTests = [
+    # Not all requirements are available
+    "test_disabling_plugin"
+    # Circular dependency on mkdocstrings-python
+    "test_extended_templates"
+  ];
+
   meta = with lib; {
     description = "Automatic documentation from sources for MkDocs";
     homepage = "https://github.com/mkdocstrings/mkdocstrings";
+    changelog = "https://github.com/mkdocstrings/mkdocstrings/blob/${version}/CHANGELOG.md";
     license = licenses.isc;
     maintainers = with maintainers; [ fab ];
   };

@@ -8,14 +8,14 @@
 
 buildPythonPackage rec {
   pname = "pytest-localserver";
-  version = "0.6.0";
+  version = "0.8.0";
   format = "setuptools";
 
   disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-3cR5q6lqfaDnocx9OjA+UFgtbVBYA+j2e4JyGPn+D2U=";
+    hash = "sha256-XZDOfQhddB51n6hU29LnxbVXMh1pUXmJTrQOIQ6i/zA=";
   };
 
   propagatedBuildInputs = [
@@ -33,6 +33,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Plugin for the pytest testing framework to test server connections locally";
     homepage = "https://github.com/pytest-dev/pytest-localserver";
+    changelog = "https://github.com/pytest-dev/pytest-localserver/blob/v${version}/CHANGES";
     license = licenses.mit;
     maintainers = with maintainers; [ siriobalmelli ];
   };

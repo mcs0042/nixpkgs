@@ -7,20 +7,20 @@ let
 in
 {
   options.programs.corectrl = {
-    enable = mkEnableOption ''
-      A tool to overclock amd graphics cards and processors.
+    enable = mkEnableOption (lib.mdDoc ''
+      CoreCtrl, a tool to overclock amd graphics cards and processors.
       Add your user to the corectrl group to run corectrl without needing to enter your password
-    '';
+    '');
 
     gpuOverclock = {
-      enable = mkEnableOption ''
-        true
-      '';
+      enable = mkEnableOption (lib.mdDoc ''
+        GPU overclocking
+      '');
       ppfeaturemask = mkOption {
         type = types.str;
         default = "0xfffd7fff";
         example = "0xffffffff";
-        description = ''
+        description = lib.mdDoc ''
           Sets the `amdgpu.ppfeaturemask` kernel option.
           In particular, it is used here to set the overdrive bit.
           Default is `0xfffd7fff` as it is less likely to cause flicker issues.

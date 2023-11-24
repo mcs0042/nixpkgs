@@ -13,7 +13,7 @@ let
       "kramdoc"
     ];
 
-    # buildInputs = [ makeWrapper ];
+    # nativeBuildInputs = [ makeWrapper ];
 
     # postBuild = ''
     #     wrapProgram "$out/bin/asciidoctor-epub3" \
@@ -30,6 +30,7 @@ let
       license = licenses.mit;
       maintainers = with maintainers; [ ];
       platforms = platforms.unix;
+      mainProgram = "kramdoc";
     };
   };
 in

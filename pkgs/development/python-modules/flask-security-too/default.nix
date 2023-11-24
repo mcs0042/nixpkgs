@@ -1,6 +1,8 @@
 { lib
 , buildPythonPackage
 , fetchPypi
+, pythonOlder
+, setuptools
 
 # extras: babel
 , babel
@@ -9,58 +11,66 @@
 # extras: common
 , bcrypt
 , bleach
-, flask_mail
+, flask-mailman
 
 # extras: fsqla
-, flask_sqlalchemy
+, flask-sqlalchemy
 , sqlalchemy
 , sqlalchemy-utils
 
 # extras: mfa
 , cryptography
 , phonenumbers
-, pyqrcode
+, webauthn
+, qrcode
 
 # propagates
-, blinker
 , email-validator
 , flask
-, flask_login
-, flask_principal
+, flask-login
+, flask-principal
 , flask-wtf
-, itsdangerous
 , passlib
+, importlib-resources
+, wtforms
 
 # tests
 , argon2-cffi
-, flask-mongoengine
 , mongoengine
 , mongomock
 , peewee
 , pony
 , pytestCheckHook
+, python-dateutil
 , zxcvbn
 }:
 
 buildPythonPackage rec {
   pname = "flask-security-too";
-  version = "4.1.4";
+  version = "5.3.2";
+  pyproject = true;
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     pname = "Flask-Security-Too";
     inherit version;
-    sha256 = "sha256-j6My1CD+GY2InHlN0IXPcNqfq+ytdoDD3y+5s2o3WRI=";
+    hash = "sha256-wLUHXfDWSp7zWwTIjTH79AWlkkNzb21tChpLSEWr8+U=";
   };
 
+  nativeBuildInputs = [
+    setuptools
+  ];
+
   propagatedBuildInputs = [
-    blinker
     email-validator
     flask
-    flask_login
-    flask_principal
+    flask-login
+    flask-principal
     flask-wtf
-    itsdangerous
     passlib
+    importlib-resources
+    wtforms
   ];
 
   passthru.optional-dependencies = {
@@ -71,28 +81,29 @@ buildPythonPackage rec {
     common = [
       bcrypt
       bleach
-      flask_mail
+      flask-mailman
     ];
     fsqla = [
-      flask_sqlalchemy
+      flask-sqlalchemy
       sqlalchemy
       sqlalchemy-utils
     ];
     mfa = [
       cryptography
       phonenumbers
-      pyqrcode
+      webauthn
+      qrcode
     ];
   };
 
-  checkInputs = [
+  nativeCheckInputs = [
     argon2-cffi
-    flask-mongoengine
     mongoengine
     mongomock
     peewee
     pony
     pytestCheckHook
+    python-dateutil
     zxcvbn
   ]
   ++ passthru.optional-dependencies.babel
@@ -101,10 +112,18 @@ buildPythonPackage rec {
   ++ passthru.optional-dependencies.mfa;
 
 
-  pythonImportsCheck = [ "flask_security" ];
+  disabledTests = [
+    # needs /etc/resolv.conf
+    "test_login_email_whatever"
+  ];
+
+  pythonImportsCheck = [
+    "flask_security"
+  ];
 
   meta = with lib; {
-    homepage = "https://pypi.org/project/Flask-Security-Too/";
+    changelog = "https://github.com/Flask-Middleware/flask-security/blob/${version}/CHANGES.rst";
+    homepage = "https://github.com/Flask-Middleware/flask-security";
     description = "Simple security for Flask apps (fork)";
     license = licenses.mit;
     maintainers = with maintainers; [ gador ];

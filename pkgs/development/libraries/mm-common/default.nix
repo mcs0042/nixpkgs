@@ -1,5 +1,7 @@
-{ lib, stdenv
+{ lib
+, stdenv
 , fetchurl
+, bash
 , gnome
 , meson
 , python3
@@ -8,17 +10,25 @@
 
 stdenv.mkDerivation rec {
   pname = "mm-common";
-  version = "1.0.4";
+  version = "1.0.5";
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "6VTAm0MJp++T4TtpJgrNxXOMkHR36zgbeLseQU7m29g=";
+    sha256 = "cFxtKfQRaim95ONs/BsEbJK274xtrk6uyFAYdH5tpao=";
   };
+
+  strictDeps = true;
 
   nativeBuildInputs = [
     meson
     python3
     ninja
+  ];
+
+  # for shebangs
+  buildInputs = [
+    python3
+    bash
   ];
 
   passthru = {

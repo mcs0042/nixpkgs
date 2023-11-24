@@ -71,7 +71,7 @@ let
       # Note that each systemd service gets its own ${runDir}/config.ini file.
       ExecStartPre = mkBefore [("+"+pkgs.writeShellScript "${serviceName}-credentials" ''
         set -x
-        # Replace values begining with a '<' by the content of the file whose name is after.
+        # Replace values beginning with a '<' by the content of the file whose name is after.
         gawk '{ if (match($0,/^([^=]+=)<(.+)/,m)) { getline f < m[2]; print m[1] f } else print $0 }' ${configIni} |
         ${optionalString (!allowStripe) "gawk '!/^stripe-secret-key=/' |"}
         install -o ${srvCfg.user} -g root -m 400 /dev/stdin ${runDir}/config.ini
@@ -108,7 +108,7 @@ let
       #SocketBindDeny = "any";
       SystemCallFilter = [
         "@system-service"
-        "~@aio" "~@keyring" "~@memlock" "~@privileged" "~@resources" "~@timer"
+        "~@aio" "~@keyring" "~@memlock" "~@privileged" "~@timer"
         "@chown" "@setuid"
       ];
       SystemCallArchitectures = "native";
@@ -117,12 +117,12 @@ let
 in
 {
   options.services.sourcehut.${srv} = {
-    enable = mkEnableOption "${srv} service";
+    enable = mkEnableOption (lib.mdDoc "${srv} service");
 
     user = mkOption {
       type = types.str;
       default = srvsrht;
-      description = ''
+      description = lib.mdDoc ''
         User for ${srv}.sr.ht.
       '';
     };
@@ -130,7 +130,7 @@ in
     group = mkOption {
       type = types.str;
       default = srvsrht;
-      description = ''
+      description = lib.mdDoc ''
         Group for ${srv}.sr.ht.
         Membership grants access to the Git/Mercurial repositories by default,
         but not to the config.ini file (where secrets are).
@@ -140,7 +140,7 @@ in
     port = mkOption {
       type = types.port;
       default = port;
-      description = ''
+      description = lib.mdDoc ''
         Port on which the "${srv}" backend should listen.
       '';
     };
@@ -150,7 +150,7 @@ in
         type = types.str;
         default = "unix:///run/redis-sourcehut-${srvsrht}/redis.sock?db=0";
         example = "redis://shared.wireguard:6379/0";
-        description = ''
+        description = lib.mdDoc ''
           The redis host URL. This is used for caching and temporary storage, and must
           be shared between nodes (e.g. git1.sr.ht and git2.sr.ht), but need not be
           shared between services. It may be shared between services, however, with no
@@ -163,9 +163,9 @@ in
       database = mkOption {
         type = types.str;
         default = "${srv}.sr.ht";
-        description = ''
+        description = lib.mdDoc ''
           PostgreSQL database name for the ${srv}.sr.ht service,
-          used if <xref linkend="opt-services.sourcehut.postgresql.enable"/> is <literal>true</literal>.
+          used if [](#opt-services.sourcehut.postgresql.enable) is `true`.
         '';
       };
     };
@@ -174,7 +174,7 @@ in
       extraArgs = mkOption {
         type = with types; listOf str;
         default = ["--timeout 120" "--workers 1" "--log-level=info"];
-        description = "Extra arguments passed to Gunicorn.";
+        description = lib.mdDoc "Extra arguments passed to Gunicorn.";
       };
     };
   } // optionalAttrs webhooks {
@@ -182,12 +182,12 @@ in
       extraArgs = mkOption {
         type = with types; listOf str;
         default = ["--loglevel DEBUG" "--pool eventlet" "--without-heartbeat"];
-        description = "Extra arguments passed to the Celery responsible for webhooks.";
+        description = lib.mdDoc "Extra arguments passed to the Celery responsible for webhooks.";
       };
       celeryConfig = mkOption {
         type = types.lines;
         default = "";
-        description = "Content of the <literal>celeryconfig.py</literal> used by the Celery responsible for webhooks.";
+        description = lib.mdDoc "Content of the `celeryconfig.py` used by the Celery responsible for webhooks.";
       };
     };
   };
@@ -222,6 +222,23 @@ in
             expires 30d;
           '';
         };
+        locations."/query" = mkIf (cfg.settings.${iniKey} ? api-origin) {
+          proxyPass = cfg.settings.${iniKey}.api-origin;
+          extraConfig = ''
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range';
+
+            if ($request_method = 'OPTIONS') {
+              add_header 'Access-Control-Max-Age' 1728000;
+              add_header 'Content-Type' 'text/plain; charset=utf-8';
+              add_header 'Content-Length' 0;
+              return 204;
+            }
+
+            add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range';
+          '';
+        };
       } cfg.nginx.virtualHost ];
     };
 
@@ -232,12 +249,12 @@ in
       ensureDatabases = [ srvCfg.postgresql.database ];
       ensureUsers = map (name: {
           inherit name;
-          ensurePermissions = { "DATABASE \"${srvCfg.postgresql.database}\"" = "ALL PRIVILEGES"; };
+          # We don't use it because we have a special default database name with dots.
+          # TODO(for maintainers of sourcehut): migrate away from custom preStart script.
+          ensureDBOwnership = false;
         }) [srvCfg.user];
     };
 
-    services.sourcehut.services = mkDefault (filter (s: cfg.${s}.enable)
-      [ "builds" "dispatch" "git" "hg" "hub" "lists" "man" "meta" "pages" "paste" "todo" ]);
 
     services.sourcehut.settings = mkMerge [
       {
@@ -363,6 +380,21 @@ in
         }
         extraService
       ])) extraServices)
+
+      # Work around 'pq: permission denied for schema public' with postgres v15.
+      # See https://github.com/NixOS/nixpkgs/issues/216989
+      # Workaround taken from nixos/forgejo: https://github.com/NixOS/nixpkgs/pull/262741
+      # TODO(to maintainers of sourcehut): please migrate away from this workaround
+      # by migrating away from database name defaults with dots.
+      (lib.mkIf (
+          cfg.postgresql.enable
+          && lib.strings.versionAtLeast config.services.postgresql.package.version "15.0"
+        ) {
+          postgresql.postStart = (lib.mkAfter ''
+            $PSQL -tAc 'ALTER DATABASE "${srvCfg.postgresql.database}" OWNER TO "${srvCfg.user}";'
+          '');
+        }
+      )
     ];
 
     systemd.timers = mapAttrs (timerName: timer:

@@ -1,6 +1,6 @@
-{ lib, stdenv, cln, fetchurl, gmp, swig, pkg-config
-, readline, libantlr3c, boost, jdk8, autoreconfHook
-, python3, antlr3_4
+{ lib, stdenv, cln, fetchurl, gmp, gnumake42, swig, pkg-config
+, libantlr3c, boost, autoreconfHook
+, python3
 }:
 
 stdenv.mkDerivation rec {
@@ -12,14 +12,14 @@ stdenv.mkDerivation rec {
     sha256 = "1iw793zsi48q91lxpf8xl8lnvv0jsj4whdad79rakywkm1gbs62w";
   };
 
-  nativeBuildInputs = [ autoreconfHook pkg-config ];
-  buildInputs = [ gmp readline swig libantlr3c antlr3_4 boost jdk8 python3 ]
+  # Build fails with GNUmake 4.4
+  nativeBuildInputs = [ autoreconfHook gnumake42 pkg-config ];
+  buildInputs = [ gmp swig libantlr3c boost python3 ]
     ++ lib.optionals stdenv.isLinux [ cln ];
 
   configureFlags = [
-    "--enable-language-bindings=c,c++,java"
+    "--enable-language-bindings=c"
     "--enable-gpl"
-    "--with-readline"
     "--with-boost=${boost.dev}"
   ] ++ lib.optionals stdenv.isLinux [ "--with-cln" ];
 
@@ -27,6 +27,10 @@ stdenv.mkDerivation rec {
     patch -p1 -i ${./minisat-fenv.patch} -d src/prop/minisat
     patch -p1 -i ${./minisat-fenv.patch} -d src/prop/bvminisat
   '';
+
+  patches = [
+    ../../../applications/science/logic/cvc4/cvc4-bash-patsub-replacement.patch
+  ];
 
   preConfigure = ''
     patchShebangs ./src/

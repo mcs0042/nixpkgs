@@ -1,22 +1,53 @@
-{ lib, stdenv, fetchurl, meson, ninja, vala, pkg-config, gobject-introspection, gettext, gtk3, gnome, wrapGAppsHook
-, libgee, json-glib, qqwing, itstool, libxml2, python3, desktop-file-utils }:
+{ stdenv
+, lib
+, fetchurl
+, meson
+, ninja
+, vala
+, pkg-config
+, gobject-introspection
+, gettext
+, gtk4
+, gnome
+, wrapGAppsHook4
+, libadwaita
+, libgee
+, json-glib
+, qqwing
+, itstool
+, libxml2
+, desktop-file-utils
+}:
 
 stdenv.mkDerivation rec {
   pname = "gnome-sudoku";
-  version = "42.0";
+  version = "45.2";
 
   src = fetchurl {
     url = "mirror://gnome/sources/gnome-sudoku/${lib.versions.major version}/${pname}-${version}.tar.xz";
-    sha256 = "HS603bgCa0Q2Rc81hbjfEkTjgo7hwHUYBSslmeHFwo8=";
+    sha256 = "Ves0R5euw9ifer/L57djAn9cDipaIuaPvzLH6UOdlfI=";
   };
 
-  nativeBuildInputs = [ meson ninja vala pkg-config gobject-introspection gettext itstool libxml2 python3 desktop-file-utils wrapGAppsHook ];
-  buildInputs = [ gtk3 libgee json-glib qqwing ];
+  nativeBuildInputs = [
+    meson
+    ninja
+    vala
+    pkg-config
+    gobject-introspection
+    gettext
+    itstool
+    libxml2
+    desktop-file-utils
+    wrapGAppsHook4
+  ];
 
-  postPatch = ''
-    chmod +x build-aux/post_install.py
-    patchShebangs build-aux/post_install.py
-  '';
+  buildInputs = [
+    gtk4
+    libadwaita
+    libgee
+    json-glib
+    qqwing
+  ];
 
   passthru = {
     updateScript = gnome.updateScript {
@@ -29,7 +60,7 @@ stdenv.mkDerivation rec {
     homepage = "https://wiki.gnome.org/Apps/Sudoku";
     description = "Test your logic skills in this number grid puzzle";
     maintainers = teams.gnome.members;
-    license = licenses.gpl2;
-    platforms = platforms.linux;
+    license = licenses.gpl3Plus;
+    platforms = platforms.unix;
   };
 }

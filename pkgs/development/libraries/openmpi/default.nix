@@ -1,9 +1,9 @@
 { lib, stdenv, fetchurl, gfortran, perl, libnl
 , rdma-core, zlib, numactl, libevent, hwloc, targetPackages, symlinkJoin
-, libpsm2, libfabric, pmix, ucx
-
+, libpsm2, libfabric, pmix, ucx, ucc
+, config
 # Enable CUDA support
-, cudaSupport ? false, cudatoolkit ? null
+, cudaSupport ? config.cudaSupport, cudatoolkit
 
 # Enable the Sun Grid Engine bindings
 , enableSGE ? false
@@ -18,8 +18,6 @@
 , fortranSupport ? true
 }:
 
-assert !cudaSupport || cudatoolkit != null;
-
 let
   cudatoolkit_joined = symlinkJoin {
     name = "${cudatoolkit.name}-unsplit";
@@ -27,11 +25,11 @@ let
   };
 in stdenv.mkDerivation rec {
   pname = "openmpi";
-  version = "4.1.4";
+  version = "4.1.6";
 
   src = with lib.versions; fetchurl {
     url = "https://www.open-mpi.org/software/ompi/v${major version}.${minor version}/downloads/${pname}-${version}.tar.bz2";
-    sha256 = "03ckngrff1cl0l81vfvrfhp99rbgk7s0633kr1l468yibwbjx4cj";
+    sha256 = "sha256-90CZRIVRbetjtTEa8SLCZRefUyig2FelZ7hdsAsR5BU=";
   };
 
   postPatch = ''
@@ -45,12 +43,14 @@ in stdenv.mkDerivation rec {
     find -name "Makefile.in" -exec sed -i "s/\`date\`/$ts/" \{} \;
   '';
 
+  outputs = [ "out" "man" ];
+
   buildInputs = [ zlib ]
-    ++ lib.optionals stdenv.isLinux [ libnl numactl pmix ucx ]
+    ++ lib.optionals stdenv.isLinux [ libnl numactl pmix ucx ucc ]
     ++ lib.optionals cudaSupport [ cudatoolkit ]
     ++ [ libevent hwloc ]
     ++ lib.optional (stdenv.isLinux || stdenv.isFreeBSD) rdma-core
-    ++ lib.optional fabricSupport [ libpsm2 libfabric ];
+    ++ lib.optionals fabricSupport [ libpsm2 libfabric ];
 
   nativeBuildInputs = [ perl ]
     ++ lib.optionals fortranSupport [ gfortran ];
@@ -58,8 +58,8 @@ in stdenv.mkDerivation rec {
   configureFlags = lib.optional (!cudaSupport) "--disable-mca-dso"
     ++ lib.optional (!fortranSupport) "--disable-mpi-fortran"
     ++ lib.optionals stdenv.isLinux  [
-      "--with-libnl=${libnl.dev}"
-      "--with-pmix=${pmix}"
+      "--with-libnl=${lib.getDev libnl}"
+      "--with-pmix=${lib.getDev pmix}"
       "--with-pmix-libdir=${pmix}/lib"
       "--enable-mpi-cxx"
     ] ++ lib.optional enableSGE "--with-sge"
@@ -68,23 +68,13 @@ in stdenv.mkDerivation rec {
     # https://github.com/openucx/ucx
     # https://www.open-mpi.org/faq/?category=buildcuda
     ++ lib.optionals cudaSupport [ "--with-cuda=${cudatoolkit_joined}" "--enable-dlopen" ]
-    ++ lib.optionals fabricSupport [ "--with-psm2=${libpsm2}" "--with-libfabric=${libfabric}" ]
+    ++ lib.optionals fabricSupport [ "--with-psm2=${lib.getDev libpsm2}" "--with-libfabric=${lib.getDev libfabric}" ]
     ;
 
   enableParallelBuilding = true;
 
-  # disable stackprotector on aarch64-darwin for now
-  # https://github.com/NixOS/nixpkgs/issues/127608
-  #
-  # build error:
-  #
-  # /private/tmp/nix-build-openmpi-4.1.1.drv-0/ccg7QqR8.s:13:15: error: index must be an integer in range [-256, 255].
-  #         ldr     x2, [x2, ___stack_chk_guard];momd
-  #
-  hardeningDisable = lib.optionals (stdenv.isAarch64 && stdenv.isDarwin) [ "stackprotector" ];
-
   postInstall = ''
-    rm -f $out/lib/*.la
+    find $out/lib/ -name "*.la" -exec rm -f \{} \;
    '';
 
   postFixup = ''

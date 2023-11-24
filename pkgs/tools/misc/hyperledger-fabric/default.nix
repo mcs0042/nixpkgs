@@ -5,21 +5,22 @@
 
 buildGoModule rec {
   pname = "hyperledger-fabric";
-  version = "2.4.3";
-  commit = "9711fb5d0c16297584f5c53123f589110828736f";
+  version = "2.5.1";
 
   src = fetchFromGitHub {
     owner = "hyperledger";
     repo = "fabric";
     rev = "v${version}";
-    sha256 = "sha256-gXVahzpuIUWAHq4gJ1rbq943zIuWrl/ojDMQDFfI14I=";
+    hash = "sha256-hZAGLSf/hez2pvfmaZJRD5b7GW3+exUXgLXUd2Awvpg=";
   };
 
-  vendorSha256 = null;
+  vendorHash = null;
 
   postPatch = ''
     # Broken
     rm cmd/peer/main_test.go
+    # Requires network
+    rm cmd/osnadmin/main_test.go
   '';
 
   subPackages = [
@@ -33,11 +34,12 @@ buildGoModule rec {
     "cmd/peer"
   ];
 
-  ldflags = lib.mapAttrsToList
-    (n: v: "github.com/hyperledger/fabric/common/metadata.${n}=${v}") {
-      Version = version;
-      CommitSha = commit;
-    };
+  ldflags = [
+    "-s"
+    "-w"
+    "-X github.com/hyperledger/fabric/common/metadata.Version=${version}"
+    "-X github.com/hyperledger/fabric/common/metadata.CommitSha=${src.rev}"
+  ];
 
   meta = with lib; {
     description = "High-performance, secure, permissioned blockchain network";

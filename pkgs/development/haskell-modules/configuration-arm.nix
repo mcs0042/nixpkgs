@@ -1,8 +1,8 @@
 # ARM-SPECIFIC OVERRIDES FOR THE HASKELL PACKAGE SET IN NIXPKGS
 #
-# This extension is applied to all haskell package sets in nixpkgs
-# if `stdenv.hostPlatform.isAarch32 || stdenv.hostPlatform.isAarch64`
-# to apply arm specific workarounds or fixes.
+# This extension is applied to all haskell package sets in nixpkgs if
+# `stdenv.hostPlatform.isAarch` to apply arm specific workarounds or
+# fixes.
 #
 # The file is split into three parts:
 #
@@ -37,6 +37,11 @@ self: super: {
   # Similar to https://ghc.haskell.org/trac/ghc/ticket/13062
   happy = dontCheck super.happy;
   happy_1_19_12 = doDistribute (dontCheck super.happy_1_19_12);
+
+  # add arm specific library
+  wiringPi = overrideCabal ({librarySystemDepends ? [], ...}: {
+    librarySystemDepends = librarySystemDepends ++ [pkgs.wiringpi];
+  }) super.wiringPi;
 
 } // lib.optionalAttrs pkgs.stdenv.hostPlatform.isAarch64 {
   # AARCH64-SPECIFIC OVERRIDES

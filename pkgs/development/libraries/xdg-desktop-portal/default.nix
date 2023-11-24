@@ -1,11 +1,12 @@
 { lib
-, acl
-, autoreconfHook
-, dbus
 , fetchFromGitHub
-, fetchpatch
 , flatpak
 , fuse3
+, bubblewrap
+, docbook_xml_dtd_412
+, docbook_xml_dtd_43
+, docbook_xsl
+, docutils
 , systemdMinimal
 , geoclue2
 , glib
@@ -13,6 +14,8 @@
 , json-glib
 , libportal
 , libxml2
+, meson
+, ninja
 , nixosTests
 , pipewire
 , gdk-pixbuf
@@ -20,36 +23,61 @@
 , python3
 , pkg-config
 , stdenv
-, substituteAll
+, runCommand
 , wrapGAppsHook
+, xmlto
 , enableGeoLocation ? true
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "xdg-desktop-portal";
-  version = "1.14.5";
+  version = "1.18.1";
 
   outputs = [ "out" "installedTests" ];
 
   src = fetchFromGitHub {
     owner = "flatpak";
-    repo = pname;
-    rev = version;
-    sha256 = "sha256-leLCG+ZdQ4zB1LsTN8gZh7yhJ7EZCYYyxwE3hR9vIkM=";
+    repo = "xdg-desktop-portal";
+    rev = finalAttrs.version;
+    sha256 = "sha256-S4I578gX1ONbixWGcQLY3WqzACoVfAtLuOFBhh36hFY=";
   };
 
+  patches = [
+    # The icon validator copied from Flatpak needs to access the gdk-pixbuf loaders
+    # in the Nix store and cannot bind FHS paths since those are not available on NixOS.
+    (runCommand "icon-validator.patch" { } ''
+      # Flatpak uses a different path
+      substitute "${flatpak.icon-validator-patch}" "$out" \
+        --replace "/icon-validator/validate-icon.c" "/src/validate-icon.c"
+    '')
+
+    # Allow installing installed tests to a separate output.
+    ./installed-tests-path.patch
+
+    # `XDG_DESKTOP_PORTAL_DIR` originally was used for upstream tests. But we are making use
+    # of this in the NixOS module, this actually blocks any configs from being loaded since
+    # configs are not expected to be placed in a portal implementation or even under the
+    # `share/xdg-desktop-portal/portals/` path.
+    ./separate-env-for-portal-config.patch
+  ];
+
   nativeBuildInputs = [
-    autoreconfHook
+    docbook_xml_dtd_412
+    docbook_xml_dtd_43
+    docbook_xsl
+    docutils # for rst2man
     libxml2
+    meson
+    ninja
     pkg-config
     wrapGAppsHook
+    xmlto
   ];
 
   buildInputs = [
-    acl
-    dbus
     flatpak
     fuse3
+    bubblewrap
     systemdMinimal # libsystemd
     glib
     gsettings-desktop-schemas
@@ -69,27 +97,44 @@ stdenv.mkDerivation rec {
     geoclue2
   ];
 
-  configureFlags = [
-    "--enable-installed-tests"
-  ] ++ lib.optionals (!enableGeoLocation) [
-    "--disable-geoclue"
+  nativeCheckInputs = [
+    python3.pkgs.pytest
+    python3.pkgs.python-dbusmock
+    python3.pkgs.pygobject3
+    python3.pkgs.dbus-python
   ];
 
-  makeFlags = [
-    "installed_testdir=${placeholder "installedTests"}/libexec/installed-tests/xdg-desktop-portal"
-    "installed_test_metadir=${placeholder "installedTests"}/share/installed-tests/xdg-desktop-portal"
+  mesonFlags = [
+    "--sysconfdir=/etc"
+    "-Dinstalled-tests=true"
+    "-Dinstalled_test_prefix=${placeholder "installedTests"}"
+  ] ++ lib.optionals (!enableGeoLocation) [
+    "-Dgeoclue=false"
   ];
+
+  doCheck = true;
+
+  preCheck = ''
+    # For test_trash_file
+    export HOME=$(mktemp -d)
+  '';
 
   passthru = {
     tests = {
       installedTests = nixosTests.installed-tests.xdg-desktop-portal;
+
+      validate-icon = runCommand "test-icon-validation" { } ''
+        ${finalAttrs.finalPackage}/libexec/xdg-desktop-portal-validate-icon --sandbox 512 512 ${../../../applications/audio/zynaddsubfx/ZynLogo.svg} > "$out"
+        grep format=svg "$out"
+      '';
     };
   };
 
   meta = with lib; {
     description = "Desktop integration portals for sandboxed apps";
+    homepage = "https://flatpak.github.io/xdg-desktop-portal/";
     license = licenses.lgpl2Plus;
     maintainers = with maintainers; [ jtojnar ];
     platforms = platforms.linux;
   };
-}
+})

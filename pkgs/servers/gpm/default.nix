@@ -43,12 +43,12 @@ stdenv.mkDerivation rec {
   configureFlags = [
     "--sysconfdir=/etc"
     "--localstatedir=/var"
-    (if ncurses == null then "--without-curses" else "--with-curses")
+    (if withNcurses then "--with-curses" else "--without-curses")
   ];
 
   enableParallelBuilding = true;
 
-  # Provide libgpm.so for compatability
+  # Provide libgpm.so for compatibility
   postInstall = ''
     ln -sv $out/lib/libgpm.so.2 $out/lib/libgpm.so
   '';

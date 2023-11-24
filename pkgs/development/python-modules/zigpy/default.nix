@@ -1,55 +1,69 @@
 { lib
 , aiohttp
 , aiosqlite
-, asynctest
 , buildPythonPackage
 , crccheck
 , cryptography
+, freezegun
 , fetchFromGitHub
 , pycryptodome
-, pytest-aiohttp
+, pyserial-asyncio
+, pytest-asyncio
 , pytest-timeout
 , pytestCheckHook
 , pythonOlder
+, setuptools
 , voluptuous
+, wheel
 }:
 
 buildPythonPackage rec {
   pname = "zigpy";
-  version = "0.47.3";
-  format = "setuptools";
+  version = "0.58.1";
+  format = "pyproject";
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "zigpy";
     repo = "zigpy";
     rev = "refs/tags/${version}";
-    sha256 = "sha256-iEPE4YPpIJK4xZMT4SFKZ2tu61TiehB9HP81Jo3pg30=";
+    hash = "sha256-i2P9QyhT/UQ8Xu0IfQ2OzAxIiMF4H04Jkz3/6e2FCpY=";
   };
+
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace '"setuptools-git-versioning<2"' "" \
+      --replace 'dynamic = ["version"]' 'version = "${version}"'
+  '';
+
+  nativeBuildInputs = [
+    setuptools
+    wheel
+  ];
 
   propagatedBuildInputs = [
     aiohttp
     aiosqlite
     crccheck
     cryptography
+    pyserial-asyncio
     pycryptodome
     voluptuous
   ];
 
-  checkInputs = [
-    pytest-aiohttp
+  nativeCheckInputs = [
+    freezegun
+    pytest-asyncio
     pytest-timeout
     pytestCheckHook
-  ]  ++ lib.optionals (pythonOlder "3.8") [
-    asynctest
   ];
 
   disabledTests = [
-    # RuntimeError: coroutine 'test_remigrate_forcibly_downgraded_v4' was never awaited
-    #"test_remigrate_forcibly_downgraded_v4"
-    # RuntimeError: Event loop is closed
-    #"test_startup"
+    # # Our two manual scans succeeded and the periodic one was attempted
+    # assert len(mock_scan.mock_calls) == 3
+    # AssertionError: assert 4 == 3
+    "test_periodic_scan_priority"
   ];
 
   pythonImportsCheck = [
@@ -63,6 +77,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Library implementing a ZigBee stack";
     homepage = "https://github.com/zigpy/zigpy";
+    changelog = "https://github.com/zigpy/zigpy/releases/tag/${version}";
     license = licenses.gpl3Plus;
     maintainers = with maintainers; [ mvnetbiz ];
     platforms = platforms.linux;

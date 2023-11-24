@@ -9,12 +9,14 @@
 , google-cloud-storage
 , requests
 , moto
+, paramiko
 , pytestCheckHook
+, responses
 }:
 
 buildPythonPackage rec {
   pname = "smart-open";
-  version = "6.0.0";
+  version = "6.4.0";
   format = "setuptools";
 
   disabled = pythonOlder "3.6";
@@ -22,30 +24,53 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "RaRe-Technologies";
     repo = "smart_open";
-    rev = "v${version}";
-    sha256 = "sha256-FEIJ1DBW0mz7n+J03C1Lg8uAs2ZxI0giM7+mvuNPyGg=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-fciNaVw603FAcgrSrND+LEycJffmnFQij2ZpatYZ/e4=";
   };
 
-  propagatedBuildInputs = [
-    azure-common
-    azure-core
-    azure-storage-blob
-    boto3
-    google-cloud-storage
-    requests
+  passthru.optional-dependencies = {
+    s3 = [
+      boto3
+    ];
+    gcs = [
+      google-cloud-storage
+    ];
+    azure = [
+      azure-storage-blob
+      azure-common
+      azure-core
+    ];
+    http = [
+      requests
+    ];
+    webhdfs = [
+      requests
+    ];
+    ssh = [
+      paramiko
+    ];
+  };
+
+  pythonImportsCheck = [
+    "smart_open"
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     moto
     pytestCheckHook
-  ];
+    responses
+  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
 
   pytestFlagsArray = [
     "smart_open"
   ];
 
-  pythonImportsCheck = [
-    "smart_open"
+  disabledTests = [
+    # https://github.com/RaRe-Technologies/smart_open/issues/784
+    "test_https_seek_forward"
+    "test_seek_from_current"
+    "test_seek_from_end"
+    "test_seek_from_start"
   ];
 
   meta = with lib; {

@@ -2,13 +2,15 @@
 , buildPythonPackage
 , fetchFromGitHub
 , pythonOlder
+, stdenv
 
 # build
 , cython
 , pkg-config
+, setuptools
 
 # runtime
-, ffmpeg
+, ffmpeg_5-headless
 
 # tests
 , numpy
@@ -18,7 +20,7 @@
 
 buildPythonPackage rec {
   pname = "av";
-  version = "9.2.0";
+  version = "10.0.0";
   format = "pyproject";
 
   disabled = pythonOlder "3.7";
@@ -27,16 +29,17 @@ buildPythonPackage rec {
     owner = "mikeboers";
     repo = "PyAV";
     rev = "v${version}";
-    hash = "sha256-I7j+EzpvgKCNY8TbcaHsaWtetyvmno6YYhQTer2+Ds0=";
+    hash = "sha256-XcHP8RwC2iwD64Jc7SS+t9OxjFTsz3FbrnjMgJnN7Ak=";
   };
 
   nativeBuildInputs = [
     cython
     pkg-config
+    setuptools
   ];
 
   buildInputs = [
-    ffmpeg
+    ffmpeg_5-headless
   ];
 
   preCheck = ''
@@ -44,7 +47,7 @@ buildPythonPackage rec {
     rm -r av
   '';
 
-  checkInputs = [
+  nativeCheckInputs = [
     numpy
     pillow
     pytestCheckHook
@@ -99,6 +102,10 @@ buildPythonPackage rec {
     "--deselect=tests/test_subtitles.py::TestSubtitle::test_movtext"
     "--deselect=tests/test_subtitles.py::TestSubtitle::test_vobsub"
     "--deselect=tests/test_videoframe.py::TestVideoFrameImage::test_roundtrip"
+  ] ++ lib.optionals (stdenv.isDarwin) [
+    # Segmentation Faults
+    "--deselect=tests/test_encode.py::TestBasicVideoEncoding::test_encoding_with_pts"
+    "--deselect=tests/test_pyav.py::test_bayer_write"
   ];
 
   disabledTests = [

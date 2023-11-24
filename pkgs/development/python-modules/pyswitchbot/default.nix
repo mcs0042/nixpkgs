@@ -1,13 +1,20 @@
 { lib
+, async-timeout
 , bleak
+, bleak-retry-connector
+, boto3
 , buildPythonPackage
+, cryptography
 , fetchFromGitHub
+, pyopenssl
 , pythonOlder
+, pytestCheckHook
+, requests
 }:
 
 buildPythonPackage rec {
   pname = "pyswitchbot";
-  version = "0.14.1";
+  version = "0.41.0";
   format = "setuptools";
 
   disabled = pythonOlder "3.7";
@@ -16,15 +23,27 @@ buildPythonPackage rec {
     owner = "Danielhiversen";
     repo = "pySwitchbot";
     rev = "refs/tags/${version}";
-    hash = "sha256-/p5rmoxSl4Y3X1N3E3BSwPUGV8MCxI0sxv1i9w3fJiY=";
+    hash = "sha256-n4hTS3LnS8AOr1VNSqcVYul/qiTiLvI2bsOJJLbKA3E=";
   };
 
   propagatedBuildInputs = [
+    async-timeout
     bleak
+    bleak-retry-connector
+    boto3
+    cryptography
+    pyopenssl
+    requests
   ];
 
-  # Project has no tests
-  doCheck = false;
+  nativeCheckInputs = [
+    pytestCheckHook
+  ];
+
+  disabledTests = [
+    # mismatch in expected data structure
+    "test_parse_advertisement_data_curtain"
+  ];
 
   pythonImportsCheck = [
     "switchbot"
@@ -33,6 +52,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Python library to control Switchbot IoT devices";
     homepage = "https://github.com/Danielhiversen/pySwitchbot";
+    changelog = "https://github.com/Danielhiversen/pySwitchbot/releases/tag/${version}";
     license = with licenses; [ mit ];
     maintainers = with maintainers; [ fab ];
     platforms = platforms.linux;

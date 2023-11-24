@@ -4,12 +4,12 @@
 
 buildPythonPackage rec {
   pname = "jupyterlab-widgets";
-  version = "2.0.0b1";
+  version = "3.0.9";
 
   src = fetchPypi {
     pname = "jupyterlab_widgets";
     inherit version;
-    sha256 = "1xinfk3bhqmfp9ygfpi8b87h4ky8dv3sdr96035psx1jjgyyw8bi";
+    hash = "sha256-YAWk6XTHvu6EBg/fujQaMhhJUEbeiuPsZIiOX+Gf20w=";
   };
 
   nativeBuildInputs = [
@@ -25,6 +25,6 @@ buildPythonPackage rec {
     description = "Jupyter Widgets JupyterLab Extension";
     homepage = "https://github.com/jupyter-widgets/ipywidgets";
     license = licenses.bsd3;
-    maintainers = with maintainers; [ jonringer SuperSandro2000 ];
+    maintainers = with maintainers; [ jonringer ];
   };
 }

@@ -2,53 +2,70 @@
 , astropy
 , astropy-extension-helpers
 , astropy-healpix
-, astropy-helpers
 , buildPythonPackage
+, cloudpickle
 , cython
+, dask
 , fetchPypi
+, fsspec
 , numpy
+, oldest-supported-numpy
 , pytest-astropy
 , pytestCheckHook
 , pythonOlder
 , scipy
 , setuptools-scm
+, zarr
 }:
 
 buildPythonPackage rec {
   pname = "reproject";
-  version = "0.8";
-  format = "setuptools";
+  version = "0.12.0";
+  format = "pyproject";
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-Z54sY3R6GViTvMLHrJclrAZ1dH4/9bzIrgqDd9nFbJY=";
+    hash = "sha256-jb4efKT5jMY0ECV+ab5rpUHEk+tT4T2MioCRxs92TbI=";
   };
+
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace "cython==" "cython>="
+  '';
 
   nativeBuildInputs = [
     astropy-extension-helpers
-    astropy-helpers
     cython
+    numpy
+    oldest-supported-numpy
     setuptools-scm
   ];
 
   propagatedBuildInputs = [
     astropy
     astropy-healpix
-    astropy-helpers
+    cloudpickle
+    dask
+    fsspec
     numpy
     scipy
-  ];
+    zarr
+  ] ++ dask.optional-dependencies.array;
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytest-astropy
     pytestCheckHook
   ];
 
-  preCheck = ''
-    cd build/lib*
-  '';
+  pytestFlagsArray = [
+    "build/lib*"
+    # Avoid failure due to user warning: Distutils was imported before Setuptools
+    "-p no:warnings"
+    # Uses network
+    "--ignore build/lib*/reproject/interpolation/"
+  ];
 
   pythonImportsCheck = [
     "reproject"
@@ -56,6 +73,7 @@ buildPythonPackage rec {
 
   meta = with lib; {
     description = "Reproject astronomical images";
+    downloadPage = "https://github.com/astropy/reproject";
     homepage = "https://reproject.readthedocs.io";
     license = licenses.bsd3;
     maintainers = with maintainers; [ smaret ];

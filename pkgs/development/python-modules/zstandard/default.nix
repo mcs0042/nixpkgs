@@ -8,14 +8,14 @@
 
 buildPythonPackage rec {
   pname = "zstandard";
-  version = "0.17.0";
+  version = "0.21.0";
   format = "setuptools";
 
   disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "fa9194cb91441df7242aa3ddc4cb184be38876cb10dd973674887f334bafbfb6";
+    hash = "sha256-8I46ENAaJHh35MthqCoxnqdGw1ajeGVYvtJIHmxAVUY=";
   };
 
   propagatedNativeBuildInputs = [
@@ -26,7 +26,7 @@ buildPythonPackage rec {
     cffi
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     hypothesis
   ];
 

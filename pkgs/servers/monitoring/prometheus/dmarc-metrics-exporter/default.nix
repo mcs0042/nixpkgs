@@ -1,27 +1,28 @@
 { lib
 , python3
+, fetchFromGitHub
 }:
 
 python3.pkgs.buildPythonApplication rec {
   pname = "dmarc-metrics-exporter";
-  version = "0.6.0";
+  version = "0.9.4";
 
-  disabled = python3.pythonOlder "3.7";
+  disabled = python3.pythonOlder "3.8";
 
   format = "pyproject";
 
-  src = python3.pkgs.fetchPypi {
-    inherit pname version;
-    sha256 = "70f39b373ead42acb8caf56040f7ebf13ab67aea505511025c09ecf4560f8b1b";
+  src = fetchFromGitHub {
+    owner = "jgosmann";
+    repo = "dmarc-metrics-exporter";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-doKG191rQvUpjOb3HvkzZP9XbtQXYGFtDJIdDSFRLSU=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace '"^' '">='
-  '';
+  pythonRelaxDeps = true;
 
   nativeBuildInputs = with python3.pkgs; [
     poetry-core
+    pythonRelaxDepsHook
   ];
 
   propagatedBuildInputs = with python3.pkgs; [
@@ -31,9 +32,10 @@ python3.pkgs.buildPythonApplication rec {
     typing-extensions
     uvicorn
     xsdata
-  ];
+  ]
+  ++ uvicorn.optional-dependencies.standard;
 
-  checkInputs = with python3.pkgs; [
+  nativeCheckInputs = with python3.pkgs; [
     aiohttp
     pytest-asyncio
     pytestCheckHook

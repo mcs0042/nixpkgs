@@ -1,6 +1,7 @@
 { lib
 , buildPythonPackage
 , fetchFromGitHub
+, gpiozero
 , mock
 , pyserial
 , pyserial-asyncio
@@ -13,7 +14,7 @@
 
 buildPythonPackage rec {
   pname = "zigpy-zigate";
-  version = "0.9.0";
+  version = "0.11.0";
   format = "setuptools";
 
   disabled = pythonOlder "3.8";
@@ -21,18 +22,19 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "zigpy";
     repo = "zigpy-zigate";
-    rev = "v${version}";
-    hash = "sha256-rFmcgfn87XS1fvbSdJG6pItXRMkeogp4faKMe7pCxkM=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-eGN2QvPHZ8gfPPFdUbAP9cs43jzUHDBS/w1tni1shB0=";
   };
 
   propagatedBuildInputs = [
+    gpiozero
     pyserial
     pyserial-asyncio
     pyusb
     zigpy
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     mock
     pytest-asyncio
     pytestCheckHook
@@ -50,6 +52,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Library which communicates with ZiGate radios for zigpy";
     homepage = "https://github.com/zigpy/zigpy-zigate";
+    changelog = "https://github.com/zigpy/zigpy-zigate/releases/tag/${version}";
     license = licenses.gpl3Plus;
     maintainers = with maintainers; [ mvnetbiz ];
     platforms = platforms.linux;

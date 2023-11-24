@@ -1,13 +1,14 @@
 { lib, fetchurl, buildDotnetPackage, substituteAll, makeWrapper, makeDesktopItem,
   unzip, icoutils, gtk2, xorg, xdotool, xsel, coreutils, unixtools, glib, plugins ? [] }:
-
-with builtins; buildDotnetPackage rec {
+let
+  inherit (builtins) add length readFile replaceStrings unsafeDiscardStringContext toString map;
+in buildDotnetPackage rec {
   pname = "keepass";
-  version = "2.49";
+  version = "2.55";
 
   src = fetchurl {
     url = "mirror://sourceforge/keepass/KeePass-${version}-Source.zip";
-    sha256 = "sha256-1hg4bRuQSG+UzEQGeQcSURTmTxt5ITGQqfg0IS7RWt0=";
+    hash = "sha256-XZf/5b+rwASB41DP3It3g8UUPIHWEtZBXGk+Qrjw1Bc=";
   };
 
   sourceRoot = ".";
@@ -116,5 +117,6 @@ with builtins; buildDotnetPackage rec {
     maintainers = with lib.maintainers; [ amorsillo obadz ];
     platforms = with lib.platforms; all;
     license = lib.licenses.gpl2;
+    mainProgram = "keepass";
   };
 }

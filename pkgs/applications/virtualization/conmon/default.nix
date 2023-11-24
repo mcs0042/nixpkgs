@@ -11,18 +11,18 @@
 
 stdenv.mkDerivation rec {
   pname = "conmon";
-  version = "2.1.2";
+  version = "2.1.8";
 
   src = fetchFromGitHub {
     owner = "containers";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-KDAm+Djk1AaA3zXhxywT6HknT0tVCEZLS27nO9j/WgM=";
+    hash = "sha256-gdMNAU+w4u+9DZL9x96OAZihShkQdvSiqPCA+eNf600=";
   };
 
   nativeBuildInputs = [ pkg-config ];
   buildInputs = [ glib libseccomp systemd ]
-  ++ lib.optionals (!stdenv.hostPlatform.isMusl) [ glibc glibc.static ];
+    ++ lib.optionals (!stdenv.hostPlatform.isMusl) [ glibc glibc.static ];
 
   # manpage requires building the vendored go-md2man
   makeFlags = [ "bin/conmon" ];
@@ -39,6 +39,7 @@ stdenv.mkDerivation rec {
   passthru.tests = { inherit (nixosTests) cri-o podman; };
 
   meta = with lib; {
+    changelog = "https://github.com/containers/conmon/releases/tag/${src.rev}";
     homepage = "https://github.com/containers/conmon";
     description = "An OCI container runtime monitor";
     license = licenses.asl20;

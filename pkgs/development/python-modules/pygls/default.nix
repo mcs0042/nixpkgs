@@ -1,46 +1,39 @@
 { lib
+, stdenv
 , buildPythonPackage
-, isPy3k
+, pythonOlder
 , fetchFromGitHub
-, setuptools-scm
-, pydantic
-, toml
+, poetry-core
+, lsprotocol
 , typeguard
-, mock
 , pytest-asyncio
 , pytestCheckHook
 }:
 
 buildPythonPackage rec {
   pname = "pygls";
-  version = "0.11.3";
-  format = "setuptools";
-  disabled = !isPy3k;
+  version = "1.1.2";
+  format = "pyproject";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "openlawlibrary";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-/nmDaA67XzrrmfwlBm5syTS4hn25m30Zb3gvOdL+bR8=";
+    repo = "pygls";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-OfLlYTgVCg+oiYww0RjRTjiBwTZBSNqJRryo8gZEmk4=";
   };
 
-  SETUPTOOLS_SCM_PRETEND_VERSION = version;
-  nativeBuildInputs = [ setuptools-scm ];
+  nativeBuildInputs = [
+    poetry-core
+  ];
 
   propagatedBuildInputs = [
-    pydantic
-    toml
+    lsprotocol
     typeguard
   ];
-  # We don't know why an early version of pydantic is required, see:
-  # https://github.com/openlawlibrary/pygls/issues/221
-  preBuild = ''
-    substituteInPlace setup.cfg \
-      --replace "pydantic>=1.7,<1.9" "pydantic"
-  '';
 
-  checkInputs = [
-    mock
+  nativeCheckInputs = [
     pytest-asyncio
     pytestCheckHook
   ];
@@ -48,11 +41,17 @@ buildPythonPackage rec {
   # Fixes hanging tests on Darwin
   __darwinAllowLocalNetworking = true;
 
+  preCheck = lib.optionalString stdenv.isDarwin ''
+    # Darwin issue: OSError: [Errno 24] Too many open files
+    ulimit -n 1024
+  '';
+
   pythonImportsCheck = [ "pygls" ];
 
   meta = with lib; {
     description = "Pythonic generic implementation of the Language Server Protocol";
     homepage = "https://github.com/openlawlibrary/pygls";
+    changelog = "https://github.com/openlawlibrary/pygls/blob/${src.rev}/CHANGELOG.md";
     license = licenses.asl20;
     maintainers = with maintainers; [ kira-bruneau ];
   };

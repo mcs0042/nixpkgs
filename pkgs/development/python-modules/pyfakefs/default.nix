@@ -7,13 +7,13 @@
 }:
 
 buildPythonPackage rec {
-  version = "4.5.6";
+  version = "5.2.4";
   pname = "pyfakefs";
   disabled = pythonOlder "3.5";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-kU17+ZRAbPvv7gtNRZGPYMFbQGr+k/gZSoBNpaRQqCI=";
+    hash = "sha256-PgQPN5IIYIag3CGRsF/nCUOOFoqv4ulPzb7444WSCNg=";
   };
 
   postPatch = ''
@@ -29,9 +29,15 @@ buildPythonPackage rec {
       --replace "test_rename_dir_to_existing_dir" "notest_rename_dir_to_existing_dir"
   '');
 
-  checkInputs = [ pytestCheckHook ];
+  nativeCheckInputs = [ pytestCheckHook ];
   # https://github.com/jmcgeheeiv/pyfakefs/issues/581 (OSError: [Errno 9] Bad file descriptor)
   disabledTests = [ "test_open_existing_pipe" ];
+
+  disabledTestPaths = [
+    # try to import opentimelineio but nixpkgs doesn't have it as of 2023-09-16
+    "pyfakefs/pytest_tests/segfault_test.py"
+  ];
+
   pythonImportsCheck = [ "pyfakefs" ];
 
   meta = with lib; {

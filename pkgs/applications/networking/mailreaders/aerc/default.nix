@@ -7,23 +7,22 @@
 , python3
 , w3m
 , dante
+, gawk
 }:
 
 buildGoModule rec {
   pname = "aerc";
-  version = "0.11.0";
+  version = "0.16.0";
 
   src = fetchFromSourcehut {
     owner = "~rjarry";
-    repo = pname;
+    repo = "aerc";
     rev = version;
-    sha256 = "sha256-w0h6BNuGwXV1CzyvXvsRs2MXHKLbK3EUaK4mKiuNBxc=";
+    hash = "sha256-vmr2U0bz6A7aMZZBtOitA5gKQpXKuNhYxRCmholHYa8=";
   };
 
   proxyVendor = true;
-  vendorSha256 = "sha256-vw9lDIZMswh/vrF1g8FvZ/faN5jWWPwfgnm66EWaohw=";
-
-  doCheck = false;
+  vendorHash = "sha256-j/wTmlVcyVI4gnjbi7KLzk5rdnZtZLrdSNbihtQJxRY=";
 
   nativeBuildInputs = [
     scdoc
@@ -31,22 +30,25 @@ buildGoModule rec {
   ];
 
   patches = [
-    ./runtime-sharedir.patch
+    ./runtime-libexec.patch
   ];
 
   postPatch = ''
     substituteAllInPlace config/aerc.conf
     substituteAllInPlace config/config.go
     substituteAllInPlace doc/aerc-config.5.scd
+
+    # Prevent buildGoModule from trying to build this
+    rm contrib/linters.go
   '';
 
   makeFlags = [ "PREFIX=${placeholder "out"}" ];
 
   pythonPath = [
-    python3.pkgs.colorama
+    python3.pkgs.vobject
   ];
 
-  buildInputs = [ python3 notmuch ];
+  buildInputs = [ python3 notmuch gawk ];
 
   installPhase = ''
     runHook preInstall
@@ -57,16 +59,20 @@ buildGoModule rec {
   '';
 
   postFixup = ''
-    wrapProgram $out/bin/aerc --prefix PATH ":" \
-      "$out/share/aerc/filters:${lib.makeBinPath [ ncurses ]}"
-    wrapProgram $out/share/aerc/filters/html --prefix PATH ":" \
-      ${lib.makeBinPath [ w3m dante ]}
+    wrapProgram $out/bin/aerc \
+      --prefix PATH ":" "${lib.makeBinPath [ ncurses ]}"
+    wrapProgram $out/libexec/aerc/filters/html \
+      --prefix PATH ":"  ${lib.makeBinPath [ w3m dante ]}
+    wrapProgram $out/libexec/aerc/filters/html-unsafe \
+      --prefix PATH ":" ${lib.makeBinPath [ w3m dante ]}
+    patchShebangs $out/libexec/aerc/filters
   '';
 
   meta = with lib; {
     description = "An email client for your terminal";
     homepage = "https://aerc-mail.org/";
     maintainers = with maintainers; [ tadeokondrak ];
+    mainProgram = "aerc";
     license = licenses.mit;
     platforms = platforms.unix;
   };

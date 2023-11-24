@@ -4,41 +4,39 @@ with lib;
 
 let
   cfg = config.services.matrix-synapse;
-  format = pkgs.formats.yaml {};
+  format = pkgs.formats.yaml { };
 
   # remove null values from the final configuration
   finalSettings = lib.filterAttrsRecursive (_: v: v != null) cfg.settings;
   configFile = format.generate "homeserver.yaml" finalSettings;
-  logConfigFile = format.generate "log_config.yaml" cfg.logConfig;
-
-  pluginsEnv = cfg.package.python.buildEnv.override {
-    extraLibs = cfg.plugins;
-  };
 
   usePostgresql = cfg.settings.database.name == "psycopg2";
   hasLocalPostgresDB = let args = cfg.settings.database.args; in
-    usePostgresql && (!(args ? host) || (elem args.host [ "localhost" "127.0.0.1" "::1" ]));
+    usePostgresql
+    && (!(args ? host) || (elem args.host [ "localhost" "127.0.0.1" "::1" ]))
+    && config.services.postgresql.enable;
+  hasWorkers = cfg.workers != { };
+
+  listenerSupportsResource = resource: listener:
+    lib.any ({ names, ... }: builtins.elem resource names) listener.resources;
+
+  clientListener = findFirst
+    (listenerSupportsResource "client")
+    null
+    (cfg.settings.listeners
+      ++ concatMap ({ worker_listeners, ... }: worker_listeners) (attrValues cfg.workers));
 
   registerNewMatrixUser =
     let
-      isIpv6 = x: lib.length (lib.splitString ":" x) > 1;
-      listener =
-        lib.findFirst (
-          listener: lib.any (
-            resource: lib.any (
-              name: name == "client"
-            ) resource.names
-          ) listener.resources
-        ) (lib.last cfg.settings.listeners) cfg.settings.listeners;
-        # FIXME: Handle cases with missing client listener properly,
-        # don't rely on lib.last, this will not work.
+      isIpv6 = hasInfix ":";
 
       # add a tail, so that without any bind_addresses we still have a useable address
-      bindAddress = head (listener.bind_addresses ++ [ "127.0.0.1" ]);
-      listenerProtocol = if listener.tls
+      bindAddress = head (clientListener.bind_addresses ++ [ "127.0.0.1" ]);
+      listenerProtocol = if clientListener.tls
         then "https"
         else "http";
     in
+    assert assertMsg (clientListener != null) "No client listener found in synapse or one of its workers";
     pkgs.writeShellScriptBin "matrix-synapse-register_new_matrix_user" ''
       exec ${cfg.package}/bin/register_new_matrix_user \
         $@ \
@@ -48,8 +46,65 @@ let
             "[${bindAddress}]"
           else
             "${bindAddress}"
-        }:${builtins.toString listener.port}/"
+        }:${builtins.toString clientListener.port}/"
     '';
+
+  defaultExtras = [
+    "systemd"
+    "postgres"
+    "url-preview"
+    "user-search"
+  ];
+
+  wantedExtras = cfg.extras
+    ++ lib.optional (cfg.settings ? oidc_providers) "oidc"
+    ++ lib.optional (cfg.settings ? jwt_config) "jwt"
+    ++ lib.optional (cfg.settings ? saml2_config) "saml2"
+    ++ lib.optional (cfg.settings ? redis) "redis"
+    ++ lib.optional (cfg.settings ? sentry) "sentry"
+    ++ lib.optional (cfg.settings ? user_directory) "user-search"
+    ++ lib.optional (cfg.settings.url_preview_enabled) "url-preview"
+    ++ lib.optional (cfg.settings.database.name == "psycopg2") "postgres";
+
+  wrapped = pkgs.matrix-synapse.override {
+    extras = wantedExtras;
+    inherit (cfg) plugins;
+  };
+
+  defaultCommonLogConfig = {
+    version = 1;
+    formatters.journal_fmt.format = "%(name)s: [%(request)s] %(message)s";
+    handlers.journal = {
+      class = "systemd.journal.JournalHandler";
+      formatter = "journal_fmt";
+    };
+    root = {
+      level = "INFO";
+      handlers = [ "journal" ];
+    };
+    disable_existing_loggers = false;
+  };
+
+  defaultCommonLogConfigText = generators.toPretty { } defaultCommonLogConfig;
+
+  logConfigText = logName:
+    lib.literalMD ''
+      Path to a yaml file generated from this Nix expression:
+
+      ```
+      ${generators.toPretty { } (
+        recursiveUpdate defaultCommonLogConfig { handlers.journal.SYSLOG_IDENTIFIER = logName; }
+      )}
+      ```
+    '';
+
+  genLogConfigFile = logName: format.generate
+    "synapse-log-${logName}.yaml"
+    (cfg.log // optionalAttrs (cfg.log?handlers.journal) {
+      handlers.journal = cfg.log.handlers.journal // {
+        SYSLOG_IDENTIFIER = logName;
+      };
+    });
 in {
 
   imports = [
@@ -60,7 +115,7 @@ in {
     '')
     (mkRemovedOptionModule [ "services" "matrix-synapse" "create_local_database" ] ''
       Database configuration must be done manually. An exemplary setup is demonstrated in
-      <nixpkgs/nixos/tests/matrix-synapse.nix>
+      <nixpkgs/nixos/tests/matrix/synapse.nix>
     '')
     (mkRemovedOptionModule [ "services" "matrix-synapse" "web_client" ] "")
     (mkRemovedOptionModule [ "services" "matrix-synapse" "room_invite_state_types" ] ''
@@ -80,7 +135,7 @@ in {
     (mkRemovedOptionModule [ "services" "matrix-synapse" "user_creation_max_duration" ] "It is no longer supported by synapse." )
     (mkRemovedOptionModule [ "services" "matrix-synapse" "verbose" ] "Use a log config instead." )
 
-    # options that were moved into rfc42 style settigns
+    # options that were moved into rfc42 style settings
     (mkRemovedOptionModule [ "services" "matrix-synapse" "app_service_config_files" ] "Use settings.app_service_config_files instead" )
     (mkRemovedOptionModule [ "services" "matrix-synapse" "database_args" ] "Use settings.database.args instead" )
     (mkRemovedOptionModule [ "services" "matrix-synapse" "database_name" ] "Use settings.database.args.database instead" )
@@ -136,14 +191,127 @@ in {
 
   ];
 
-  options = {
+  options = let
+    listenerType = workerContext: types.submodule {
+      options = {
+        port = mkOption {
+          type = types.port;
+          example = 8448;
+          description = lib.mdDoc ''
+            The port to listen for HTTP(S) requests on.
+          '';
+        };
+
+        bind_addresses = mkOption {
+          type = types.listOf types.str;
+          default = [
+            "::1"
+            "127.0.0.1"
+          ];
+          example = literalExpression ''
+            [
+              "::"
+              "0.0.0.0"
+            ]
+          '';
+          description = lib.mdDoc ''
+            IP addresses to bind the listener to.
+          '';
+        };
+
+        type = mkOption {
+          type = types.enum [
+            "http"
+            "manhole"
+            "metrics"
+            "replication"
+          ];
+          default = "http";
+          example = "metrics";
+          description = lib.mdDoc ''
+            The type of the listener, usually http.
+          '';
+        };
+
+        tls = mkOption {
+          type = types.bool;
+          default = !workerContext;
+          example = false;
+          description = lib.mdDoc ''
+            Whether to enable TLS on the listener socket.
+          '';
+        };
+
+        x_forwarded = mkOption {
+          type = types.bool;
+          default = false;
+          example = true;
+          description = lib.mdDoc ''
+            Use the X-Forwarded-For (XFF) header as the client IP and not the
+            actual client IP.
+          '';
+        };
+
+        resources = mkOption {
+          type = types.listOf (types.submodule {
+            options = {
+              names = mkOption {
+                type = types.listOf (types.enum [
+                  "client"
+                  "consent"
+                  "federation"
+                  "health"
+                  "keys"
+                  "media"
+                  "metrics"
+                  "openid"
+                  "replication"
+                  "static"
+                ]);
+                description = lib.mdDoc ''
+                  List of resources to host on this listener.
+                '';
+                example = [
+                  "client"
+                ];
+              };
+              compress = mkOption {
+                default = false;
+                type = types.bool;
+                description = lib.mdDoc ''
+                  Whether synapse should compress HTTP responses to clients that support it.
+                  This should be disabled if running synapse behind a load balancer
+                  that can do automatic compression.
+                '';
+              };
+            };
+          });
+          description = lib.mdDoc ''
+            List of HTTP resources to serve on this listener.
+          '';
+        };
+      };
+    };
+  in {
     services.matrix-synapse = {
-      enable = mkEnableOption "matrix.org synapse";
+      enable = mkEnableOption (lib.mdDoc "matrix.org synapse");
+
+      serviceUnit = lib.mkOption {
+        type = lib.types.str;
+        readOnly = true;
+        description = lib.mdDoc ''
+          The systemd unit (a service or a target) for other services to depend on if they
+          need to be started after matrix-synapse.
+
+          This option is useful as the actual parent unit for all matrix-synapse processes
+          changes when configuring workers.
+        '';
+      };
 
       configFile = mkOption {
         type = types.path;
         readOnly = true;
-        description = ''
+        description = lib.mdDoc ''
           Path to the configuration file on the target system. Useful to configure e.g. workers
           that also need this.
         '';
@@ -151,10 +319,52 @@ in {
 
       package = mkOption {
         type = types.package;
-        default = pkgs.matrix-synapse;
-        defaultText = literalExpression "pkgs.matrix-synapse";
-        description = ''
-          Overridable attribute of the matrix synapse server package to use.
+        readOnly = true;
+        description = lib.mdDoc ''
+          Reference to the `matrix-synapse` wrapper with all extras
+          (e.g. for `oidc` or `saml2`) added to the `PYTHONPATH` of all executables.
+
+          This option is useful to reference the "final" `matrix-synapse` package that's
+          actually used by `matrix-synapse.service`. For instance, when using
+          workers, it's possible to run
+          `''${config.services.matrix-synapse.package}/bin/synapse_worker` and
+          no additional PYTHONPATH needs to be specified for extras or plugins configured
+          via `services.matrix-synapse`.
+
+          However, this means that this option is supposed to be only declared
+          by the `services.matrix-synapse` module itself and is thus read-only.
+          In order to modify `matrix-synapse` itself, use an overlay to override
+          `pkgs.matrix-synapse-unwrapped`.
+        '';
+      };
+
+      extras = mkOption {
+        type = types.listOf (types.enum (lib.attrNames pkgs.matrix-synapse-unwrapped.optional-dependencies));
+        default = defaultExtras;
+        example = literalExpression ''
+          [
+            "cache-memory" # Provide statistics about caching memory consumption
+            "jwt"          # JSON Web Token authentication
+            "oidc"         # OpenID Connect authentication
+            "postgres"     # PostgreSQL database backend
+            "redis"        # Redis support for the replication stream between worker processes
+            "saml2"        # SAML2 authentication
+            "sentry"       # Error tracking and performance metrics
+            "systemd"      # Provide the JournalHandler used in the default log_config
+            "url-preview"  # Support for oEmbed URL previews
+            "user-search"  # Support internationalized domain names in user-search
+          ]
+        '';
+        description = lib.mdDoc ''
+          Explicitly install extras provided by matrix-synapse. Most
+          will require some additional configuration.
+
+          Extras will automatically be enabled, when the relevant
+          configuration sections are present.
+
+          Please note that this option is additive: i.e. when adding a new item
+          to this list, the defaults are still kept. To override the defaults as well,
+          use `lib.mkForce`.
         '';
       };
 
@@ -167,7 +377,7 @@ in {
             matrix-synapse-pam
           ];
         '';
-        description = ''
+        description = lib.mdDoc ''
           List of additional Matrix plugins to make available.
         '';
       };
@@ -175,7 +385,7 @@ in {
       withJemalloc = mkOption {
         type = types.bool;
         default = false;
-        description = ''
+        description = lib.mdDoc ''
           Whether to preload jemalloc to reduce memory fragmentation and overall usage.
         '';
       };
@@ -183,17 +393,60 @@ in {
       dataDir = mkOption {
         type = types.str;
         default = "/var/lib/matrix-synapse";
-        description = ''
+        description = lib.mdDoc ''
           The directory where matrix-synapse stores its stateful data such as
           certificates, media and uploads.
         '';
       };
 
+      log = mkOption {
+        type = types.attrsOf format.type;
+        defaultText = literalExpression defaultCommonLogConfigText;
+        description = mdDoc ''
+          Default configuration for the loggers used by `matrix-synapse` and its workers.
+          The defaults are added with the default priority which means that
+          these will be merged with additional declarations. These additional
+          declarations also take precedence over the defaults when declared
+          with at least normal priority. For instance
+          the log-level for synapse and its workers can be changed like this:
+
+          ```nix
+          { lib, ... }: {
+            services.matrix-synapse.log.root.level = "WARNING";
+          }
+          ```
+
+          And another field can be added like this:
+
+          ```nix
+          {
+            services.matrix-synapse.log = {
+              loggers."synapse.http.matrixfederationclient".level = "DEBUG";
+            };
+          }
+          ```
+
+          Additionally, the field `handlers.journal.SYSLOG_IDENTIFIER` will be added to
+          each log config, i.e.
+          * `synapse` for `matrix-synapse.service`
+          * `synapse-<worker name>` for `matrix-synapse-worker-<worker name>.service`
+
+          This is only done if this option has a `handlers.journal` field declared.
+
+          To discard all settings declared by this option for each worker and synapse,
+          `lib.mkForce` can be used.
+
+          To discard all settings declared by this option for a single worker or synapse only,
+          [](#opt-services.matrix-synapse.workers._name_.worker_log_config) or
+          [](#opt-services.matrix-synapse.settings.log_config) can be used.
+        '';
+      };
+
       settings = mkOption {
-        default = {};
+        default = { };
         description = mdDoc ''
           The primary synapse configuration. See the
-          [sample configuration](https://github.com/matrix-org/synapse/blob/v${cfg.package.version}/docs/sample_config.yaml)
+          [sample configuration](https://github.com/matrix-org/synapse/blob/v${pkgs.matrix-synapse-unwrapped.version}/docs/sample_config.yaml)
           for possible values.
 
           Secrets should be passed in by using the `extraConfigFiles` option.
@@ -210,7 +463,7 @@ in {
               example = "example.com";
               default = config.networking.hostName;
               defaultText = literalExpression "config.networking.hostName";
-              description = ''
+              description = lib.mdDoc ''
                 The domain name of the server, with optional explicit port.
                 This is used by remote servers to look up the server address.
                 This is also the last part of your UserID.
@@ -222,7 +475,7 @@ in {
             enable_registration = mkOption {
               type = types.bool;
               default = false;
-              description = ''
+              description = lib.mdDoc ''
                 Enable registration for new users.
               '';
             };
@@ -253,7 +506,7 @@ in {
             enable_metrics = mkOption {
               type = types.bool;
               default = false;
-              description = ''
+              description = lib.mdDoc ''
                 Enable collection and rendering of performance metrics
               '';
             };
@@ -261,7 +514,7 @@ in {
             report_stats = mkOption {
               type = types.bool;
               default = false;
-              description = ''
+              description = lib.mdDoc ''
                 Whether or not to report anonymized homeserver usage statistics.
               '';
             };
@@ -269,7 +522,7 @@ in {
             signing_key_path = mkOption {
               type = types.path;
               default = "${cfg.dataDir}/homeserver.signing.key";
-              description = ''
+              description = lib.mdDoc ''
                 Path to the signing key to sign messages with.
               '';
             };
@@ -278,15 +531,16 @@ in {
               type = types.path;
               default = "/run/matrix-synapse.pid";
               readOnly = true;
-              description = ''
+              description = lib.mdDoc ''
                 The file to store the PID in.
               '';
             };
 
             log_config = mkOption {
               type = types.path;
-              default = ./synapse-log_config.yaml;
-              description = ''
+              default = genLogConfigFile "synapse";
+              defaultText = logConfigText "synapse";
+              description = lib.mdDoc ''
                 The file that holds the logging configuration.
               '';
             };
@@ -297,7 +551,7 @@ in {
                 then "${cfg.dataDir}/media_store"
                 else "${cfg.dataDir}/media";
               defaultText = "${cfg.dataDir}/media_store for when system.stateVersion is at least 22.05, ${cfg.dataDir}/media when lower than 22.05";
-              description = ''
+              description = lib.mdDoc ''
                 Directory where uploaded images and attachments are stored.
               '';
             };
@@ -306,7 +560,7 @@ in {
               type = types.nullOr types.str;
               default = null;
               example = "https://example.com:8448/";
-              description = ''
+              description = lib.mdDoc ''
                 The public-facing base URL for the client API (not including _matrix/...)
               '';
             };
@@ -315,7 +569,7 @@ in {
               type = types.nullOr types.str;
               default = null;
               example = "/var/lib/acme/example.com/fullchain.pem";
-              description = ''
+              description = lib.mdDoc ''
                 PEM encoded X509 certificate for TLS.
                 You can replace the self-signed certificate that synapse
                 autogenerates on launch with your own SSL certificate + key pair
@@ -328,7 +582,7 @@ in {
               type = types.nullOr types.str;
               default = null;
               example = "/var/lib/acme/example.com/key.pem";
-              description = ''
+              description = lib.mdDoc ''
                 PEM encoded private key for TLS. Specify null if synapse is not
                 speaking TLS directly.
               '';
@@ -338,7 +592,7 @@ in {
               type = types.bool;
               default = true;
               example = false;
-              description = ''
+              description = lib.mdDoc ''
                 Whether to enable presence tracking.
 
                 Presence tracking allows users to see the state (e.g online/offline)
@@ -347,120 +601,37 @@ in {
             };
 
             listeners = mkOption {
-              type = types.listOf (types.submodule {
-                options = {
-                  port = mkOption {
-                    type = types.port;
-                    example = 8448;
-                    description = ''
-                      The port to listen for HTTP(S) requests on.
-                    '';
-                  };
-
-                  bind_addresses = mkOption {
-                    type = types.listOf types.str;
-                    default = [
-                      "::1"
-                      "127.0.0.1"
-                    ];
-                    example = literalExpression ''
-                    [
-                      "::"
-                      "0.0.0.0"
-                    ]
-                    '';
-                    description = ''
-                     IP addresses to bind the listener to.
-                    '';
-                  };
-
-                  type = mkOption {
-                    type = types.enum [
-                      "http"
-                      "manhole"
-                      "metrics"
-                      "replication"
-                    ];
-                    default = "http";
-                    example = "metrics";
-                    description = ''
-                      The type of the listener, usually http.
-                    '';
-                  };
-
-                  tls = mkOption {
-                    type = types.bool;
-                    default = true;
-                    example = false;
-                    description = ''
-                      Whether to enable TLS on the listener socket.
-                    '';
-                  };
-
-                  x_forwarded = mkOption {
-                    type = types.bool;
-                    default = false;
-                    example = true;
-                    description = ''
-                      Use the X-Forwarded-For (XFF) header as the client IP and not the
-                      actual client IP.
-                    '';
-                  };
-
-                  resources = mkOption {
-                    type = types.listOf (types.submodule {
-                      options = {
-                        names = mkOption {
-                          type = types.listOf (types.enum [
-                            "client"
-                            "consent"
-                            "federation"
-                            "keys"
-                            "media"
-                            "metrics"
-                            "openid"
-                            "replication"
-                            "static"
-                          ]);
-                          description = ''
-                            List of resources to host on this listener.
-                          '';
-                          example = [
-                            "client"
-                          ];
-                        };
-                        compress = mkOption {
-                          type = types.bool;
-                          description = ''
-                            Should synapse compress HTTP responses to clients that support it?
-                            This should be disabled if running synapse behind a load balancer
-                            that can do automatic compression.
-                          '';
-                        };
-                      };
-                    });
-                    description = ''
-                      List of HTTP resources to serve on this listener.
-                    '';
-                  };
-                };
-              });
-              default = [ {
+              type = types.listOf (listenerType false);
+              default = [{
                 port = 8008;
                 bind_addresses = [ "127.0.0.1" ];
                 type = "http";
                 tls = false;
                 x_forwarded = true;
-                resources = [ {
+                resources = [{
                   names = [ "client" ];
                   compress = true;
                 } {
                   names = [ "federation" ];
                   compress = false;
-                } ];
-              } ];
-              description = ''
+                }];
+              }] ++ lib.optional hasWorkers {
+                port = 9093;
+                bind_addresses = [ "127.0.0.1" ];
+                type = "http";
+                tls = false;
+                x_forwarded = false;
+                resources = [{
+                  names = [ "replication" ];
+                  compress = false;
+                }];
+              };
+              description = lib.mdDoc ''
                 List of ports that Synapse should listen on, their purpose and their configuration.
+
+                By default, synapse will be configured for client and federation traffic on port 8008, and
+                for worker replication traffic on port 9093. See [`services.matrix-synapse.workers`](#opt-services.matrix-synapse.workers)
+                for more details.
               '';
             };
 
@@ -472,12 +643,12 @@ in {
               default = if versionAtLeast config.system.stateVersion "18.03"
                 then "psycopg2"
                 else "sqlite3";
-               defaultText = literalExpression ''
+              defaultText = literalExpression ''
                 if versionAtLeast config.system.stateVersion "18.03"
                 then "psycopg2"
                 else "sqlite3"
               '';
-              description = ''
+              description = lib.mdDoc ''
                 The database engine name. Can be sqlite3 or psycopg2.
               '';
             };
@@ -489,12 +660,12 @@ in {
                 psycopg2 = "matrix-synapse";
               }.${cfg.settings.database.name};
               defaultText = literalExpression ''
-              {
-                sqlite3 = "''${${options.services.matrix-synapse.dataDir}}/homeserver.db";
-                psycopg2 = "matrix-synapse";
-              }.''${${options.services.matrix-synapse.settings}.database.name};
+                {
+                  sqlite3 = "''${${options.services.matrix-synapse.dataDir}}/homeserver.db";
+                  psycopg2 = "matrix-synapse";
+                }.''${${options.services.matrix-synapse.settings}.database.name};
               '';
-              description = ''
+              description = lib.mdDoc ''
                 Name of the database when using the psycopg2 backend,
                 path to the database location when using sqlite3.
               '';
@@ -506,7 +677,13 @@ in {
                 sqlite3 = null;
                 psycopg2 = "matrix-synapse";
               }.${cfg.settings.database.name};
-              description = ''
+              defaultText = lib.literalExpression ''
+                {
+                  sqlite3 = null;
+                  psycopg2 = "matrix-synapse";
+                }.''${cfg.settings.database.name};
+              '';
+              description = lib.mdDoc ''
                 Username to connect with psycopg2, set to null
                 when using sqlite3.
               '';
@@ -516,7 +693,7 @@ in {
               type = types.bool;
               default = true;
               example = false;
-              description = ''
+              description = lib.mdDoc ''
                 Is the preview URL API enabled?  If enabled, you *must* specify an
                 explicit url_preview_ip_range_blacklist of IPs that the spider is
                 denied from accessing.
@@ -546,7 +723,7 @@ in {
                 "fec0::/10"
                 "ff00::/8"
               ];
-              description = ''
+              description = lib.mdDoc ''
                 List of IP address CIDR ranges that the URL preview spider is denied
                 from accessing.
               '';
@@ -554,17 +731,36 @@ in {
 
             url_preview_ip_range_whitelist = mkOption {
               type = types.listOf types.str;
-              default = [];
-              description = ''
+              default = [ ];
+              description = lib.mdDoc ''
                 List of IP address CIDR ranges that the URL preview spider is allowed
                 to access even if they are specified in url_preview_ip_range_blacklist.
               '';
             };
 
             url_preview_url_blacklist = mkOption {
-              type = types.listOf types.str;
-              default = [];
-              description = ''
+              # FIXME revert to just `listOf (attrsOf str)` after some time(tm).
+              type = types.listOf (
+                types.coercedTo
+                  types.str
+                  (const (throw ''
+                    Setting `config.services.matrix-synapse.settings.url_preview_url_blacklist`
+                    to a list of strings has never worked. Due to a bug, this was the type accepted
+                    by the module, but in practice it broke on runtime and as a result, no URL
+                    preview worked anywhere if this was set.
+
+                    See https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#url_preview_url_blacklist
+                    on how to configure it properly.
+                  ''))
+                  (types.attrsOf types.str));
+              default = [ ];
+              example = literalExpression ''
+                [
+                  { scheme = "http"; } # no http previews
+                  { netloc = "www.acme.com"; path = "/foo"; } # block http(s)://www.acme.com/foo
+                ]
+              '';
+              description = lib.mdDoc ''
                 Optional list of URL matches that the URL preview spider is
                 denied from accessing.
               '';
@@ -574,7 +770,7 @@ in {
               type = types.str;
               default = "50M";
               example = "100M";
-              description = ''
+              description = lib.mdDoc ''
                 The largest allowed upload size in bytes
               '';
             };
@@ -583,7 +779,7 @@ in {
               type = types.str;
               default = "32M";
               example = "64M";
-              description = ''
+              description = lib.mdDoc ''
                 Maximum number of pixels that will be thumbnailed
               '';
             };
@@ -592,7 +788,7 @@ in {
               type = types.bool;
               default = false;
               example = true;
-              description = ''
+              description = lib.mdDoc ''
                 Whether to generate new thumbnails on the fly to precisely match
                 the resolution requested by the client. If true then whenever
                 a new resolution is requested by the client the server will
@@ -603,14 +799,14 @@ in {
 
             turn_uris = mkOption {
               type = types.listOf types.str;
-              default = [];
+              default = [ ];
               example = [
                 "turn:turn.example.com:3487?transport=udp"
                 "turn:turn.example.com:3487?transport=tcp"
                 "turns:turn.example.com:5349?transport=udp"
                 "turns:turn.example.com:5349?transport=tcp"
               ];
-              description = ''
+              description = lib.mdDoc ''
                 The public URIs of the TURN server to give to clients
               '';
             };
@@ -629,39 +825,24 @@ in {
 
             trusted_key_servers = mkOption {
               type = types.listOf (types.submodule {
+                freeformType = format.type;
                 options = {
                   server_name = mkOption {
                     type = types.str;
                     example = "matrix.org";
-                    description = ''
+                    description = lib.mdDoc ''
                       Hostname of the trusted server.
-                    '';
-                  };
-
-                  verify_keys = mkOption {
-                    type = types.nullOr (types.attrsOf types.str);
-                    default = null;
-                    example = literalExpression ''
-                      {
-                        "ed25519:auto" = "Noi6WqcDj0QmPxCNQqgezwTlBKrfqehY1u2FyWP9uYw";
-                      }
-                    '';
-                    description = ''
-                      Attribute set from key id to base64 encoded public key.
-
-                      If specified synapse will check that the response is signed
-                      by at least one of the given keys.
                     '';
                   };
                 };
               });
-              default = [ {
+              default = [{
                 server_name = "matrix.org";
                 verify_keys = {
                   "ed25519:auto" = "Noi6WqcDj0QmPxCNQqgezwTlBKrfqehY1u2FyWP9uYw";
                 };
-              } ];
-              description = ''
+              }];
+              description = lib.mdDoc ''
                 The trusted servers to download signing keys from.
               '';
             };
@@ -669,19 +850,120 @@ in {
             app_service_config_files = mkOption {
               type = types.listOf types.path;
               default = [ ];
-              description = ''
+              description = lib.mdDoc ''
                 A list of application service config file to use
               '';
             };
 
+            redis = lib.mkOption {
+              type = types.submodule {
+                freeformType = format.type;
+                options = {
+                  enabled = lib.mkOption {
+                    type = types.bool;
+                    default = false;
+                    description = lib.mdDoc ''
+                      Whether to use redis support
+                    '';
+                  };
+                };
+              };
+              default = { };
+              description = lib.mdDoc ''
+                Redis configuration for synapse.
+
+                See the
+                [upstream documentation](https://github.com/matrix-org/synapse/blob/v${pkgs.matrix-synapse-unwrapped.version}/usage/configuration/config_documentation.md#redis)
+                for available options.
+              '';
+            };
           };
         };
       };
 
+      workers = lib.mkOption {
+        default = { };
+        description = lib.mdDoc ''
+          Options for configuring workers. Worker support will be enabled if at least one worker is configured here.
+
+          See the [worker documention](https://matrix-org.github.io/synapse/latest/workers.html#worker-configuration)
+          for possible options for each worker. Worker-specific options overriding the shared homeserver configuration can be
+          specified here for each worker.
+
+          ::: {.note}
+            Worker support will add a replication listener on port 9093 to the main synapse process using the default
+            value of [`services.matrix-synapse.settings.listeners`](#opt-services.matrix-synapse.settings.listeners) and configure that
+            listener as `services.matrix-synapse.settings.instance_map.main`.
+            If you set either of those options, make sure to configure a replication listener yourself.
+
+            A redis server is required for running workers. A local one can be enabled
+            using [`services.matrix-synapse.configureRedisLocally`](#opt-services.matrix-synapse.configureRedisLocally).
+
+            Workers also require a proper reverse proxy setup to direct incoming requests to the appropriate process. See
+            the [reverse proxy documentation](https://matrix-org.github.io/synapse/latest/reverse_proxy.html) for a
+            general reverse proxying setup and
+            the [worker documentation](https://matrix-org.github.io/synapse/latest/workers.html#available-worker-applications)
+            for the available endpoints per worker application.
+          :::
+        '';
+        type = types.attrsOf (types.submodule ({name, ...}: {
+          freeformType = format.type;
+          options = {
+            worker_app = lib.mkOption {
+              type = types.enum [
+                "synapse.app.generic_worker"
+                "synapse.app.media_repository"
+              ];
+              description = "Type of this worker";
+              default = "synapse.app.generic_worker";
+            };
+            worker_listeners = lib.mkOption {
+              default = [ ];
+              type = types.listOf (listenerType true);
+              description = lib.mdDoc ''
+                List of ports that this worker should listen on, their purpose and their configuration.
+              '';
+            };
+            worker_log_config = lib.mkOption {
+              type = types.path;
+              default = genLogConfigFile "synapse-${name}";
+              defaultText = logConfigText "synapse-${name}";
+              description = lib.mdDoc ''
+                The file for log configuration.
+
+                See the [python documentation](https://docs.python.org/3/library/logging.config.html#configuration-dictionary-schema)
+                for the schema and the [upstream repository](https://github.com/matrix-org/synapse/blob/v${pkgs.matrix-synapse-unwrapped.version}/docs/sample_log_config.yaml)
+                for an example.
+              '';
+            };
+          };
+        }));
+        default = { };
+        example = lib.literalExpression ''
+          {
+            "federation_sender" = { };
+            "federation_receiver" = {
+              worker_listeners = [
+                {
+                  type = "http";
+                  port = 8009;
+                  bind_addresses = [ "127.0.0.1" ];
+                  tls = false;
+                  x_forwarded = true;
+                  resources = [{
+                    names = [ "federation" ];
+                  }];
+                }
+              ];
+            };
+          }
+        '';
+      };
+
       extraConfigFiles = mkOption {
         type = types.listOf types.path;
-        default = [];
-        description = ''
+        default = [ ];
+        description = lib.mdDoc ''
           Extra config files to include.
 
           The configuration files will be included based on the command line
@@ -690,30 +972,75 @@ in {
           NixOps is in use.
         '';
       };
+
+      configureRedisLocally = lib.mkOption {
+        type = types.bool;
+        default = false;
+        description = lib.mdDoc ''
+          Whether to automatically configure a local redis server for matrix-synapse.
+        '';
+      };
     };
   };
 
   config = mkIf cfg.enable {
     assertions = [
-      { assertion = hasLocalPostgresDB -> config.services.postgresql.enable;
+      {
+        assertion = clientListener != null;
         message = ''
-          Cannot deploy matrix-synapse with a configuration for a local postgresql database
-            and a missing postgresql service. Since 20.03 it's mandatory to manually configure the
-            database (please read the thread in https://github.com/NixOS/nixpkgs/pull/80447 for
-            further reference).
+          At least one listener which serves the `client` resource via HTTP is required
+          by synapse in `services.matrix-synapse.settings.listeners` or in one of the workers!
+        '';
+      }
+      {
+        assertion = hasWorkers -> cfg.settings.redis.enabled;
+        message = ''
+          Workers for matrix-synapse require configuring a redis instance. This can be done
+          automatically by setting `services.matrix-synapse.configureRedisLocally = true`.
+        '';
+      }
+      {
+        assertion =
+          let
+            main = cfg.settings.instance_map.main;
+            listener = lib.findFirst
+              (
+                listener:
+                  listener.port == main.port
+                  && listenerSupportsResource "replication" listener
+                  && (lib.any (bind: bind == main.host || bind == "0.0.0.0" || bind == "::") listener.bind_addresses)
+              )
+              null
+              cfg.settings.listeners;
+          in
+          hasWorkers -> (cfg.settings.instance_map ? main && listener != null);
+        message = ''
+          Workers for matrix-synapse require setting `services.matrix-synapse.settings.instance_map.main`
+          to any listener configured in `services.matrix-synapse.settings.listeners` with a `"replication"`
+          resource.
 
-            If you
-            - try to deploy a fresh synapse, you need to configure the database yourself. An example
-              for this can be found in <nixpkgs/nixos/tests/matrix-synapse.nix>
-            - update your existing matrix-synapse instance, you simply need to add `services.postgresql.enable = true`
-              to your configuration.
-
-          For further information about this update, please read the release-notes of 20.03 carefully.
+          This is done by default unless you manually configure either of those settings.
         '';
       }
     ];
 
+    services.matrix-synapse.settings.redis = lib.mkIf cfg.configureRedisLocally {
+      enabled = true;
+      path = config.services.redis.servers.matrix-synapse.unixSocket;
+    };
+    services.matrix-synapse.settings.instance_map.main = lib.mkIf hasWorkers (lib.mkDefault {
+      host = "127.0.0.1";
+      port = 9093;
+    });
+
+    services.matrix-synapse.serviceUnit = if hasWorkers then "matrix-synapse.target" else "matrix-synapse.service";
     services.matrix-synapse.configFile = configFile;
+    services.matrix-synapse.package = wrapped;
+
+    # default them, so they are additive
+    services.matrix-synapse.extras = defaultExtras;
+
+    services.matrix-synapse.log = mapAttrsRecursive (const mkDefault) defaultCommonLogConfig;
 
     users.users.matrix-synapse = {
       group = "matrix-synapse";
@@ -727,39 +1054,126 @@ in {
       gid = config.ids.gids.matrix-synapse;
     };
 
-    systemd.services.matrix-synapse = {
-      description = "Synapse Matrix homeserver";
-      after = [ "network.target" ] ++ optional hasLocalPostgresDB "postgresql.service";
+    systemd.targets.matrix-synapse = lib.mkIf hasWorkers {
+      description = "Synapse Matrix parent target";
+      after = [ "network-online.target" ] ++ optional hasLocalPostgresDB "postgresql.service";
       wantedBy = [ "multi-user.target" ];
-      preStart = ''
-        ${cfg.package}/bin/synapse_homeserver \
-          --config-path ${configFile} \
-          --keys-directory ${cfg.dataDir} \
-          --generate-keys
-      '';
-      environment = {
-        PYTHONPATH = makeSearchPathOutput "lib" cfg.package.python.sitePackages [ pluginsEnv ];
-      } // optionalAttrs (cfg.withJemalloc) {
-        LD_PRELOAD = "${pkgs.jemalloc}/lib/libjemalloc.so";
-      };
-      serviceConfig = {
-        Type = "notify";
-        User = "matrix-synapse";
-        Group = "matrix-synapse";
-        WorkingDirectory = cfg.dataDir;
-        ExecStartPre = [ ("+" + (pkgs.writeShellScript "matrix-synapse-fix-permissions" ''
-          chown matrix-synapse:matrix-synapse ${cfg.dataDir}/homeserver.signing.key
-          chmod 0600 ${cfg.dataDir}/homeserver.signing.key
-        '')) ];
-        ExecStart = ''
-          ${cfg.package}/bin/synapse_homeserver \
-            ${ concatMapStringsSep "\n  " (x: "--config-path ${x} \\") ([ configFile ] ++ cfg.extraConfigFiles) }
-            --keys-directory ${cfg.dataDir}
-        '';
-        ExecReload = "${pkgs.util-linux}/bin/kill -HUP $MAINPID";
-        Restart = "on-failure";
-        UMask = "0077";
-      };
+    };
+
+    systemd.services =
+      let
+        targetConfig =
+          if hasWorkers
+          then {
+            partOf = [ "matrix-synapse.target" ];
+            wantedBy = [ "matrix-synapse.target" ];
+            unitConfig.ReloadPropagatedFrom = "matrix-synapse.target";
+            requires = optional hasLocalPostgresDB "postgresql.service";
+          }
+          else {
+            after = [ "network-online.target" ] ++ optional hasLocalPostgresDB "postgresql.service";
+            requires = optional hasLocalPostgresDB "postgresql.service";
+            wantedBy = [ "multi-user.target" ];
+          };
+        baseServiceConfig = {
+          environment = optionalAttrs (cfg.withJemalloc) {
+            LD_PRELOAD = "${pkgs.jemalloc}/lib/libjemalloc.so";
+          };
+          serviceConfig = {
+            Type = "notify";
+            User = "matrix-synapse";
+            Group = "matrix-synapse";
+            WorkingDirectory = cfg.dataDir;
+            ExecReload = "${pkgs.util-linux}/bin/kill -HUP $MAINPID";
+            Restart = "on-failure";
+            UMask = "0077";
+
+            # Security Hardening
+            # Refer to systemd.exec(5) for option descriptions.
+            CapabilityBoundingSet = [ "" ];
+            LockPersonality = true;
+            NoNewPrivileges = true;
+            PrivateDevices = true;
+            PrivateTmp = true;
+            PrivateUsers = true;
+            ProcSubset = "pid";
+            ProtectClock = true;
+            ProtectControlGroups = true;
+            ProtectHome = true;
+            ProtectHostname = true;
+            ProtectKernelLogs = true;
+            ProtectKernelModules = true;
+            ProtectKernelTunables = true;
+            ProtectProc = "invisible";
+            ProtectSystem = "strict";
+            ReadWritePaths = [ cfg.dataDir cfg.settings.media_store_path ];
+            RemoveIPC = true;
+            RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
+            RestrictNamespaces = true;
+            RestrictRealtime = true;
+            RestrictSUIDSGID = true;
+            SystemCallArchitectures = "native";
+            SystemCallFilter = [ "@system-service" "~@resources" "~@privileged" ];
+          };
+        }
+        // targetConfig;
+        genWorkerService = name: workerCfg:
+          let
+            finalWorkerCfg = workerCfg // { worker_name = name; };
+            workerConfigFile = format.generate "worker-${name}.yaml" finalWorkerCfg;
+          in
+          {
+            name = "matrix-synapse-worker-${name}";
+            value = lib.mkMerge [
+              baseServiceConfig
+              {
+                description = "Synapse Matrix worker ${name}";
+                # make sure the main process starts first for potential database migrations
+                after = [ "matrix-synapse.service" ];
+                requires = [ "matrix-synapse.service" ];
+                serviceConfig = {
+                  ExecStart = ''
+                    ${cfg.package}/bin/synapse_worker \
+                      ${ concatMapStringsSep "\n  " (x: "--config-path ${x} \\") ([ configFile workerConfigFile ] ++ cfg.extraConfigFiles) }
+                      --keys-directory ${cfg.dataDir}
+                  '';
+                };
+              }
+            ];
+          };
+      in
+      {
+        matrix-synapse = lib.mkMerge [
+          baseServiceConfig
+          {
+            description = "Synapse Matrix homeserver";
+            preStart = ''
+              ${cfg.package}/bin/synapse_homeserver \
+                --config-path ${configFile} \
+                --keys-directory ${cfg.dataDir} \
+                --generate-keys
+            '';
+            serviceConfig = {
+              ExecStartPre = [
+                ("+" + (pkgs.writeShellScript "matrix-synapse-fix-permissions" ''
+                  chown matrix-synapse:matrix-synapse ${cfg.settings.signing_key_path}
+                  chmod 0600 ${cfg.settings.signing_key_path}
+                ''))
+              ];
+              ExecStart = ''
+                ${cfg.package}/bin/synapse_homeserver \
+                  ${ concatMapStringsSep "\n  " (x: "--config-path ${x} \\") ([ configFile ] ++ cfg.extraConfigFiles) }
+                  --keys-directory ${cfg.dataDir}
+              '';
+            };
+          }
+        ];
+      }
+      // (lib.mapAttrs' genWorkerService cfg.workers);
+
+    services.redis.servers.matrix-synapse = lib.mkIf cfg.configureRedisLocally {
+      enable = true;
+      user = "matrix-synapse";
     };
 
     environment.systemPackages = [ registerNewMatrixUser ];
@@ -767,7 +1181,7 @@ in {
 
   meta = {
     buildDocsInSandbox = false;
-    doc = ./synapse.xml;
+    doc = ./synapse.md;
     maintainers = teams.matrix.members;
   };
 

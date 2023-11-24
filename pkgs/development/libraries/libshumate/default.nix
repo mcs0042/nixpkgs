@@ -10,15 +10,16 @@
 , glib
 , cairo
 , sqlite
-, libsoup
+, libsoup_3
 , gtk4
+, libsysprof-capture
 , xvfb-run
 , gnome
 }:
 
 stdenv.mkDerivation rec {
   pname = "libshumate";
-  version = "1.0.0.alpha.1";
+  version = "1.1.2";
 
   outputs = [ "out" "dev" "devdoc" ];
   outputBin = "devdoc"; # demo app
@@ -28,7 +29,7 @@ stdenv.mkDerivation rec {
     owner = "GNOME";
     repo = "libshumate";
     rev = version;
-    sha256 = "4kCXFUJRglh1aIBk03MNUV8jfx0mJzIFCUDM4g9tzlg=";
+    sha256 = "g/82LQNwM/dwQ/zKDhAGtZE7JEtQ0jFWcylcP1azvSY=";
   };
 
   nativeBuildInputs = [
@@ -44,11 +45,12 @@ stdenv.mkDerivation rec {
     glib
     cairo
     sqlite
-    libsoup
+    libsoup_3
     gtk4
+    libsysprof-capture
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     xvfb-run
   ];
 
@@ -56,12 +58,15 @@ stdenv.mkDerivation rec {
     "-Ddemos=true"
   ];
 
-  doCheck = true;
+  doCheck = !stdenv.isDarwin;
 
   checkPhase = ''
     runHook preCheck
 
-    HOME=$TMPDIR xvfb-run meson test --print-errorlogs
+    env \
+      HOME="$TMPDIR" \
+      GTK_A11Y=none \
+      xvfb-run meson test --print-errorlogs
 
     runHook postCheck
   '';
@@ -83,6 +88,6 @@ stdenv.mkDerivation rec {
     homepage = "https://gitlab.gnome.org/GNOME/libshumate";
     license = licenses.lgpl21Plus;
     maintainers = teams.gnome.members;
-    platforms = platforms.linux;
+    platforms = platforms.unix;
   };
 }

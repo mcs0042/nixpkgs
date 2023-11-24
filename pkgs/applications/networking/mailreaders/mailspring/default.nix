@@ -17,15 +17,16 @@
 , xorg
 , mesa
 , libdrm
+, libappindicator
 }:
 
 stdenv.mkDerivation rec {
   pname = "mailspring";
-  version = "1.10.3";
+  version = "1.12.0";
 
   src = fetchurl {
     url = "https://github.com/Foundry376/Mailspring/releases/download/${version}/mailspring-${version}-amd64.deb";
-    sha256 = "sha256-+H2KeaRBApveUG6Vz+Z8LWpmNpZ4lwyeX1LK0AKx/bw=";
+    hash = "sha256-6dTAPetJgYrvIEtu+2QxcBOeYFZfN/dFhM0CZFzcC/E=";
   };
 
   nativeBuildInputs = [
@@ -55,6 +56,8 @@ stdenv.mkDerivation rec {
     coreutils
     openssl
     (lib.getLib udev)
+    libappindicator
+    libsecret
   ];
 
   unpackPhase = ''
@@ -93,9 +96,10 @@ stdenv.mkDerivation rec {
     '';
     sourceProvenance = with sourceTypes; [ binaryNativeCode ];
     license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ toschmidt doronbehar ];
+    maintainers = with maintainers; [ toschmidt ];
     homepage = "https://getmailspring.com";
     downloadPage = "https://github.com/Foundry376/Mailspring";
     platforms = [ "x86_64-linux" ];
+    knownVulnerabilities = [ "CVE-2023-4863" ];
   };
 }

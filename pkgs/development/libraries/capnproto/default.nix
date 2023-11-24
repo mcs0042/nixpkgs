@@ -1,25 +1,25 @@
 { lib
 , stdenv
 , fetchFromGitHub
-, capnproto
-, cmake }:
+, cmake
+, openssl
+, zlib
+}:
 
 stdenv.mkDerivation rec {
   pname = "capnproto";
-  version = "0.10.2";
+  version = "1.0.1";
 
   # release tarballs are missing some ekam rules
   src = fetchFromGitHub {
     owner = "capnproto";
     repo = "capnproto";
     rev = "v${version}";
-    sha256 = "sha256-vBp4CAfPpd7/hdGk7JBxMTjtFFvXx16ODOfqDd8bAjc=";
+    sha256 = "sha256-ZruJikcMZuUBmNq+f6+wUl4Rr6MVFxmgcj1TSOKM1ZE=";
   };
 
-  nativeBuildInputs = [ cmake ]
-    ++ lib.optional (!(stdenv.buildPlatform.canExecute stdenv.hostPlatform)) capnproto;
-
-  cmakeFlags = lib.optional (!(stdenv.buildPlatform.canExecute stdenv.hostPlatform)) "-DEXTERNAL_CAPNP";
+  nativeBuildInputs = [ cmake ];
+  propagatedBuildInputs = [ openssl zlib ];
 
   meta = with lib; {
     homepage    = "https://capnproto.org/";
@@ -31,6 +31,6 @@ stdenv.mkDerivation rec {
     '';
     license     = licenses.mit;
     platforms   = platforms.all;
-    maintainers = with maintainers; [ cstrahan ];
+    maintainers = with maintainers; [ ];
   };
 }

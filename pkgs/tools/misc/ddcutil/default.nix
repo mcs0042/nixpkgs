@@ -1,12 +1,11 @@
 { lib
 , stdenv
-, fetchFromGitHub
+, fetchurl
 , autoreconfHook
 , pkg-config
 , glib
-, i2c-tools
+, jansson
 , udev
-, kmod
 , libgudev
 , libusb1
 , libdrm
@@ -15,25 +14,23 @@
 
 stdenv.mkDerivation rec {
   pname = "ddcutil";
-  version = "1.2.2";
+  version = "2.0.0";
 
-  src = fetchFromGitHub {
-    owner = "rockowitz";
-    repo = "ddcutil";
-    rev = "v${version}";
-    sha256 = "0hbd2ybpqmm96icg387vr57dqkdbc20vyimqjq5yx0sdlp4ikzi7";
+  src = fetchurl {
+    url = "https://www.ddcutil.com/tarballs/ddcutil-${version}.tar.gz";
+    hash = "sha256-CunFRQHKk3q8CU60TSRnRoCW7+9X1+JpJHm773HhmZs=";
   };
 
   nativeBuildInputs = [ autoreconfHook pkg-config ];
 
   buildInputs = [
     glib
-    i2c-tools
-    kmod
+    jansson
     libdrm
     libgudev
     libusb1
     udev
+    xorg.libXext
     xorg.libXrandr
   ];
 
@@ -45,6 +42,7 @@ stdenv.mkDerivation rec {
     license = licenses.gpl2;
     platforms = platforms.linux;
     maintainers = with maintainers; [ rnhmjoj ];
+    changelog = "https://github.com/rockowitz/ddcutil/blob/v${version}/CHANGELOG.md";
   };
 }
 

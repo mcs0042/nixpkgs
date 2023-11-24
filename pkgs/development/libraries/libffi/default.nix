@@ -5,15 +5,16 @@
   # dejagnu also requires tcl which can't be built statically at the moment
 , doCheck ? !(stdenv.hostPlatform.isStatic)
 , dejagnu
+, nix-update-script
 }:
 
 stdenv.mkDerivation rec {
   pname = "libffi";
-  version = "3.4.2";
+  version = "3.4.4";
 
   src = fetchurl {
     url = "https://github.com/libffi/libffi/releases/download/v${version}/${pname}-${version}.tar.gz";
-    sha256 = "081nx7wpzds168jbr59m34n6s3lyiq6r8zggvqxvlslsc4hvf3sl";
+    sha256 = "sha256-1mxWrSWags8qnfxAizK/XaUjcVALhHRff7i2RXEt9nY=";
   };
 
   # Note: this package is used for bootstrapping fetchurl, and thus
@@ -21,7 +22,6 @@ stdenv.mkDerivation rec {
   # cgit) that are needed here should be included directly in Nixpkgs as
   # files.
   patches = [
-    ./libffi-powerpc64.patch
   ];
 
   strictDeps = true;
@@ -34,16 +34,11 @@ stdenv.mkDerivation rec {
   configureFlags = [
     "--with-gcc-arch=generic" # no detection of -march= or -mtune=
     "--enable-pax_emutramp"
-
-    # Causes issues in downstream packages which misuse ffi_closure_alloc
-    # Reenable once these issues are fixed and merged:
-    # https://gitlab.haskell.org/ghc/ghc/-/merge_requests/6155
-    # https://gitlab.gnome.org/GNOME/gobject-introspection/-/merge_requests/283
-    "--disable-exec-static-tramp"
   ];
 
   preCheck = ''
     # The tests use -O0 which is not compatible with -D_FORTIFY_SOURCE.
+    NIX_HARDENING_ENABLE=''${NIX_HARDENING_ENABLE/fortify3/}
     NIX_HARDENING_ENABLE=''${NIX_HARDENING_ENABLE/fortify/}
   '';
 
@@ -51,7 +46,11 @@ stdenv.mkDerivation rec {
 
   inherit doCheck;
 
-  checkInputs = [ dejagnu ];
+  nativeCheckInputs = [ dejagnu ];
+
+  passthru = {
+    updateScript = nix-update-script { };
+  };
 
   meta = with lib; {
     description = "A foreign function call interface library";

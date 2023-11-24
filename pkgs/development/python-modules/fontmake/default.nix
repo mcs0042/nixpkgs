@@ -12,11 +12,11 @@
 
 buildPythonPackage rec {
   pname = "fontmake";
-  version = "3.3.0";
+  version = "3.7.1";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-lD7MvZdr9CeWdoZtD3+8stVJTeQN5/AQ4miA/I2TFoE=";
+    hash = "sha256-Nb09/BRPR0H3rHrbDIhcrgOyJp55KCIdPvUr/vh2Z0U=";
     extension = "zip";
   };
 

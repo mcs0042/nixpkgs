@@ -1,15 +1,23 @@
-{ lib, buildPythonPackage, fetchPypi }:
+{ lib
+, buildPythonPackage
+, fetchPypi
+}:
 
 buildPythonPackage rec {
   pname = "easydict";
-  version = "1.9";
+  version = "1.11";
+  format = "setuptools";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "3f3f0dab07c299f0f4df032db1f388d985bb57fa4c5be30acd25c5f9a516883b";
+    hash = "sha256-3LHS7SjrMAyORs03E0A3Orxi98FNbep0/fxvEGkGHHg=";
   };
 
-  docheck = false; # No tests in archive
+  doCheck = false; # No tests in archive
+
+  pythonImportsCheck = [
+    "easydict"
+  ];
 
   meta = with lib; {
     homepage = "https://github.com/makinacorpus/easydict";

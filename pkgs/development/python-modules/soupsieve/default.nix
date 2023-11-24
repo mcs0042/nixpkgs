@@ -1,20 +1,23 @@
 { lib
 , buildPythonPackage
 , fetchPypi
+, hatchling
 , isPy3k
-, backports_functools_lru_cache
 }:
 
 buildPythonPackage rec {
   pname = "soupsieve";
-  version = "2.3.1";
+  version = "2.5";
+  format = "pyproject";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "b8d49b1cd4f037c7082a9683dfa1801aa2597fb11c3a1155b7a5b94829b4f1f9";
+    hash = "sha256-VmPVp7O/ru4LxDcuf8SPnP9JQLPuxUpkUcxSmfEJdpA=";
   };
 
-  propagatedBuildInputs = lib.optional (!isPy3k) backports_functools_lru_cache;
+  nativeBuildInputs = [
+    hatchling
+  ];
 
   # Circular dependency on beautifulsoup4
   doCheck = false;

@@ -9,17 +9,17 @@
 
 buildPythonPackage rec {
   pname = "billiard";
-  version = "3.6.4.0";
+  version = "4.1.0";
   format = "setuptools";
 
   disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "0ismj2p8c66ykpss94rs0bfra5agxxmljz8r3gaq79r8valfb799";
+    hash = "sha256-GtLuro4oBT1ym6M3PTTZ1uIQ9uTYvwqcZPkr0FPx7fU=";
   };
 
-  checkInputs = [
+  nativeCheckInputs = [
     case
     psutil
     pytestCheckHook
@@ -37,6 +37,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Python multiprocessing fork with improvements and bugfixes";
     homepage = "https://github.com/celery/billiard";
+    changelog = "https://github.com/celery/billiard/blob/v${version}/CHANGES.txt";
     license = licenses.bsd3;
     maintainers = with maintainers; [ ];
   };

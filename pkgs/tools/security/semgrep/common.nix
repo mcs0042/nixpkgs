@@ -1,38 +1,40 @@
-{ lib, fetchFromGitHub, fetchzip }:
+{ lib }:
 
 rec {
-  version = "0.103.0";
+  version = "1.37.0";
 
-  src = fetchFromGitHub {
-    owner = "returntocorp";
-    repo = "semgrep";
-    rev = "v${version}";
-    sha256 = "sha256-vk6GBgLsXRLAVu60xW4WWWhhi4b1WLceTxh/TeISIUg=";
-  };
+  srcHash = "sha256-oFJ43dq3DAhux0UEFDKFZnxruoRdOfCndKY6XgG3d5I=";
 
   # submodule dependencies
   # these are fetched so we:
   #   1. don't fetch the many submodules we don't need
   #   2. avoid fetchSubmodules since it's prone to impurities
-  langsSrc = fetchFromGitHub {
-    owner = "returntocorp";
-    repo = "semgrep-langs";
-    rev = "78e518dad1ce2a7c76854c944245434bd8426439";
-    sha256 = "sha256-t9F/OzzT6FI9G4Fxz0lUjz6TVrJlenusQNJnFpiKaQs=";
-  };
-
-  interfacesSrc = fetchFromGitHub {
-    owner = "returntocorp";
-    repo = "semgrep-interfaces";
-    rev = "a64a45034ea428ecbe9da6bd849a4f1cfd23cdd2";
-    sha256 = "sha256-eatuyA5xyfZVHCmHvZIzQK2c5eEWUEZd9LumJQtk8+s=";
+  submodules = {
+    "cli/src/semgrep/semgrep_interfaces" = {
+      owner = "returntocorp";
+      repo = "semgrep-interfaces";
+      rev = "331603197022625f50a64dd5e3029a96a5f03ada";
+      hash = "sha256-UAcWbTSCIdBGvgGSbdQ+miFOEuBvQ6m42MkU3VeErKY=";
+    };
   };
 
   # fetch pre-built semgrep-core since the ocaml build is complex and relies on
   # the opam package manager at some point
-  coreRelease = fetchzip {
-    url = "https://github.com/returntocorp/semgrep/releases/download/v${version}/semgrep-v${version}-ubuntu-16.04.tgz";
-    sha256 = "sha256-L3NbiVYmgJim7H4W1cr75WOItSiHT1YIkUEefuaCYlY=";
+  # pulling it out of the python wheel as r2c no longer release a built binary
+  # on github releases
+  core = {
+    x86_64-linux = {
+      platform = "any";
+      hash = "sha256-Sj/6tzZMyRQAJL09X/3zgvdGTIhNibqO8usKsus9Xss=";
+    };
+    x86_64-darwin = {
+      platform = "macosx_10_14_x86_64";
+      hash = "sha256-hC04VknZG6aYYNX7lqvkcOoVslewNqlYax+o1nV2TcM=";
+    };
+    aarch64-darwin = {
+      platform = "macosx_11_0_arm64";
+      hash = "sha256-0F+ndM4+0dnxf9acwWvGdIy9iYWSqixS9IzOxa95/yM=";
+    };
   };
 
   meta = with lib; {
@@ -49,7 +51,5 @@ rec {
     '';
     license = licenses.lgpl21Plus;
     maintainers = with maintainers; [ jk ambroisie ];
-    # limited by semgrep-core
-    platforms = [ "x86_64-linux" ];
   };
 }

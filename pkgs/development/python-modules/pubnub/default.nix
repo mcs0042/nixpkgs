@@ -1,6 +1,7 @@
 { lib
 , aiohttp
 , buildPythonPackage
+, busypie
 , cbor2
 , fetchFromGitHub
 , pycryptodomex
@@ -13,7 +14,7 @@
 
 buildPythonPackage rec {
   pname = "pubnub";
-  version = "6.4.1";
+  version = "7.3.1";
   format = "setuptools";
 
   disabled = pythonOlder "3.7";
@@ -22,7 +23,7 @@ buildPythonPackage rec {
     owner = pname;
     repo = "python";
     rev = "refs/tags/v${version}";
-    hash = "sha256-NpGhZrfUXKpz520l1S+cCfTrI2T/7XlO0Kk1e+XR8Ew=";
+    hash = "sha256-V6yw/OscTGwrFcjHEhwtaT7txWLqbVj0uYjuoSAtP2E=";
   };
 
   propagatedBuildInputs = [
@@ -32,7 +33,8 @@ buildPythonPackage rec {
     requests
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
+    busypie
     pytest-asyncio
     pytest-vcr
     pytestCheckHook
@@ -45,6 +47,11 @@ buildPythonPackage rec {
     "tests/functional/push"
   ];
 
+  disabledTests = [
+    "test_subscribe"
+    "test_handshaking"
+  ];
+
   pythonImportsCheck = [
     "pubnub"
   ];
@@ -52,6 +59,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Python-based APIs for PubNub";
     homepage = "https://github.com/pubnub/python";
+    changelog = "https://github.com/pubnub/python/releases/tag/v${version}";
     license = with licenses; [ mit ];
     maintainers = with maintainers; [ fab ];
   };

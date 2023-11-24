@@ -13,17 +13,32 @@
 
 stdenv.mkDerivation rec {
   pname = "wvkbd";
-  version = "0.7";
+  version = "0.14.3";
 
   src = fetchFromGitHub {
     owner = "jjsullivan5196";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-5UV2PMrLXtF3AxjfPxxwFRkgVef+Ap8nG1v795o0bWE=";
+    sha256 = "sha256-U4xq9FY2uZlnBwm8Se1wReU1c1RAJMx6FIoD0D2BlM4=";
   };
 
-  nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ wayland-scanner wayland pango glib harfbuzz cairo libxkbcommon ];
+  postPatch = ''
+    substituteInPlace Makefile \
+      --replace "pkg-config" "$PKG_CONFIG"
+  '';
+
+  nativeBuildInputs = [
+    pkg-config
+    wayland-scanner
+  ];
+  buildInputs = [
+    cairo
+    glib
+    harfbuzz
+    libxkbcommon
+    pango
+    wayland
+  ];
   installFlags = [ "PREFIX=$(out)" ];
 
   meta = with lib; {
