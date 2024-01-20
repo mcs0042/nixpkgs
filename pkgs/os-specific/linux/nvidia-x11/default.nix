@@ -27,12 +27,12 @@ rec {
   stable = if stdenv.hostPlatform.system == "i686-linux" then legacy_390 else latest;
 
   production = generic {
-    version = "535.146.02";
-    sha256_64bit = "sha256-Sf0cyeRFyYspP3xm82vs/hLMwd6WDf/z8dyWujqcv3A=";
-    sha256_aarch64 = "sha256-8G0oNdaVWxIGwVaQSw/cojy4TIAuiUBF3B98BI4hEec=";
-    openSha256 = "sha256-Oyllcy3uYYK912CIusMwjKKHtMgoyOxpZWQQ8hIycuk=";
-    settingsSha256 = "sha256-IrN2NaPrZSN0sCZqYNJ43iCicX3ziwUgyLLSRzp9sHQ=";
-    persistencedSha256 = "sha256-trIddaTgKXszEJunK+t6D+e3HbLDTfAsitdEYRgwRNQ=";
+    version = "535.154.05";
+    sha256_64bit = "sha256-fpUGXKprgt6SYRDxSCemGXLrEsIA6GOinp+0eGbqqJg=";
+    sha256_aarch64 = "sha256-G0/GiObf/BZMkzzET8HQjdIcvCSqB1uhsinro2HLK9k=";
+    openSha256 = "sha256-wvRdHguGLxS0mR06P5Qi++pDJBCF8pJ8hr4T8O6TJIo=";
+    settingsSha256 = "sha256-9wqoDEWY4I7weWW05F4igj1Gj9wjHsREFMztfEmqm10=";
+    persistencedSha256 = "sha256-d0Q3Lk80JqkS1B54Mahu2yY/WocOqFFbZVBh+ToGhaE=";
   };
 
   latest = selectHighestVersion production (generic {
@@ -124,8 +124,8 @@ rec {
     aurPatches = fetchFromGitHub {
       owner = "archlinux-jerry";
       repo = "nvidia-340xx";
-      rev = "fa434fb5da47e9423db2b19577817eb8c65d2f4e";
-      hash = "sha256-KeMTYHGuZSAPGnYaERZSMu/4lWyB25ZCIv4nJhXxABY=";
+      rev = "7616dfed253aa93ca7d2e05caf6f7f332c439c90";
+      hash = "sha256-1qlYc17aEbLD4W8XXn1qKryBk2ltT6cVIv5zAs0jXZo=";
     };
     patchset = [
       "0001-kernel-5.7.patch"
@@ -142,6 +142,7 @@ rec {
       "0012-kernel-6.2.patch"
       "0013-kernel-6.3.patch"
       "0014-kernel-6.5.patch"
+      "0015-kernel-6.6.patch"
     ];
   in generic {
     version = "340.108";
@@ -151,7 +152,7 @@ rec {
     persistencedSha256 = "1ax4xn3nmxg1y6immq933cqzw6cj04x93saiasdc0kjlv0pvvnkn";
     useGLVND = false;
 
-    broken = kernel.kernelAtLeast "6.6";
+    broken = kernel.kernelAtLeast "6.7";
     patches = map (patch: "${aurPatches}/${patch}") patchset;
   };
 }

@@ -891,6 +891,8 @@ let
 
     kicadsch = callPackage ../development/ocaml-modules/kicadsch { };
 
+    kqueue = callPackage ../development/ocaml-modules/kqueue { };
+
     ### L ###
 
     lablgl = callPackage ../development/ocaml-modules/lablgl { };
@@ -1008,8 +1010,6 @@ let
 
     macaddr-sexp = callPackage ../development/ocaml-modules/macaddr/sexp.nix { };
 
-    macaque = callPackage ../development/ocaml-modules/macaque { };
-
     mad = callPackage ../development/ocaml-modules/mad { };
 
     magic = callPackage ../development/ocaml-modules/magic { };
@@ -1108,7 +1108,7 @@ let
 
     mirage-crypto-pk = callPackage ../development/ocaml-modules/mirage-crypto/pk.nix { };
 
-    mirage-crypto-rng = callPackage ../development/ocaml-modules/mirage-crypto/rng.nix { mtime = mtime_1; };
+    mirage-crypto-rng = callPackage ../development/ocaml-modules/mirage-crypto/rng.nix { };
 
     mirage-crypto-rng-async = callPackage ../development/ocaml-modules/mirage-crypto/rng-async.nix { };
 
@@ -1173,6 +1173,8 @@ let
     msgpck = callPackage ../development/ocaml-modules/msgpck { };
 
     mrmime = callPackage ../development/ocaml-modules/mrmime { };
+
+    msat = callPackage ../development/ocaml-modules/msat { };
 
     mtime_1 =  callPackage ../development/ocaml-modules/mtime/1_x.nix { };
     mtime =  callPackage ../development/ocaml-modules/mtime { };
@@ -1385,6 +1387,8 @@ let
 
     oseq = callPackage ../development/ocaml-modules/oseq { };
 
+    otfed = callPackage ../development/ocaml-modules/otfed { };
+
     otfm = callPackage ../development/ocaml-modules/otfm { };
 
     otoml = callPackage ../development/ocaml-modules/otoml { };
@@ -1440,6 +1444,8 @@ let
     plotkicadsch = callPackage ../development/ocaml-modules/plotkicadsch {
       inherit (pkgs) coreutils imagemagick;
     };
+
+    poll = callPackage ../development/ocaml-modules/poll { };
 
     polynomial = callPackage ../development/ocaml-modules/polynomial { };
 
@@ -1764,7 +1770,7 @@ let
     topkg = callPackage ../development/ocaml-modules/topkg { };
 
     torch = callPackage ../development/ocaml-modules/torch {
-      inherit (pkgs.python3Packages) torch;
+      torch = pkgs.libtorch-bin;
     };
 
     trace = callPackage ../development/ocaml-modules/trace { };
