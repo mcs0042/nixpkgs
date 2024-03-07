@@ -12,7 +12,7 @@
 }:
 
 let
-  version = "4.5.0";
+  version = "4.5.3";
 
   libsecp256k1_name =
     if stdenv.isLinux then "libsecp256k1.so.{v}"
@@ -29,11 +29,11 @@ let
     owner = "spesmilo";
     repo = "electrum";
     rev = version;
-    sha256 = "sha256-IEKuHUlH+dg+8w+n7XV7hdDOPOFZ/lpUsIlYldwR44Y=";
+    sha256 = "sha256-Lr6ynHAbyaiaxYAWU5j5Wh5acxO5HkP1/jpnFrL4j68=";
 
     postFetch = ''
       mv $out ./all
-      mv ./all/electrum/tests $out
+      mv ./all/tests $out
     '';
   };
 
@@ -45,16 +45,16 @@ python3.pkgs.buildPythonApplication {
 
   src = fetchurl {
     url = "https://download.electrum.org/${version}/Electrum-${version}.tar.gz";
-    sha256 = "sha256-s4FH8FtPg4wepU/5XI062dAN9fCYR1xJGwrxftCSKzw=";
+    sha256 = "sha256-kej0msc7SB+51ad5xZrT8MMEY5rfYOGqum6RO1gBH5s=";
   };
 
   postUnpack = ''
     # can't symlink, tests get confused
-    cp -ar ${tests} $sourceRoot/electrum/tests
+    cp -ar ${tests} $sourceRoot/tests
   '';
 
   nativeBuildInputs = lib.optionals enableQt [ wrapQtAppsHook ];
-  buildInputs = lib.optional stdenv.isLinux qtwayland;
+  buildInputs = lib.optional (stdenv.isLinux && enableQt) qtwayland;
 
   propagatedBuildInputs = with python3.pkgs; [
     aiohttp
@@ -83,6 +83,10 @@ python3.pkgs.buildPythonApplication {
   ] ++ lib.optionals enableQt [
     pyqt5
     qdarkstyle
+  ];
+
+  checkInputs = with python3.pkgs; lib.optionals enableQt [
+    pyqt6
   ];
 
   postPatch = ''
@@ -115,7 +119,7 @@ python3.pkgs.buildPythonApplication {
 
   nativeCheckInputs = with python3.pkgs; [ pytestCheckHook pyaes pycryptodomex ];
 
-  pytestFlagsArray = [ "electrum/tests" ];
+  pytestFlagsArray = [ "tests" ];
 
   postCheck = ''
     $out/bin/electrum help >/dev/null
@@ -137,5 +141,6 @@ python3.pkgs.buildPythonApplication {
     license = licenses.mit;
     platforms = platforms.all;
     maintainers = with maintainers; [ joachifm np prusnak ];
+    mainProgram = "electrum";
   };
 }
