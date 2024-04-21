@@ -100,10 +100,12 @@ rec {
   clion = (mkJetBrainsProduct {
     pname = "clion";
     extraBuildInputs = lib.optionals (stdenv.isLinux) [
+      fontconfig
       python3
       stdenv.cc.cc
       openssl
       libxcrypt-legacy
+      lttng-ust_2_12
       musl
     ] ++ lib.optionals (stdenv.isLinux && stdenv.isAarch64) [
       expat
@@ -141,7 +143,10 @@ rec {
     extraBuildInputs = [ libgcc libr stdenv.cc.cc ];
   };
 
-  gateway = mkJetBrainsProduct { pname = "gateway"; };
+  gateway = mkJetBrainsProduct {
+    pname = "gateway";
+    extraBuildInputs = [ libgcc ];
+  };
 
   goland = (mkJetBrainsProduct {
     pname = "goland";
