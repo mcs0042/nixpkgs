@@ -1,22 +1,37 @@
-{ lib, rustPlatform, fetchpatch, fetchFromGitHub }:
+{
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
+  gnuplot,
+  makeWrapper,
+  testers,
+  mini-calc,
+}:
 rustPlatform.buildRustPackage rec {
   pname = "mini-calc";
-  version = "2.12.3";
+  version = "2.13.2";
 
   src = fetchFromGitHub {
     owner = "coco33920";
     repo = "calc";
     rev = version;
-    hash = "sha256-/aTfh3d63wwk3xai2F/D1fMJiDO4mg+OeLIanV4vSuA=";
+    hash = "sha256-qLPIo+Ht34YApWwl16Xscq2+vlAdlbCK5AeKy5q9cO0=";
   };
 
-  cargoHash = "sha256-BfaOhEAKZmTYkzz6rvcSmDPufyQMJFtQO6CRksgA/2U=";
-  cargoPatches = [
-    (fetchpatch {
-      url = "https://github.com/coco33920/calc/commit/a010c72b5c06c75b7f644071f2861394dd5c74b8.patch";
-      sha256 = "sha256-ceyxfgiXHS+oOJ4apM8+cSjMICwGlQHMKjFICATmKTU=";
-    })
-  ];
+  cargoHash = "sha256-oWN9JLPswNKRKDG3dh3z7aleAaqQ7AlMP+Zp2BpBueE=";
+
+  nativeBuildInputs = [ makeWrapper ];
+  postFixup = ''
+    wrapProgram $out/bin/mini-calc \
+      --prefix PATH : "${lib.makeBinPath [ gnuplot ]}"
+  '';
+
+  passthru.tests.version = testers.testVersion {
+    package = mini-calc;
+    # `mini-calc -v` does not output in the test env, fallback to pipe
+    command = "echo -v | mini-calc";
+    version = "v${version}";
+  };
 
   meta = {
     description = "A fully-featured minimalistic configurable calculator written in Rust";

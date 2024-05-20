@@ -13,7 +13,7 @@
 
 buildPythonPackage rec {
   pname = "line-profiler";
-  version = "4.1.2";
+  version = "4.1.3";
   format = "setuptools";
 
   disabled = pythonOlder "3.6" || isPyPy;
@@ -21,7 +21,7 @@ buildPythonPackage rec {
   src = fetchPypi {
     pname = "line_profiler";
     inherit version;
-    hash = "sha256-qlZXiw/1p1b+GAs/2nvWfCe71Hiz0BJGEtjPAOSiHfI=";
+    hash = "sha256-5fESPDZywyGLoGPCO9ZKURWeRGSf7WeAuZPHgfte0xg=";
   };
 
   nativeBuildInputs = [
@@ -60,6 +60,5 @@ buildPythonPackage rec {
     homepage = "https://github.com/pyutils/line_profiler";
     changelog = "https://github.com/pyutils/line_profiler/blob/v${version}/CHANGELOG.rst";
     license = licenses.bsd3;
-    maintainers = with maintainers; [ fridh ];
   };
 }

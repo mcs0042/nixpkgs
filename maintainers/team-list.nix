@@ -32,7 +32,6 @@ with lib.maintainers; {
   acme = {
     members = [
       aanderse
-      andrew-d
       arianvp
       emily
       flokli
@@ -46,7 +45,6 @@ with lib.maintainers; {
   bazel = {
     members = [
       mboes
-      marsam
       uri-canva
       cbley
       olebedev
@@ -99,7 +97,6 @@ with lib.maintainers; {
   budgie = {
     members = [
       bobby285271
-      federicoschonborn
     ];
     scope = "Maintain Budgie desktop environment";
     shortName = "Budgie";
@@ -265,8 +262,9 @@ with lib.maintainers; {
   };
 
   docs = {
-    members = [
-      ryantm
+    members = [ ];
+    githubTeams = [
+      "documentation-team"
     ];
     scope = "Maintain nixpkgs/NixOS documentation and tools for building it.";
     shortName = "Docs";
@@ -380,7 +378,6 @@ with lib.maintainers; {
       krav
       talyz
       yayayayaka
-      yuka
     ];
     scope = "Maintain gitlab packages.";
     shortName = "gitlab";
@@ -408,7 +405,6 @@ with lib.maintainers; {
       hedning
       jtojnar
       dasj19
-      amaxine
     ];
     githubTeams = [
       "gnome"
@@ -465,6 +461,14 @@ with lib.maintainers; {
     ];
     scope = "Maintain the Home Assistant ecosystem";
     shortName = "Home Assistant";
+  };
+
+  infisical = {
+    members = [
+      akhilmhdh
+    ];
+    scope = "Maintain Infisical";
+    shortName = "Infisical";
   };
 
   iog = {
@@ -531,7 +535,6 @@ with lib.maintainers; {
     members = [
       aanderse
       edwtjo
-      MP2E
       thiagokokada
     ];
     scope = "Maintain Libretro, RetroArch and related packages.";
@@ -574,6 +577,9 @@ with lib.maintainers; {
       RossComputerGuy
       rrbutani
       sternenseemann
+    ];
+    githubTeams = [
+      "llvm"
     ];
     scope = "Maintain LLVM package sets and related packages";
     shortName = "LLVM";
@@ -720,6 +726,16 @@ with lib.maintainers; {
     enableFeatureFreezePing = true;
   };
 
+  lix = {
+    members = [
+      raitobezarius
+      qyriad
+    ];
+    scope = "Maintain the Lix package manager inside of Nixpkgs.";
+    shortName = "Lix ecosystem";
+    enableFeatureFreezePing = true;
+  };
+
   module-system = {
     members = [
       infinisil
@@ -733,7 +749,6 @@ with lib.maintainers; {
   node = {
     members = [
       lilyinstarlight
-      marsam
       winter
     ];
     scope = "Maintain Node.js runtimes and build tooling.";
@@ -799,6 +814,7 @@ with lib.maintainers; {
       aanderse
       drupol
       ma27
+      patka
       talyz
     ];
     githubTeams = [
@@ -831,7 +847,6 @@ with lib.maintainers; {
 
   python = {
     members = [
-      fridh
       hexa
       jonringer
       tjni
@@ -861,8 +876,10 @@ with lib.maintainers; {
 
   r = {
     members = [
+      b-rodrigues
       bcdarwin
       jbedo
+      kupac
     ];
     scope = "Maintain the R programming language and related packages.";
     shortName = "R";
@@ -903,7 +920,6 @@ with lib.maintainers; {
 
   ruby = {
     members = [
-      marsam
     ];
     scope = "Maintain the Ruby interpreter and related packages.";
     shortName = "Ruby";
